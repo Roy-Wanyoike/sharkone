@@ -1,9 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Heart, Star, StarHalf } from 'lucide-react';
+import { Heart, Star, StarHalf, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart-store';
+import { toast } from 'sonner';
 import type { Product } from '@/types';
 
 function StarRating({ rating }: { rating: number }) {
@@ -57,6 +58,10 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
           onClick={(e) => {
             e.stopPropagation();
             toggleWishlist(product.id);
+            toast.success(wishlisted ? `Removed from wishlist` : `Added ${product.name} to wishlist`, {
+              description: wishlisted ? '' : 'You can find it in your wishlist',
+              action: wishlisted ? undefined : { label: 'View Cart', onClick: () => useCartStore.getState().openCart() },
+            });
           }}
           className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:scale-110 transition-transform"
           aria-label="Toggle wishlist"
@@ -99,6 +104,11 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
             onClick={(e) => {
               e.stopPropagation();
               addItem(product);
+              toast.success(`${product.name} added to cart`, {
+                icon: <ShoppingBag className="h-4 w-4" />,
+                description: `$${product.price.toFixed(2)}`,
+                action: { label: 'View Cart', onClick: () => useCartStore.getState().openCart() },
+              });
             }}
           >
             Buy now

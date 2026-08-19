@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Star, StarHalf, Heart, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart-store';
+import { toast } from 'sonner';
 import type { Product } from '@/types';
 
 function StarRating({ rating }: { rating: number }) {
@@ -43,6 +44,11 @@ export function ProductDetailModal({
     for (let i = 0; i < quantity; i++) {
       addItem(product);
     }
+    toast.success(`${quantity}x ${product.name} added to cart`, {
+      icon: <ShoppingBag className="h-4 w-4" />,
+      description: `Total: $${(product.price * quantity).toFixed(2)}`,
+      action: { label: 'View Cart', onClick: () => useCartStore.getState().openCart() },
+    });
     onClose();
   };
 
