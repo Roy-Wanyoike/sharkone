@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ShoppingBag, Facebook, Instagram, Twitter, Mail, Phone, Send } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Mail, Phone, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -20,10 +20,11 @@ export function Footer() {
   };
 
   return (
-    <footer id="footer" className="bg-gray-950 text-gray-400">
+    <footer id="footer" className="bg-[#0F172A] text-gray-400">
       {/* Newsletter */}
-      <div className="px-6 md:px-16 lg:px-32 py-12 border-b border-gray-800/50">
+      <div className="px-6 md:px-16 lg:px-32 py-12 border-b border-white/10">
         <div className="max-w-2xl mx-auto text-center">
+          <p className="text-amber-400 text-xs font-semibold uppercase tracking-wider mb-2">SHARKONE Newsletter</p>
           <h2 className="text-2xl md:text-3xl font-bold text-white">Stay in the Loop</h2>
           <p className="text-gray-400 mt-2 text-sm">
             Subscribe to get exclusive deals, new arrivals, and insider-only discounts.
@@ -37,12 +38,12 @@ export function Footer() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSubscribe()}
-                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder:text-gray-500 outline-none focus:border-amber-500 transition"
+                className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-gray-500 outline-none focus:border-amber-500 transition"
               />
             </div>
             <Button
               onClick={handleSubscribe}
-              className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-6 shrink-0"
+              className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg px-6 shrink-0"
             >
               <Send className="h-4 w-4 mr-2" />
               Subscribe
@@ -52,37 +53,40 @@ export function Footer() {
       </div>
 
       {/* Main Footer */}
-      <div className="flex flex-col md:flex-row items-start justify-center px-6 md:px-16 lg:px-32 gap-10 py-14 border-b border-gray-800/50">
+      <div className="flex flex-col md:flex-row items-start justify-center px-6 md:px-16 lg:px-32 gap-10 py-14 border-b border-white/10">
         <div className="w-full md:w-1/2">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
-              <ShoppingBag className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-white tracking-tight">Bazaar</span>
+          <div className="flex items-center gap-2.5">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M16 4C14 4 10 8 8 12C6 16 6 22 8 26C10 28 14 28 16 28C18 28 22 28 24 26C26 22 26 16 24 12C22 8 18 4 16 4Z" fill="#F59E0B" />
+              <path d="M16 4C15 4 13 6 12 8C11 10 11 14 12 16C13 17 15 17 16 17C17 17 19 17 20 16C21 14 21 10 20 8C19 6 17 4 16 4Z" fill="white" />
+            </svg>
+            <span className="text-xl font-bold tracking-tight">
+              <span className="text-white">SHARK</span>
+              <span className="text-amber-400">ONE</span>
+            </span>
           </div>
           <p className="mt-6 text-sm leading-relaxed max-w-sm">
-            Bazaar is a modern eCommerce platform built for seamless shopping
-            experiences. Discover premium products across categories with fast
-            delivery, secure payments, and exceptional customer service.
+            SHARKONE is a multi-vendor marketplace connecting buyers, sellers,
+            and delivery riders. Shop. Ship. Smile.
           </p>
-          <div className="flex items-center gap-4 mt-6">
+          <div className="flex items-center gap-3 mt-6">
             <a
               href="#"
-              className="p-2 bg-gray-800 rounded-full hover:bg-amber-600 transition"
+              className="p-2 bg-white/5 rounded-full hover:bg-amber-500/20 transition"
               aria-label="Facebook"
             >
               <Facebook className="h-4 w-4" />
             </a>
             <a
               href="#"
-              className="p-2 bg-gray-800 rounded-full hover:bg-amber-600 transition"
+              className="p-2 bg-white/5 rounded-full hover:bg-amber-500/20 transition"
               aria-label="Instagram"
             >
               <Instagram className="h-4 w-4" />
             </a>
             <a
               href="#"
-              className="p-2 bg-gray-800 rounded-full hover:bg-amber-600 transition"
+              className="p-2 bg-white/5 rounded-full hover:bg-amber-500/20 transition"
               aria-label="Twitter"
             >
               <Twitter className="h-4 w-4" />
@@ -95,8 +99,8 @@ export function Footer() {
           <ul className="text-sm space-y-3">
             <li><a className="hover:text-amber-400 transition" href="#">Home</a></li>
             <li><a className="hover:text-amber-400 transition" href="#products">Shop</a></li>
-            <li><a className="hover:text-amber-400 transition" href="#footer">About Us</a></li>
-            <li><a className="hover:text-amber-400 transition" href="#footer">Contact Us</a></li>
+            <li><a className="hover:text-amber-400 transition" href="#">Become a Seller</a></li>
+            <li><a className="hover:text-amber-400 transition" href="#">Join as Rider</a></li>
             <li><a className="hover:text-amber-400 transition" href="#">Privacy Policy</a></li>
           </ul>
         </div>
@@ -110,7 +114,7 @@ export function Footer() {
             </div>
             <div className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-amber-500" />
-              <span>hello@bazaar.store</span>
+              <span>hello@sharkone.com</span>
             </div>
           </div>
         </div>
@@ -118,8 +122,8 @@ export function Footer() {
 
       {/* Bottom Bar */}
       <div className="px-6 md:px-16 lg:px-32 py-4 flex flex-col md:flex-row justify-between items-center gap-2 text-xs">
-        <p>Copyright 2026 © Bazaar. All rights reserved.</p>
-        <p>Built with Next.js, Tailwind CSS & Prisma</p>
+        <p>Copyright 2026 &copy; SHARKONE. All rights reserved.</p>
+        <p>Shop. Ship. Smile.</p>
       </div>
     </footer>
   );

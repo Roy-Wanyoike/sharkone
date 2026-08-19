@@ -1,59 +1,83 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { Search, User, ShoppingBag, Menu, X } from 'lucide-react';
+import { Search, Bell, ShoppingBag, Menu, X, User, Store, Truck, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useCartStore } from '@/store/cart-store';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { Role } from '@/types';
 
-export function Navbar({ onSearchOpen }: { onSearchOpen: () => void }) {
+interface NavbarProps {
+  onSearchOpen: () => void;
+  onRoleChange: (role: Role) => void;
+  activeRole: Role;
+}
+
+const roleOptions: { value: Role; label: string; icon: React.ReactNode }[] = [
+  { value: 'buyer', label: 'Buyer', icon: <User className="h-4 w-4" /> },
+  { value: 'seller', label: 'Seller Dashboard', icon: <Store className="h-4 w-4" /> },
+  { value: 'delivery', label: 'Delivery Dashboard', icon: <Truck className="h-4 w-4" /> },
+];
+
+export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const totalItems = useCartStore((s) => s.totalItems);
   const openCart = useCartStore((s) => s.openCart);
 
+  const currentRoleLabel = roleOptions.find((r) => r.value === activeRole)?.label ?? 'Buyer';
+  const notificationCount = 3;
+
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-16 lg:px-32 py-3 backdrop-blur-md border-b border-gray-200 bg-white/80 shadow-sm">
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-16 lg:px-32 py-3 backdrop-blur-md border-b border-gray-200 bg-white/90 shadow-sm">
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2 shrink-0">
-        <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
-          <ShoppingBag className="h-5 w-5 text-white" />
-        </div>
-        <span className="text-xl font-bold text-gray-900 tracking-tight">
-          Bazaar
+      <div className="flex items-center gap-2.5 shrink-0">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M16 4C14 4 10 8 8 12C6 16 6 22 8 26C10 28 14 28 16 28C18 28 22 28 24 26C26 22 26 16 24 12C22 8 18 4 16 4Z" fill="#0F172A" />
+          <path d="M16 4C15 4 13 6 12 8C11 10 11 14 12 16C13 17 15 17 16 17C17 17 19 17 20 16C21 14 21 10 20 8C19 6 17 4 16 4Z" fill="#F59E0B" />
+        </svg>
+        <span className="text-xl font-bold tracking-tight">
+          <span className="text-[#0F172A]">SHARK</span>
+          <span className="text-[#F59E0B]">ONE</span>
         </span>
-      </Link>
+      </div>
 
       {/* Desktop Nav Links */}
       <div className="hidden md:flex items-center gap-8">
-        <Link
-          href="/"
-          className="text-gray-700 hover:text-amber-700 transition-colors text-sm font-medium"
+        <a
+          href="#"
+          className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
         >
           Home
-        </Link>
+        </a>
         <a
           href="#products"
-          className="text-gray-700 hover:text-amber-700 transition-colors text-sm font-medium"
+          className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
         >
           Shop
         </a>
-        <a
-          href="#footer"
-          className="text-gray-700 hover:text-amber-700 transition-colors text-sm font-medium"
+        <button
+          className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
+          onClick={() => onRoleChange('seller')}
         >
-          About Us
-        </a>
-        <a
-          href="#footer"
-          className="text-gray-700 hover:text-amber-700 transition-colors text-sm font-medium"
+          Sell
+        </button>
+        <button
+          className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
+          onClick={() => onRoleChange('delivery')}
         >
-          Contact
-        </a>
+          Track Order
+        </button>
       </div>
 
       {/* Right Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
+        {/* Search Button */}
         <Button
           variant="ghost"
           size="icon"
@@ -64,15 +88,51 @@ export function Navbar({ onSearchOpen }: { onSearchOpen: () => void }) {
           <Search className="h-5 w-5" />
         </Button>
 
+        {/* Notification Bell */}
         <Button
           variant="ghost"
-          size="sm"
-          className="hidden sm:flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+          size="icon"
+          className="relative text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+          aria-label="Notifications"
         >
-          <User className="h-4 w-4" />
-          <span className="text-sm">Account</span>
+          <Bell className="h-5 w-5" />
+          {notificationCount > 0 && (
+            <span className="absolute top-1 right-1 h-4 w-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+              {notificationCount}
+            </span>
+          )}
         </Button>
 
+        {/* Role Switcher Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:flex items-center gap-1.5 text-xs border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg"
+            >
+              {roleOptions.find((r) => r.value === activeRole)?.icon}
+              <span>{currentRoleLabel}</span>
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {roleOptions.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => onRoleChange(option.value)}
+                className={`flex items-center gap-2 cursor-pointer ${
+                  activeRole === option.value ? 'bg-amber-50 text-amber-700' : ''
+                }`}
+              >
+                {option.icon}
+                <span className="text-sm">{option.label}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Cart Button */}
         <Button
           variant="ghost"
           size="icon"
@@ -85,7 +145,7 @@ export function Navbar({ onSearchOpen }: { onSearchOpen: () => void }) {
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 h-5 w-5 bg-amber-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center"
+              className="absolute -top-1 -right-1 h-5 w-5 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center"
             >
               {totalItems()}
             </motion.span>
@@ -117,35 +177,58 @@ export function Navbar({ onSearchOpen }: { onSearchOpen: () => void }) {
             exit={{ opacity: 0, y: -10 }}
             className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg md:hidden"
           >
-            <div className="flex flex-col p-4 gap-3">
-              <Link
-                href="/"
-                className="text-gray-700 hover:text-amber-700 py-2 text-sm font-medium"
+            <div className="flex flex-col p-4 gap-1">
+              <a
+                href="#"
+                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Home
-              </Link>
+              </a>
               <a
                 href="#products"
-                className="text-gray-700 hover:text-amber-700 py-2 text-sm font-medium"
+                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Shop
               </a>
-              <a
-                href="#footer"
-                className="text-gray-700 hover:text-amber-700 py-2 text-sm font-medium"
-                onClick={() => setMobileMenuOpen(false)}
+              <button
+                className="text-left text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50"
+                onClick={() => {
+                  onRoleChange('seller');
+                  setMobileMenuOpen(false);
+                }}
               >
-                About Us
-              </a>
-              <a
-                href="#footer"
-                className="text-gray-700 hover:text-amber-700 py-2 text-sm font-medium"
-                onClick={() => setMobileMenuOpen(false)}
+                Sell
+              </button>
+              <button
+                className="text-left text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50"
+                onClick={() => {
+                  onRoleChange('delivery');
+                  setMobileMenuOpen(false);
+                }}
               >
-                Contact
-              </a>
+                Track Order
+              </button>
+              <div className="border-t border-gray-100 my-2" />
+              <p className="px-3 text-xs text-gray-400 uppercase tracking-wider mb-1">Switch Role</p>
+              {roleOptions.map((option) => (
+                <button
+                  key={option.value}
+                  className={`flex items-center gap-2 py-2.5 text-sm font-medium px-3 rounded-lg transition-colors ${
+                    activeRole === option.value
+                      ? 'text-amber-700 bg-amber-50'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => {
+                    onRoleChange(option.value);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  {option.icon}
+                  <span>{option.label}</span>
+                </button>
+              ))}
             </div>
           </motion.div>
         )}

@@ -79,6 +79,9 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
         <h3 className="text-sm md:text-base font-medium text-gray-900 truncate">
           {product.name}
         </h3>
+        {product.sellerName && (
+          <p className="text-xs text-gray-400 mt-0.5 truncate">{product.sellerName}</p>
+        )}
         <p className="text-xs text-gray-500 max-sm:hidden line-clamp-2 mt-1">
           {product.description}
         </p>

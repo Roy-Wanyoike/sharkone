@@ -1,44 +1,47 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export function PromoBanner() {
+export function PromoBanner({ onRoleChange }: { onRoleChange?: (role: 'seller' | 'delivery') => void }) {
   return (
     <section className="px-6 md:px-16 lg:px-32 py-10">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="relative rounded-2xl overflow-hidden bg-gray-900"
+        className="relative rounded-2xl overflow-hidden"
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-700/80 to-gray-900/90" />
-        <div className="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=1200&q=80"
-            alt=""
-            className="w-full h-full object-cover opacity-30"
-          />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0F172A] via-[#0F172A]/95 to-[#1E293B]" />
+        {/* Decorative amber accent */}
+        <div className="absolute top-0 right-0 w-1/2 h-full opacity-10">
+          <svg viewBox="0 0 200 200" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <path d="M100 20C90 20 70 50 60 80C50 110 50 150 60 170C70 180 90 180 100 180C110 180 130 180 140 170C150 150 150 110 140 80C130 50 110 20 100 20Z" fill="#F59E0B" />
+          </svg>
         </div>
         <div className="relative z-10 px-8 md:px-16 py-12 md:py-16 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-white">
-              Level Up Your Gaming Experience
-            </h2>
-            <p className="text-white/70 mt-2 text-sm md:text-base max-w-lg">
-              Discover the latest gaming consoles, accessories, and titles.
-              Elevate your play with cutting-edge technology.
-            </p>
+          <div className="flex items-start gap-4">
+            <div className="hidden sm:flex w-12 h-12 bg-amber-500/20 rounded-xl items-center justify-center shrink-0 mt-1">
+              <Store className="h-6 w-6 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-amber-400 text-xs font-semibold uppercase tracking-wider mb-2">Start Selling Today</p>
+              <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight">
+                Become a Seller on SHARKONE
+              </h2>
+              <p className="text-gray-400 mt-2 text-sm md:text-base max-w-lg">
+                Reach millions of buyers, manage your store with powerful tools,
+                and grow your business with our low-commission marketplace.
+              </p>
+            </div>
           </div>
           <Button
             size="lg"
-            className="bg-white text-gray-900 hover:bg-gray-100 rounded-full px-8 shrink-0"
-            onClick={() => {
-              document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
-            }}
+            className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-full px-8 shrink-0"
+            onClick={() => onRoleChange?.('seller')}
           >
-            Buy now
+            Open Your Store
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>

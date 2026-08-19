@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/QueryProvider";
 
 const geistSans = Geist({
@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bazaar - Modern eCommerce",
-  description: "Discover premium products across categories. Fast, stylish, and feature-rich online shopping experience.",
+  title: "SHARKONE — Shop. Ship. Smile.",
+  description: "SHARKONE is a multi-vendor marketplace connecting buyers, sellers, and delivery riders. Discover products, sell your goods, or earn as a delivery partner.",
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
@@ -34,7 +34,7 @@ export default function RootLayout({
       >
         <QueryProvider>
           {children}
-          <Toaster />
+          <Toaster position="top-right" richColors />
         </QueryProvider>
       </body>
     </html>

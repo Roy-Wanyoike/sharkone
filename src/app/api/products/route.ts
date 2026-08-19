@@ -30,7 +30,14 @@ export async function GET(request: Request) {
     const [products, total] = await Promise.all([
       db.product.findMany({
         where,
-        include: { category: true },
+        include: {
+          category: true,
+          seller: {
+            include: {
+              user: { select: { name: true } },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -38,8 +45,13 @@ export async function GET(request: Request) {
       db.product.count({ where }),
     ]);
 
+    const mappedProducts = products.map((p) => ({
+      ...p,
+      sellerName: p.seller?.storeName ?? null,
+    }));
+
     return NextResponse.json({
-      products,
+      products: mappedProducts,
       total,
       page,
       totalPages: Math.ceil(total / limit),

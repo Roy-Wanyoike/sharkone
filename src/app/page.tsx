@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Navbar } from '@/components/ecommerce/Navbar';
 import { HeroCarousel } from '@/components/ecommerce/HeroCarousel';
 import { FeaturedCategories } from '@/components/ecommerce/FeaturedCategories';
@@ -13,41 +14,42 @@ import { PromoBanner } from '@/components/ecommerce/PromoBanner';
 import { TrustBadges } from '@/components/ecommerce/TrustBadges';
 import { ScrollToTop } from '@/components/ecommerce/ScrollToTop';
 import { ProductDetailModal } from '@/components/ecommerce/ProductDetailModal';
+import { SellerDashboard } from '@/components/ecommerce/SellerDashboard';
+import { DeliveryDashboard } from '@/components/ecommerce/DeliveryDashboard';
 import { useCartStore } from '@/store/cart-store';
-import type { Category, HeroSlide, Product } from '@/types';
+import type { Category, HeroSlide, Product, Role } from '@/types';
 import { ShoppingBag, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeRole, setActiveRole] = useState<Role>('buyer');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const totalItems = useCartStore((s) => s.totalItems);
   const openCart = useCartStore((s) => s.openCart);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [catRes, heroRes] = await Promise.all([
-          fetch('/api/categories'),
-          fetch('/api/hero'),
-        ]);
-        const catData = await catRes.json();
-        const heroData = await heroRes.json();
-        setCategories(catData);
-        setHeroSlides(heroData);
-      } catch (err) {
-        console.error('Failed to fetch data:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
+  /* Fetch initial data via react-query */
+  const { data: categories = [], isLoading: catLoading } = useQuery<Category[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await fetch('/api/categories');
+      const json = await res.json();
+      return json as Category[];
+    },
+  });
+
+  const { data: heroSlides = [], isLoading: heroLoading } = useQuery<HeroSlide[]>({
+    queryKey: ['hero-slides'],
+    queryFn: async () => {
+      const res = await fetch('/api/hero');
+      const json = await res.json();
+      return json as HeroSlide[];
+    },
+  });
+
+  const loading = catLoading || heroLoading;
 
   const handleCategorySelect = useCallback((slug: string) => {
     setSelectedCategory(slug);
@@ -56,23 +58,50 @@ export default function Home() {
     }, 100);
   }, []);
 
+  const handleRoleChange = useCallback((role: Role) => {
+    setActiveRole(role);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Navbar onSearchOpen={() => { setSearchKey((k) => k + 1); setSearchOpen(true); }} />
+      <Navbar
+        onSearchOpen={() => {
+          setSearchKey((k) => k + 1);
+          setSearchOpen(true);
+        }}
+        onRoleChange={handleRoleChange}
+        activeRole={activeRole}
+      />
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-10 w-10 animate-spin text-amber-600" />
+          <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
         </div>
       ) : (
-        <main className="flex-1">
-          <HeroCarousel slides={heroSlides} />
-          <FeaturedCategories categories={categories} onCategorySelect={handleCategorySelect} />
-          <TrendingProducts onViewProduct={setDetailProduct} />
-          <ProductGrid key={selectedCategory} categories={categories} initialCategory={selectedCategory} />
-          <PromoBanner />
-          <TrustBadges />
-        </main>
+        <AnimatePresence mode="wait">
+          <motion.main
+            key={activeRole}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+            className="flex-1"
+          >
+            {activeRole === 'buyer' && (
+              <>
+                <HeroCarousel slides={heroSlides} />
+                <FeaturedCategories categories={categories} onCategorySelect={handleCategorySelect} />
+                <TrendingProducts onViewProduct={setDetailProduct} />
+                <ProductGrid key={selectedCategory} categories={categories} initialCategory={selectedCategory} />
+                <PromoBanner onRoleChange={handleRoleChange} />
+                <TrustBadges />
+              </>
+            )}
+            {activeRole === 'seller' && <SellerDashboard />}
+            {activeRole === 'delivery' && <DeliveryDashboard />}
+          </motion.main>
+        </AnimatePresence>
       )}
 
       <Footer />
@@ -85,7 +114,7 @@ export default function Home() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={openCart}
-            className="md:hidden fixed bottom-6 right-6 z-50 p-4 bg-amber-600 hover:bg-amber-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all"
+            className="md:hidden fixed bottom-6 right-6 z-50 p-4 bg-[#F59E0B] hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all"
             aria-label="Shopping Cart"
           >
             <ShoppingBag className="h-6 w-6" />
