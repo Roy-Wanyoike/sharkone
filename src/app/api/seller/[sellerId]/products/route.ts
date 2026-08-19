@@ -48,9 +48,9 @@ export async function POST(
     const body = await request.json();
     const { name, description, price, stock, categoryId } = body;
 
-    if (!name || !price) {
+    if (!name || !price || !categoryId) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, price' },
+        { error: 'Missing required fields: name, price, categoryId' },
         { status: 400 }
       );
     }
@@ -74,7 +74,7 @@ export async function POST(
         description: description || '',
         price: parseFloat(price),
         stock: parseInt(stock) || 0,
-        categoryId: categoryId || null,
+        categoryId,
         sellerId,
         status: 'DRAFT',
         image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',

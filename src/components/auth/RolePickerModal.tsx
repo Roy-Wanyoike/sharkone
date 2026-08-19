@@ -1,5 +1,6 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -54,6 +55,12 @@ const roleColors: Record<string, { bg: string; border: string; iconBg: string; i
 export function RolePickerModal() {
   const router = useRouter();
   const { user, accounts, selectAccount, logout } = useAuthStore();
+  // useSyncExternalStore: false on server, true on client — avoids hydration mismatch
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const handleSelect = (account: AuthAccount) => {
     selectAccount(account);
@@ -70,7 +77,7 @@ export function RolePickerModal() {
   };
 
   // Don't render if not authenticated or no role selection needed
-  if (!user || accounts.length <= 1) return null;
+  if (!mounted || !user || accounts.length <= 1) return null;
 
   return (
     <AnimatePresence>

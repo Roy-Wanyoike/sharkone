@@ -185,13 +185,13 @@ export function DeliveryDashboard({ deliveryPersonId: propDeliveryPersonId }: De
   const [otpInput, setOtpInput] = useState('');
 
   // Auto-detect delivery person if not provided
-  const autoDeliveryQuery = useQuery<{ id: string }[]>({
+  const autoDeliveryQuery = useQuery<{ users: { id: string }[] }>({
     queryKey: ['delivery-auto-detect'],
     queryFn: () => fetch('/api/admin/users?role=DELIVERY').then(r => r.json()),
     enabled: !propDeliveryPersonId,
   });
 
-  const deliveryPersonId = propDeliveryPersonId || autoDeliveryQuery.data?.[0]?.id || '';
+  const deliveryPersonId = propDeliveryPersonId || autoDeliveryQuery.data?.users?.[0]?.id || '';
 
   // Fetch stats
   const statsQuery = useQuery<DeliveryStats>({

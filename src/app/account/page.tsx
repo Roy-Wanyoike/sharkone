@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -564,7 +564,13 @@ function WishlistCard({ productId, onRemove, onAddToCart }: { productId: string;
 export default function AccountPage() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AccountPageContent />
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="animate-spin h-8 w-8 border-4 border-amber-500 border-t-transparent rounded-full" />
+        </div>
+      }>
+        <AccountPageContent />
+      </Suspense>
     </QueryClientProvider>
   );
 }

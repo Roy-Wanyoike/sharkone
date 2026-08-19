@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -105,7 +105,13 @@ function DeliveryDashboardPage() {
 export default function Page() {
   return (
     <QueryClientProvider client={queryClient}>
-      <DeliveryDashboardPage />
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="animate-spin h-8 w-8 border-4 border-amber-500 border-t-transparent rounded-full" />
+        </div>
+      }>
+        <DeliveryDashboardPage />
+      </Suspense>
     </QueryClientProvider>
   );
 }

@@ -85,7 +85,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const slug = generateSlug(name);
+    let slug = generateSlug(name);
+
+    // Ensure unique slug
+    const existing = await db.product.findUnique({ where: { slug } });
+    if (existing) {
+      slug = `${slug}-${Date.now()}`;
+    }
 
     const product = await db.product.create({
       data: {

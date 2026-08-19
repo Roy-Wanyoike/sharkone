@@ -13,7 +13,7 @@ export async function GET(
 
     const where: Record<string, unknown> = { deliveryPersonId };
 
-    if (statusFilter) {
+    if (statusFilter && statusFilter !== 'ALL') {
       where.status = statusFilter as DeliveryStatus;
     }
 
