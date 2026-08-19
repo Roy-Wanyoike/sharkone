@@ -47,7 +47,7 @@ import { toast } from 'sonner';
 /* ------------------------------------------------------------------ */
 
 interface SellerDashboardProps {
-  sellerId: string;
+  sellerId?: string;
 }
 
 interface SellerStats {
@@ -213,8 +213,18 @@ function ProductCardSkeleton() {
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 
-export function SellerDashboard({ sellerId }: SellerDashboardProps) {
+export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps) {
   const queryClient = useQueryClient();
+
+  // Auto-detect seller if not provided
+  const autoSellersQuery = useQuery<{ id: string }[]>({
+    queryKey: ['sellers-auto-detect'],
+    queryFn: () => fetch('/api/admin/sellers').then(r => r.json()),
+    enabled: !propSellerId,
+  });
+
+  const sellerId = propSellerId || autoSellersQuery.data?.[0]?.id || '';
+  const isLoading = !propSellerId ? autoSellersQuery.isLoading : false;
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '', category: '', stock: '' });
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -225,21 +235,25 @@ export function SellerDashboard({ sellerId }: SellerDashboardProps) {
   const statsQuery = useQuery<SellerStats>({
     queryKey: ['seller-stats', sellerId],
     queryFn: () => fetch(`/api/seller/${sellerId}/stats`).then(r => r.json()),
+    enabled: !!sellerId,
   });
 
   const productsQuery = useQuery<SellerProduct[]>({
     queryKey: ['seller-products', sellerId],
     queryFn: () => fetch(`/api/seller/${sellerId}/products`).then(r => r.json()),
+    enabled: !!sellerId,
   });
 
   const ordersQuery = useQuery<SellerOrder[]>({
     queryKey: ['seller-orders', sellerId],
     queryFn: () => fetch(`/api/seller/${sellerId}/orders`).then(r => r.json()),
+    enabled: !!sellerId,
   });
 
   const transactionsQuery = useQuery<SellerTransaction[]>({
     queryKey: ['seller-transactions', sellerId],
     queryFn: () => fetch(`/api/seller/${sellerId}/transactions`).then(r => r.json()),
+    enabled: !!sellerId,
   });
 
   const categoriesQuery = useQuery<Category[]>({

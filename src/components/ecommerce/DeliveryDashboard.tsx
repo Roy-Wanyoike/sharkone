@@ -53,7 +53,7 @@ const NEXT_STEP: Partial<Record<DeliveryStep, DeliveryStep>> = {
 };
 
 interface DeliveryDashboardProps {
-  deliveryPersonId: string;
+  deliveryPersonId?: string;
 }
 
 interface DeliveryStats {
@@ -179,16 +179,26 @@ function DeliveryCardSkeleton() {
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 
-export function DeliveryDashboard({ deliveryPersonId }: DeliveryDashboardProps) {
+export function DeliveryDashboard({ deliveryPersonId: propDeliveryPersonId }: DeliveryDashboardProps) {
   const queryClient = useQueryClient();
   const [confirmDialog, setConfirmDialog] = useState<DeliveryItem | null>(null);
   const [otpInput, setOtpInput] = useState('');
+
+  // Auto-detect delivery person if not provided
+  const autoDeliveryQuery = useQuery<{ id: string }[]>({
+    queryKey: ['delivery-auto-detect'],
+    queryFn: () => fetch('/api/admin/users?role=DELIVERY').then(r => r.json()),
+    enabled: !propDeliveryPersonId,
+  });
+
+  const deliveryPersonId = propDeliveryPersonId || autoDeliveryQuery.data?.[0]?.id || '';
 
   // Fetch stats
   const statsQuery = useQuery<DeliveryStats>({
     queryKey: ['delivery-stats', deliveryPersonId],
     queryFn: () =>
       fetch(`/api/delivery/${deliveryPersonId}/stats`).then((r) => r.json()),
+    enabled: !!deliveryPersonId,
   });
 
   // Fetch all deliveries
@@ -196,6 +206,7 @@ export function DeliveryDashboard({ deliveryPersonId }: DeliveryDashboardProps) 
     queryKey: ['deliveries', deliveryPersonId],
     queryFn: () =>
       fetch(`/api/delivery/${deliveryPersonId}/deliveries`).then((r) => r.json()),
+    enabled: !!deliveryPersonId,
   });
 
   const deliveries = deliveriesQuery.data?.deliveries || [];

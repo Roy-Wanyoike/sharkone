@@ -159,9 +159,10 @@ const ecosystemSupport = [
 
 const team = [
   { name: 'Roy Wanyoike', role: 'Founder & CEO', initials: 'RW', featured: true },
-  { name: 'Amina Odhiambo', role: 'Head of Operations', initials: 'AO', featured: false },
-  { name: 'David Kimutai', role: 'Lead Engineer', initials: 'DK', featured: false },
-  { name: 'Fatima Hassan', role: 'Head of Design', initials: 'FH', featured: false },
+  { name: 'Alex Githinji', role: 'COO', initials: 'AG', featured: false },
+  { name: 'Godfrey Otieno', role: 'Engineer & CTO', initials: 'GO', featured: false },
+  { name: 'Aquinnatta Alumasa', role: 'QA Analyst', initials: 'AA', featured: false },
+  { name: 'Denis Kevin Muriithi', role: 'Brand Ambassador & Social Media Engineer', initials: 'DM', featured: false },
 ];
 
 /* ------------------------------------------------------------------ */
