@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { Heart, Star, StarHalf, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart-store';
@@ -33,13 +34,13 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
     : 0;
 
   return (
+    <Link href={`/product/${product.id}`} className="group flex flex-col">
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-50px' }}
       transition={{ duration: 0.4 }}
-      className="group flex flex-col cursor-pointer"
-      onClick={() => onQuickView(product)}
+      className="flex flex-col cursor-pointer"
     >
       {/* Image */}
       <div className="relative bg-white border border-gray-200 rounded-lg w-full aspect-square flex items-center justify-center overflow-hidden">
@@ -119,5 +120,6 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
         </div>
       </div>
     </motion.div>
+    </Link>
   );
 }

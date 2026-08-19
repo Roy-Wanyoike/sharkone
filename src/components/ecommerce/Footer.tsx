@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Facebook, Instagram, Twitter, Mail, Phone, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -97,11 +98,11 @@ export function Footer() {
         <div className="w-full md:w-1/4">
           <h2 className="font-semibold text-white mb-5">Company</h2>
           <ul className="text-sm space-y-3">
-            <li><a className="hover:text-amber-400 transition" href="#">Home</a></li>
-            <li><a className="hover:text-amber-400 transition" href="#products">Shop</a></li>
-            <li><a className="hover:text-amber-400 transition" href="#">Become a Seller</a></li>
-            <li><a className="hover:text-amber-400 transition" href="#">Join as Rider</a></li>
-            <li><a className="hover:text-amber-400 transition" href="#">Privacy Policy</a></li>
+            <li><Link className="hover:text-amber-400 transition" href="/">Home</Link></li>
+            <li><Link className="hover:text-amber-400 transition" href="/about">About Us</Link></li>
+            <li><Link className="hover:text-amber-400 transition" href="/sell">Become a Seller</Link></li>
+            <li><Link className="hover:text-amber-400 transition" href="/contact">Contact</Link></li>
+            <li><Link className="hover:text-amber-400 transition" href="/track">Track Order</Link></li>
           </ul>
         </div>
 

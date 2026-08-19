@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Search, Bell, ShoppingBag, Menu, X, User, Store, Truck, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,30 +50,42 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
 
       {/* Desktop Nav Links */}
       <div className="hidden md:flex items-center gap-8">
-        <a
-          href="#"
+        <Link
+          href="/"
           className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
         >
           Home
-        </a>
+        </Link>
         <a
           href="#products"
           className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
         >
           Shop
         </a>
-        <button
+        <Link
+          href="/sell"
           className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
-          onClick={() => onRoleChange('seller')}
         >
           Sell
-        </button>
-        <button
+        </Link>
+        <Link
+          href="/track"
           className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
-          onClick={() => onRoleChange('delivery')}
         >
           Track Order
-        </button>
+        </Link>
+        <Link
+          href="/about"
+          className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
+        >
+          About
+        </Link>
+        <Link
+          href="/contact"
+          className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
+        >
+          Contact
+        </Link>
       </div>
 
       {/* Right Actions */}
@@ -101,6 +114,14 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
               {notificationCount}
             </span>
           )}
+        </Button>
+
+        {/* Login Button */}
+        <Button asChild variant="ghost" size="sm" className="hidden lg:flex items-center gap-1.5 text-xs text-gray-700 hover:bg-gray-50 rounded-lg">
+          <Link href="/login">Log In</Link>
+        </Button>
+        <Button asChild size="sm" className="hidden lg:flex items-center bg-amber-500 hover:bg-amber-600 text-white text-xs rounded-lg">
+          <Link href="/register">Sign Up</Link>
         </Button>
 
         {/* Role Switcher Dropdown */}
@@ -178,38 +199,48 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
             className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg md:hidden"
           >
             <div className="flex flex-col p-4 gap-1">
-              <a
-                href="#"
-                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50"
+              <Link
+                href="/"
+                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Home
-              </a>
+              </Link>
               <a
                 href="#products"
-                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50"
+                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Shop
               </a>
-              <button
-                className="text-left text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50"
-                onClick={() => {
-                  onRoleChange('seller');
-                  setMobileMenuOpen(false);
-                }}
+              <Link
+                href="/sell"
+                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Sell
-              </button>
-              <button
-                className="text-left text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50"
-                onClick={() => {
-                  onRoleChange('delivery');
-                  setMobileMenuOpen(false);
-                }}
+              </Link>
+              <Link
+                href="/track"
+                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Track Order
-              </button>
+              </Link>
+              <Link
+                href="/about"
+                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                About
+              </Link>
+              <Link
+                href="/contact"
+                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Contact
+              </Link>
               <div className="border-t border-gray-100 my-2" />
               <p className="px-3 text-xs text-gray-400 uppercase tracking-wider mb-1">Switch Role</p>
               {roleOptions.map((option) => (
@@ -229,6 +260,15 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
                   <span>{option.label}</span>
                 </button>
               ))}
+              <div className="border-t border-gray-100 my-2" />
+              <div className="flex gap-2 px-3">
+                <Button asChild variant="outline" size="sm" className="flex-1 text-xs">
+                  <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Log In</Link>
+                </Button>
+                <Button asChild size="sm" className="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-xs">
+                  <Link href="/register" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}

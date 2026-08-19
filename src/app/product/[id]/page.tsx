@@ -1,0 +1,777 @@
+'use client';
+
+import React, { useState, use } from 'react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import {
+  Star,
+  Minus,
+  Plus,
+  Heart,
+  Truck,
+  ShieldCheck,
+  RotateCcw,
+  PackageCheck,
+  ChevronRight,
+  AlertCircle,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useCartStore } from '@/store/cart-store';
+import { Footer } from '@/components/ecommerce/Footer';
+import type { Product } from '@/types';
+
+/* ------------------------------------------------------------------ */
+/*  Simple Navbar                                                      */
+/* ------------------------------------------------------------------ */
+function SimpleNavbar() {
+  const [open, setOpen] = useState(false);
+  const links = [
+    { label: 'Home', href: '/' },
+    { label: 'About', href: '/about' },
+    { label: 'Contact', href: '/contact' },
+  ];
+
+  return (
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-16 lg:px-32 py-3 backdrop-blur-md border-b border-gray-200 bg-white/90 shadow-sm">
+      <Link href="/" className="flex items-center gap-2.5 shrink-0">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 4C14 4 10 8 8 12C6 16 6 22 8 26C10 28 14 28 16 28C18 28 22 28 24 26C26 22 26 16 24 12C22 8 18 4 16 4Z" fill="#0F172A" />
+          <path d="M16 4C15 4 13 6 12 8C11 10 11 14 12 16C13 17 15 17 16 17C17 17 19 17 20 16C21 14 21 10 20 8C19 6 17 4 16 4Z" fill="#F59E0B" />
+        </svg>
+        <span className="text-xl font-bold tracking-tight">
+          <span className="text-[#0F172A]">SHARK</span>
+          <span className="text-[#F59E0B]">ONE</span>
+        </span>
+      </Link>
+
+      {/* Desktop links */}
+      <div className="hidden md:flex items-center gap-8">
+        {links.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            className="text-sm font-medium text-gray-700 hover:text-amber-600 transition-colors"
+          >
+            {l.label}
+          </Link>
+        ))}
+      </div>
+
+      {/* Mobile hamburger */}
+      <button
+        className="md:hidden p-2"
+        onClick={() => setOpen(!open)}
+        aria-label="Toggle menu"
+      >
+        {open ? (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        ) : (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18" /></svg>
+        )}
+      </button>
+
+      {/* Mobile menu */}
+      {open && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg md:hidden"
+        >
+          <div className="flex flex-col p-4 gap-3">
+            {links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className="text-sm font-medium text-gray-700 hover:text-amber-600 py-2"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </nav>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Star Rating Display                                                */
+/* ------------------------------------------------------------------ */
+function StarRating({ rating, size = 16 }: { rating: number; size?: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          size={size}
+          className={
+            i <= Math.round(rating)
+              ? 'fill-amber-400 text-amber-400'
+              : 'fill-gray-200 text-gray-200'
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Mock Reviews                                                       */
+/* ------------------------------------------------------------------ */
+const MOCK_REVIEWS = [
+  {
+    id: 'r1',
+    name: 'Alice Mwangi',
+    rating: 5,
+    date: '2025-12-15',
+    text: 'Absolutely love this product! The quality exceeded my expectations. Fast delivery and well-packaged. Will definitely order again from SHARKONE.',
+  },
+  {
+    id: 'r2',
+    name: 'Brian Odhiambo',
+    rating: 4,
+    date: '2025-12-08',
+    text: 'Great value for money. The product matches the description perfectly. Minor shipping delay but overall very satisfied with the purchase.',
+  },
+  {
+    id: 'r3',
+    name: 'Cynthia Wanjiku',
+    rating: 5,
+    date: '2025-11-29',
+    text: 'This is my third purchase from this seller. Consistently high quality and excellent customer service. Highly recommended!',
+  },
+  {
+    id: 'r4',
+    name: 'David Kamau',
+    rating: 4,
+    date: '2025-11-20',
+    text: 'Good product, works as described. The packaging could be better but the product itself is solid. Fair price for what you get.',
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Mock Specs                                                         */
+/* ------------------------------------------------------------------ */
+const MOCK_SPECS = [
+  { label: 'Weight', value: '0.5 kg' },
+  { label: 'Dimensions', value: '25 × 15 × 10 cm' },
+  { label: 'Material', value: 'Premium Quality' },
+  { label: 'Color', value: 'As shown' },
+  { label: 'Warranty', value: '6 Months' },
+  { label: 'Country of Origin', value: 'Kenya' },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Trust Badges                                                       */
+/* ------------------------------------------------------------------ */
+const TRUST_BADGES = [
+  { icon: Truck, label: 'Free Shipping', desc: 'On orders over $50' },
+  { icon: ShieldCheck, label: 'Secure Payment', desc: '100% protected' },
+  { icon: RotateCcw, label: 'Easy Returns', desc: '30-day return policy' },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Loading Skeleton                                                   */
+/* ------------------------------------------------------------------ */
+function ProductSkeleton() {
+  return (
+    <div className="px-6 md:px-16 lg:px-32 py-8">
+      <Skeleton className="h-4 w-48 mb-8" />
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
+        {/* Image skeleton */}
+        <div className="lg:col-span-3 space-y-4">
+          <Skeleton className="aspect-square w-full rounded-xl" />
+          <div className="flex gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="w-20 h-20 rounded-lg" />
+            ))}
+          </div>
+        </div>
+        {/* Info skeleton */}
+        <div className="lg:col-span-2 space-y-5">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-10 w-40" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Error State                                                        */
+/* ------------------------------------------------------------------ */
+function ErrorState({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+      <AlertCircle className="h-16 w-16 text-gray-300 mb-4" />
+      <h2 className="text-2xl font-bold text-[#0F172A] mb-2">Something went wrong</h2>
+      <p className="text-gray-500 mb-6 max-w-md">{message}</p>
+      <Link href="/">
+        <Button className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold">
+          Back to Home
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Product Image Gallery                                              */
+/* ------------------------------------------------------------------ */
+function ProductImageGallery({ product }: { product: Product }) {
+  let imageList: string[] = [product.image];
+
+  try {
+    if (product.images) {
+      const parsed = JSON.parse(product.images);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        imageList = parsed;
+      }
+    }
+  } catch {
+    // keep default single image
+  }
+
+  const [selectedIdx, setSelectedIdx] = useState(0);
+
+  return (
+    <div className="space-y-4">
+      {/* Main image with zoom */}
+      <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-gray-100 bg-gray-50 group">
+        <motion.img
+          key={imageList[selectedIdx]}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          src={imageList[selectedIdx]}
+          alt={product.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+        {product.originalPrice && product.originalPrice > product.price && (
+          <Badge className="absolute top-3 left-3 bg-red-500 text-white text-xs font-semibold px-2.5 py-1">
+            -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+          </Badge>
+        )}
+      </div>
+
+      {/* Thumbnails */}
+      {imageList.length > 1 && (
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          {imageList.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => setSelectedIdx(idx)}
+              className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                idx === selectedIdx
+                  ? 'border-amber-500 ring-2 ring-amber-200'
+                  : 'border-gray-200 hover:border-gray-400'
+              }`}
+            >
+              <img
+                src={img}
+                alt={`${product.name} ${idx + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Related Product Card                                               */
+/* ------------------------------------------------------------------ */
+function RelatedProductCard({ product }: { product: Product }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.4 }}
+    >
+      <Card className="overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow group h-full flex flex-col">
+        <Link href={`/product/${product.id}`} className="block">
+          <div className="aspect-square overflow-hidden bg-gray-50">
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          </div>
+        </Link>
+        <CardContent className="p-4 flex flex-col flex-1">
+          <Link href={`/product/${product.id}`}>
+            <h3 className="font-semibold text-sm text-[#0F172A] line-clamp-2 hover:text-amber-600 transition-colors">
+              {product.name}
+            </h3>
+          </Link>
+          <div className="flex items-center gap-1 mt-2">
+            <StarRating rating={product.rating} size={14} />
+            <span className="text-xs text-gray-500">({product.reviewCount})</span>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-lg font-bold text-[#0F172A]">
+              ${product.price.toFixed(2)}
+            </span>
+            {product.originalPrice && product.originalPrice > product.price && (
+              <span className="text-sm text-gray-400 line-through">
+                ${product.originalPrice.toFixed(2)}
+              </span>
+            )}
+          </div>
+          <Link href={`/product/${product.id}`} className="mt-auto pt-3">
+            <Button
+              variant="outline"
+              className="w-full text-sm border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white transition-colors"
+            >
+              View
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main Page Component                                                */
+/* ------------------------------------------------------------------ */
+export default function ProductDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const [quantity, setQuantity] = useState(1);
+  const addItem = useCartStore((s) => s.addItem);
+  const toggleWishlist = useCartStore((s) => s.toggleWishlist);
+  const isInWishlist = useCartStore((s) => s.isInWishlist);
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['product', id],
+    queryFn: async () => {
+      const res = await fetch(`/api/products/${id}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to load product');
+      }
+      return res.json() as Promise<{ product: Product; relatedProducts: Product[] }>;
+    },
+  });
+
+  const product = data?.product;
+  const relatedProducts = data?.relatedProducts ?? [];
+
+  if (isLoading) {
+    return (
+      <>
+        <SimpleNavbar />
+        <main className="min-h-screen">
+          <ProductSkeleton />
+        </main>
+      </>
+    );
+  }
+
+  if (isError || !product) {
+    return (
+      <>
+        <SimpleNavbar />
+        <main className="min-h-screen">
+          <ErrorState message={error?.message || 'Product not found'} />
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  const inWishlist = isInWishlist(product.id);
+  const discountPercent =
+    product.originalPrice && product.originalPrice > product.price
+      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+      : 0;
+
+  return (
+    <>
+      <SimpleNavbar />
+
+      <main className="min-h-screen flex-1">
+        {/* Breadcrumb */}
+        <div className="px-6 md:px-16 lg:px-32 py-4">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/">Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/">Shop</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              {product.category && (
+                <>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link href="/">{product.category.name}</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                </>
+              )}
+              <BreadcrumbItem>
+                <BreadcrumbPage className="font-medium truncate max-w-[200px]">
+                  {product.name}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+
+        {/* Product Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="px-6 md:px-16 lg:px-32 pb-12"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
+            {/* Left: Image Gallery (3/5 = 60%) */}
+            <div className="lg:col-span-3">
+              <ProductImageGallery product={product} />
+            </div>
+
+            {/* Right: Product Info (2/5 = 40%) */}
+            <div className="lg:col-span-2 space-y-5">
+              {/* Category Badge */}
+              {product.category && (
+                <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 font-medium">
+                  {product.category.name}
+                </Badge>
+              )}
+
+              {/* Title */}
+              <h1 className="text-2xl lg:text-3xl font-bold text-[#0F172A] leading-tight">
+                {product.name}
+              </h1>
+
+              {/* Rating */}
+              <div className="flex items-center gap-2">
+                <StarRating rating={product.rating} />
+                <span className="text-sm text-gray-600">
+                  {product.rating.toFixed(1)} ({product.reviewCount} reviews)
+                </span>
+              </div>
+
+              {/* Price */}
+              <div className="flex items-end gap-3">
+                <span className="text-3xl font-bold text-[#0F172A]">
+                  ${product.price.toFixed(2)}
+                </span>
+                {product.originalPrice && product.originalPrice > product.price && (
+                  <>
+                    <span className="text-lg text-gray-400 line-through">
+                      ${product.originalPrice.toFixed(2)}
+                    </span>
+                    <Badge variant="destructive" className="text-xs font-semibold">
+                      {discountPercent}% OFF
+                    </Badge>
+                  </>
+                )}
+              </div>
+
+              {/* Stock Indicator */}
+              <div>
+                {product.stock > 10 ? (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600">
+                    <PackageCheck className="h-4 w-4" /> In Stock
+                  </span>
+                ) : product.stock > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600">
+                    <PackageCheck className="h-4 w-4" /> Low Stock — Only {product.stock} left
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-red-600">
+                    <PackageCheck className="h-4 w-4" /> Out of Stock
+                  </span>
+                )}
+              </div>
+
+              {/* Description */}
+              <p className="text-gray-600 text-sm leading-relaxed">
+                {product.description}
+              </p>
+
+              <Separator />
+
+              {/* Quantity Selector */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-[#0F172A]">Quantity:</span>
+                <div className="flex items-center border border-gray-300 rounded-lg">
+                  <button
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    className="px-3 py-2 text-gray-600 hover:bg-gray-100 transition-colors rounded-l-lg"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="px-4 py-2 text-sm font-semibold text-[#0F172A] min-w-[3rem] text-center">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
+                    className="px-3 py-2 text-gray-600 hover:bg-gray-100 transition-colors rounded-r-lg"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Add to Cart */}
+              <Button
+                disabled={product.stock === 0}
+                onClick={() => {
+                  for (let i = 0; i < quantity; i++) {
+                    addItem(product);
+                  }
+                  toast.success('Added to cart!', {
+                    description: `${quantity}× ${product.name}`,
+                  });
+                }}
+                className="w-full bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold text-base py-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+              </Button>
+
+              {/* Add to Wishlist */}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  toggleWishlist(product.id);
+                  toast.success(
+                    inWishlist ? 'Removed from wishlist' : 'Added to wishlist'
+                  );
+                }}
+                className={`w-full py-6 rounded-lg text-base font-semibold transition-colors ${
+                  inWishlist
+                    ? 'border-red-300 text-red-600 hover:bg-red-50'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Heart
+                  className={`h-5 w-5 mr-2 ${
+                    inWishlist ? 'fill-red-500 text-red-500' : ''
+                  }`}
+                />
+                {inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+              </Button>
+
+              {/* Seller Info Card */}
+              {product.sellerName && (
+                <Card className="border-gray-100">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-medium">
+                      Sold by
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8 bg-[#0F172A]">
+                          <AvatarFallback className="text-white text-xs font-semibold">
+                            {product.sellerName.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-semibold text-sm text-[#0F172A]">
+                          {product.sellerName}
+                        </span>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="border-green-300 text-green-600 text-xs"
+                      >
+                        <ShieldCheck className="h-3 w-3 mr-1" />
+                        Verified Seller
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Trust Badges */}
+              <div className="grid grid-cols-3 gap-3">
+                {TRUST_BADGES.map((badge) => (
+                  <div
+                    key={badge.label}
+                    className="flex flex-col items-center text-center p-3 rounded-lg bg-gray-50"
+                  >
+                    <badge.icon className="h-5 w-5 text-amber-500 mb-1.5" />
+                    <span className="text-xs font-semibold text-[#0F172A]">
+                      {badge.label}
+                    </span>
+                    <span className="text-[10px] text-gray-500 mt-0.5">
+                      {badge.desc}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Product Details Tabs */}
+        <section className="px-6 md:px-16 lg:px-32 pb-16">
+          <Tabs defaultValue="description" className="w-full">
+            <TabsList className="w-full justify-start bg-gray-100 rounded-lg p-1 h-auto">
+              <TabsTrigger
+                value="description"
+                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md px-6 py-2.5 text-sm font-medium"
+              >
+                Description
+              </TabsTrigger>
+              <TabsTrigger
+                value="specifications"
+                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md px-6 py-2.5 text-sm font-medium"
+              >
+                Specifications
+              </TabsTrigger>
+              <TabsTrigger
+                value="reviews"
+                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md px-6 py-2.5 text-sm font-medium"
+              >
+                Reviews ({product.reviewCount})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="description" className="mt-6">
+              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                <p>{product.description}</p>
+                <p className="mt-4">
+                  This product is sourced from verified sellers on the SHARKONE platform
+                  and comes with our quality guarantee. Every item undergoes thorough
+                  quality checks before being listed, ensuring you receive only the best.
+                </p>
+                <p className="mt-4">
+                  SHARKONE connects you directly with trusted sellers across the region,
+                  offering a seamless shopping experience with secure payments, reliable
+                  delivery, and easy returns.
+                </p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="specifications" className="mt-6">
+              <Card>
+                <CardContent className="p-0">
+                  <div className="divide-y divide-gray-100">
+                    {MOCK_SPECS.map((spec) => (
+                      <div
+                        key={spec.label}
+                        className="flex items-center px-5 py-3.5"
+                      >
+                        <span className="w-1/3 text-sm text-gray-500 font-medium">
+                          {spec.label}
+                        </span>
+                        <span className="w-2/3 text-sm text-[#0F172A]">
+                          {spec.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="reviews" className="mt-6">
+              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                {MOCK_REVIEWS.map((review) => (
+                  <Card key={review.id} className="border-gray-100">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10 bg-[#0F172A]">
+                            <AvatarFallback className="text-white text-sm font-semibold">
+                              {review.name
+                                .split(' ')
+                                .map((n) => n[0])
+                                .join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-semibold text-sm text-[#0F172A]">
+                              {review.name}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {new Date(review.date).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <StarRating rating={review.rating} size={14} />
+                      </div>
+                      <p className="mt-3 text-sm text-gray-600 leading-relaxed">
+                        {review.text}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </section>
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <section className="px-6 md:px-16 lg:px-32 pb-16">
+            <Separator className="mb-10" />
+            <h2 className="text-2xl font-bold text-[#0F172A] mb-6">
+              You May Also Like
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {relatedProducts.map((rp) => (
+                <RelatedProductCard key={rp.id} product={rp} />
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+
+      <Footer />
+    </>
+  );
+}

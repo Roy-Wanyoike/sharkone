@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart-store';
 import { Separator } from '@/components/ui/separator';
@@ -125,11 +126,10 @@ export function CartSidebar() {
                   </span>
                 </div>
                 <Separator />
-                <Button
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white rounded-lg h-12 text-sm font-semibold"
-                  onClick={closeCart}
-                >
-                  Checkout
+                <Button asChild className="w-full bg-amber-600 hover:bg-amber-700 text-white rounded-lg h-12 text-sm font-semibold">
+                  <Link href="/checkout" onClick={closeCart}>
+                    Checkout
+                  </Link>
                 </Button>
                 <Button
                   variant="ghost"

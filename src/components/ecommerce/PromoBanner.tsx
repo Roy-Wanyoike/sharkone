@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { ArrowRight, Store } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export function PromoBanner({ onRoleChange }: { onRoleChange?: (role: 'seller' | 'delivery') => void }) {
@@ -37,12 +38,14 @@ export function PromoBanner({ onRoleChange }: { onRoleChange?: (role: 'seller' |
             </div>
           </div>
           <Button
+            asChild
             size="lg"
             className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-full px-8 shrink-0"
-            onClick={() => onRoleChange?.('seller')}
           >
-            Open Your Store
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <Link href="/sell">
+              Open Your Store
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
           </Button>
         </div>
       </motion.div>

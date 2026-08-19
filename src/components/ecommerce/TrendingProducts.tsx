@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { TrendingUp, ShoppingBag, Star, StarHalf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart-store';
@@ -68,9 +69,9 @@ export function TrendingProducts({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group relative bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-300"
-              onClick={() => onViewProduct(product)}
             >
+              <Link href={`/product/${product.id}`} className="group relative bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-300 block"
+              >
               {discount > 0 && (
                 <span className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
                   -{discount}%
@@ -109,6 +110,7 @@ export function TrendingProducts({
                     className="h-8 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-xs"
                     onClick={(e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       addItem(product);
                       toast.success(`${product.name} added to cart`, {
                         icon: <ShoppingBag className="h-4 w-4" />,
@@ -121,6 +123,7 @@ export function TrendingProducts({
                   </Button>
                 </div>
               </div>
+              </Link>
             </motion.div>
           );
         })}
