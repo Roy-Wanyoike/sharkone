@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, Bell, ShoppingBag, Menu, X, User, Store, Truck, ChevronDown } from 'lucide-react';
+import { Search, Bell, ShoppingBag, Menu, X, User, Store, Truck, ChevronDown, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,10 +20,10 @@ interface NavbarProps {
   activeRole: Role;
 }
 
-const roleOptions: { value: Role; label: string; icon: React.ReactNode }[] = [
-  { value: 'buyer', label: 'Buyer', icon: <User className="h-4 w-4" /> },
-  { value: 'seller', label: 'Seller Dashboard', icon: <Store className="h-4 w-4" /> },
-  { value: 'delivery', label: 'Delivery Dashboard', icon: <Truck className="h-4 w-4" /> },
+const roleOptions: { value: Role; label: string; icon: React.ReactNode; href: string }[] = [
+  { value: 'buyer', label: 'Buyer', icon: <User className="h-4 w-4" />, href: '/account' },
+  { value: 'seller', label: 'Seller Dashboard', icon: <Store className="h-4 w-4" />, href: '/dashboard/seller' },
+  { value: 'delivery', label: 'Delivery Dashboard', icon: <Truck className="h-4 w-4" />, href: '/dashboard/delivery' },
 ];
 
 export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) {
@@ -137,7 +137,7 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
               <ChevronDown className="h-3 w-3 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-52">
             {roleOptions.map((option) => (
               <DropdownMenuItem
                 key={option.value}
@@ -150,6 +150,19 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
                 <span className="text-sm">{option.label}</span>
               </DropdownMenuItem>
             ))}
+            <div className="border-t border-gray-100 my-1" />
+            <DropdownMenuItem asChild className="flex items-center gap-2 cursor-pointer">
+              <Link href={roleOptions.find((r) => r.value === activeRole)?.href ?? '/'} className="flex items-center gap-2 text-sm w-full">
+                <LayoutDashboard className="h-4 w-4" />
+                <span>Open Full Dashboard</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="flex items-center gap-2 cursor-pointer">
+              <Link href="/admin" className="flex items-center gap-2 text-sm w-full">
+                <LayoutDashboard className="h-4 w-4" />
+                <span>Admin Panel</span>
+              </Link>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -244,8 +257,9 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
               <div className="border-t border-gray-100 my-2" />
               <p className="px-3 text-xs text-gray-400 uppercase tracking-wider mb-1">Switch Role</p>
               {roleOptions.map((option) => (
-                <button
+                <Link
                   key={option.value}
+                  href={option.href}
                   className={`flex items-center gap-2 py-2.5 text-sm font-medium px-3 rounded-lg transition-colors ${
                     activeRole === option.value
                       ? 'text-amber-700 bg-amber-50'
@@ -258,8 +272,16 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
                 >
                   {option.icon}
                   <span>{option.label}</span>
-                </button>
+                </Link>
               ))}
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 py-2.5 text-sm font-medium px-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                <span>Admin Panel</span>
+              </Link>
               <div className="border-t border-gray-100 my-2" />
               <div className="flex gap-2 px-3">
                 <Button asChild variant="outline" size="sm" className="flex-1 text-xs">

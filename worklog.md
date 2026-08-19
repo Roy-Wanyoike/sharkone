@@ -270,3 +270,137 @@ Verification:
 - All 9 routes return HTTP 200: /, /about, /contact, /checkout, /login, /register, /track, /sell, /product/[id]
 - API /api/products/[id] returns product + related products
 - API /api/orders POST returns 201 with valid data
+
+---
+Task ID: 3-b
+Agent: Sub-agent (fullstack-developer)
+Task: Wire SellerDashboard to real APIs + add missing seller API routes
+
+Files created:
+- src/app/api/seller/[sellerId]/stats/route.ts — GET: totalRevenue, totalOrders, totalProducts, rating, wallet data
+- src/app/api/seller/[sellerId]/products/route.ts — GET: list seller products with category; POST: create product (auto-slug, DRAFT status)
+- src/app/api/seller/[sellerId]/orders/route.ts — GET: orders grouped by orderId with buyer name, item count, total
+- src/app/api/seller/[sellerId]/transactions/route.ts — GET: transactions via seller.userId, ?type= filter
+- src/app/api/seller/[sellerId]/withdraw/route.ts — POST: deduct from wallet balance, create WITHDRAWAL transaction
+- src/app/dashboard/seller/page.tsx — Standalone seller dashboard page with dark header, seller lookup, QueryClientProvider
+
+Files modified:
+- src/components/ecommerce/SellerDashboard.tsx — Complete rewrite: replaced all mock data with TanStack Query hooks (useQuery for stats/products/orders/transactions, useMutation for add product and withdraw). Added loading skeletons (StatCardSkeleton, TableSkeleton, ProductCardSkeleton), error states, empty states. Currency formatted as KES via Intl.NumberFormat. Dates formatted with date-fns. Withdraw dialog with amount input and balance display. Add Product dialog now POSTs to real API and creates DRAFT products.
+
+API Details:
+- Stats: Aggregates sellerEarnings from OrderItem, counts distinct orders via groupBy, counts ACTIVE products, reads wallet balance/earnings/pendingClearance/withdrawn
+- Products GET: Supports ?status= filter, includes category relation
+- Products POST: Generates slug from name, ensures uniqueness, defaults to DRAFT status with placeholder image
+- Orders: Fetches OrderItems for seller, groups by orderId, computes per-order item count and total, supports ?status= filter
+- Transactions: Looks up seller.userId, fetches transactions, supports ?type= filter
+- Withdraw: Validates seller exists, checks wallet balance, creates PENDING WITHDRAWAL transaction, decrements balance, increments totalWithdrawn
+
+Design:
+- Same visual layout as original (4 tabs: Overview, Products, Orders, Wallet)
+- KES currency formatting
+- date-fns date formatting (MMM dd, yyyy)
+- Loading skeletons with shadcn Skeleton component
+- Error states with AlertCircle icon
+- Empty states with relevant icons
+- Framer Motion animations preserved
+- Responsive padding: px-4 md:px-16 lg:px-32
+
+Verification:
+- ESLint: 0 errors
+- All 5 new seller API routes return 200
+- /dashboard/seller returns 200, renders with real data
+- Stats API returns correct aggregated data (totalRevenue, totalOrders, etc.)
+- Products API returns 12 products for TechHub seller with category names
+- Orders API returns 3 orders grouped correctly
+- Transactions API returns empty array (no transactions yet)
+- Dev log shows all routes compile and respond successfully
+
+---
+Task ID: 3-c
+Agent: Sub-agent (fullstack-developer)
+Task: Wire DeliveryDashboard to real APIs + Build Buyer Account page
+
+Files created:
+- src/app/api/delivery/[id]/deliveries/route.ts — GET: list deliveries for delivery person with order, buyer, orderItems
+- src/app/api/delivery/[id]/stats/route.ts — GET: activeDeliveries, completedToday, completedTotal, totalEarnings, rating
+- src/app/api/delivery/[id]/confirm/route.ts — PUT: verify OTP, mark delivered, update order, create seller earnings
+- src/app/api/delivery/[id]/update-status/route.ts — PUT: advance delivery status with validated transitions
+- src/app/api/buyer/[buyerId]/orders/route.ts — GET: list buyer orders with items, seller info, delivery status
+- src/app/api/buyer/[buyerId]/transactions/route.ts — GET: list buyer PURCHASE/REFUND transactions
+- src/app/api/buyer/[buyerId]/stats/route.ts — GET: totalOrders, totalSpent, pendingOrders, activeDeliveries
+- src/app/account/page.tsx — Full buyer account page with profile, stats, orders, transactions, wishlist, settings tabs
+- src/app/dashboard/delivery/page.tsx — Standalone delivery dashboard page with dark header
+
+Files modified:
+- src/components/ecommerce/DeliveryDashboard.tsx — Complete rewrite: accepts deliveryPersonId prop, uses TanStack Query (useQuery for stats/deliveries, useMutation for confirm/update-status), loading skeletons (StatCardSkeleton, DeliveryCardSkeleton), error/empty states, KES currency formatting, date-fns formatting, real API calls for all operations
+
+Delivery API Details:
+- Deliveries GET: Includes order with buyer (name, phone, email) and orderItems (product name, image), supports ?status= filter
+- Stats GET: Counts active (not DELIVERED/FAILED), completed today (deliveredAt >= today), total completed, sums delivery fees for earnings
+- Confirm PUT: Verifies OTP matches deliveryOtp, updates delivery status to DELIVERED, sets deliveredAt, updates order status, creates EARNING transactions and updates seller wallets
+- Update-status PUT: Validates status transitions (ASSIGNED→PICKED_UP→IN_TRANSIT→NEAR_LOCATION→DELIVERED), also updates order status via mapping
+- Note: All delivery routes use [id] dynamic segment (not separate [deliveryPersonId] and [deliveryId]) to avoid Next.js conflicting slug names
+
+Buyer API Details:
+- Orders GET: Includes orderItems with product (name, image, slug) and seller (storeName), includes delivery status, supports ?status= filter
+- Transactions GET: Filters to PURCHASE and REFUND types only
+- Stats GET: Aggregates totalOrders, totalSpent (sum), pendingOrders (PENDING/CONFIRMED/PROCESSING), activeDeliveries
+
+Delivery Dashboard Component:
+- Accepts deliveryPersonId as prop
+- Stats row: 4 cards (Active Deliveries, Completed Today, Total Earnings in KES, Rating 4.8)
+- Active deliveries grid: cards with buyer name, shipping address, OTP with copy button, StatusStepper, Advance + Confirm buttons
+- Delivery history table: Order#, Customer, Status badge, Earnings in KES, Date formatted with date-fns
+- Confirm dialog: OTP input, calls real API, shows loading spinner, invalidates queries on success
+- Advance button: calls update-status API to progress delivery status
+- Loading skeletons for stats, delivery cards, and history table
+- Empty states with PackageX and AlertCircle icons
+- Same exact visual layout as original mock version
+
+Buyer Account Page (/account):
+- Dark header (#0F172A) with SHARKONE logo, "My Account" title, notification bell, cart button
+- Profile card: avatar circle with initials, name, email, member since date, Edit Profile button
+- Stats row: Total Orders, Total Spent (KES), Pending Orders, Active Deliveries
+- Tabs (shadcn Tabs):
+  - Orders: Table with order#, items count, total, status badge (color-coded), payment status, date, View button
+  - Transactions: Table with date, description, type badge, amount (red for purchases, green for refunds), status
+  - Wishlist: Product cards grid from useCartStore wishlist, fetches product details per item, Remove + Add to Cart buttons
+  - Settings: Form with name, email, phone pre-filled from user data, Save Changes button with toast
+- Auto-detects buyer from /api/admin/users?role=BUYER (first one), supports ?id= param
+- QueryClientProvider wrapper
+
+Delivery Dashboard Page (/dashboard/delivery):
+- Dark header with SHARKONE logo, "Delivery Dashboard" title, Home/Dashboard nav links
+- Auto-detects delivery person from /api/admin/users?role=DELIVERY (first one), supports ?id= param
+- Shows rider name and avatar initial in header
+- Loading skeleton and error states
+- QueryClientProvider wrapper
+
+Verification:
+- ESLint: 0 errors
+- All 7 new API routes return 200
+- /dashboard/delivery returns 200, renders with real data (2 active deliveries, 0 completed)
+- /account returns 200, renders with buyer data (4 orders, KES 7,235.98 total spent)
+- Delivery stats API: {"activeDeliveries":2,"completedToday":0,"completedTotal":0,"totalEarnings":0,"rating":4.8}
+- Deliveries API returns 2 deliveries with full order, buyer, and orderItems data
+- Buyer stats API: {"totalOrders":4,"totalSpent":7235.98,"pendingOrders":2,"activeDeliveries":2}
+- Buyer orders API returns 4 orders with item details and seller names
+- Dev log shows all routes compile and respond successfully
+
+---
+Task ID: 3-d
+Agent: Main Agent
+Task: Final wiring — Navbar dashboard links, admin integration
+
+Work Log:
+- Updated Navbar role switcher: each role now has an href (/account, /dashboard/seller, /dashboard/delivery)
+- Added "Open Full Dashboard" link to role dropdown (navigates to current role's standalone page)
+- Added "Admin Panel" link to role dropdown -> /admin
+- Mobile menu: role switcher items are now Links that navigate to standalone dashboard pages
+- Added Admin Panel link in mobile menu
+- Added LayoutDashboard icon import
+
+Verification:
+- ESLint: 0 errors across entire src/
+- All 12 routes return HTTP 200
+- Total API routes: 20+ (products, categories, hero, sellers, orders, admin/*, seller/*, delivery/*, buyer/*)

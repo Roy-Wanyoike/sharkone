@@ -1,0 +1,378 @@
+     1→▲ Next.js 16.1.3 (Turbopack)
+     2→- Local:         http://localhost:3000
+     3→- Network:       http://21.0.15.207:3000
+     4→- Environments: .env
+     5→
+     6→✓ Starting...
+     7→Attention: Next.js now collects completely anonymous telemetry regarding usage.
+     8→This information is used to shape Next.js' roadmap and prioritize features.
+     9→You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+    10→https://nextjs.org/telemetry
+    11→
+    12→✓ Ready in 847ms
+    13→○ Compiling / ...
+    14→ GET / 200 in 3.1s (compile: 2.9s, render: 157ms)
+    15→ GET / 200 in 5.2s (compile: 5.0s, render: 150ms)
+    16→ GET / 200 in 32ms (compile: 3ms, render: 29ms)
+    17→prisma:query SELECT `main`.`HeroSlide`.`id`, `main`.`HeroSlide`.`title`, `main`.`HeroSlide`.`subtitle`, `main`.`HeroSlide`.`ctaText`, `main`.`HeroSlide`.`ctaLink`, `main`.`HeroSlide`.`image`, `main`.`HeroSlide`.`order`, `main`.`HeroSlide`.`active`, `main`.`HeroSlide`.`createdAt`, `main`.`HeroSlide`.`updatedAt` FROM `main`.`HeroSlide` WHERE `main`.`HeroSlide`.`active` = ? ORDER BY `main`.`HeroSlide`.`order` ASC LIMIT ? OFFSET ?
+    18→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt`, COALESCE(`aggr_selection_0_Product`.`_aggr_count_products`, 0) AS `_aggr_count_products` FROM `main`.`Category` LEFT JOIN (SELECT `main`.`Product`.`categoryId`, COUNT(*) AS `_aggr_count_products` FROM `main`.`Product` WHERE 1=1 GROUP BY `main`.`Product`.`categoryId`) AS `aggr_selection_0_Product` ON (`main`.`Category`.`id` = `aggr_selection_0_Product`.`categoryId`) WHERE 1=1 ORDER BY `main`.`Category`.`name` ASC LIMIT ? OFFSET ?
+    19→ GET /api/hero 200 in 786ms (compile: 731ms, render: 55ms)
+    20→ GET /api/categories 200 in 806ms (compile: 785ms, render: 22ms)
+    21→prisma:query SELECT `main`.`Product`.`id`, `main`.`Product`.`name`, `main`.`Product`.`slug`, `main`.`Product`.`description`, `main`.`Product`.`price`, `main`.`Product`.`originalPrice`, `main`.`Product`.`image`, `main`.`Product`.`images`, `main`.`Product`.`rating`, `main`.`Product`.`reviewCount`, `main`.`Product`.`stock`, `main`.`Product`.`featured`, `main`.`Product`.`categoryId`, `main`.`Product`.`sellerId`, `main`.`Product`.`status`, `main`.`Product`.`createdAt`, `main`.`Product`.`updatedAt` FROM `main`.`Product` WHERE `main`.`Product`.`featured` = ? ORDER BY `main`.`Product`.`createdAt` DESC LIMIT ? OFFSET ?
+    22→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?,?,?,?) LIMIT ? OFFSET ?
+    23→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Product`.`id` FROM `main`.`Product` WHERE `main`.`Product`.`featured` = ? LIMIT ? OFFSET ?) AS `sub`
+    24→prisma:query SELECT `main`.`Seller`.`id`, `main`.`Seller`.`userId`, `main`.`Seller`.`storeName`, `main`.`Seller`.`storeSlug`, `main`.`Seller`.`storeDescription`, `main`.`Seller`.`storeLogo`, `main`.`Seller`.`rating`, `main`.`Seller`.`totalSales`, `main`.`Seller`.`isVerified`, `main`.`Seller`.`commissionRate`, `main`.`Seller`.`createdAt`, `main`.`Seller`.`updatedAt` FROM `main`.`Seller` WHERE `main`.`Seller`.`id` IN (?,?) LIMIT ? OFFSET ?
+    25→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?,?) LIMIT ? OFFSET ?
+    26→ GET /api/products?featured=true&limit=4 200 in 133ms (compile: 118ms, render: 16ms)
+    27→ GET /api/products?limit=50 200 in 142ms (compile: 133ms, render: 8ms)
+    28→prisma:query SELECT `main`.`Product`.`id`, `main`.`Product`.`name`, `main`.`Product`.`slug`, `main`.`Product`.`description`, `main`.`Product`.`price`, `main`.`Product`.`originalPrice`, `main`.`Product`.`image`, `main`.`Product`.`images`, `main`.`Product`.`rating`, `main`.`Product`.`reviewCount`, `main`.`Product`.`stock`, `main`.`Product`.`featured`, `main`.`Product`.`categoryId`, `main`.`Product`.`sellerId`, `main`.`Product`.`status`, `main`.`Product`.`createdAt`, `main`.`Product`.`updatedAt` FROM `main`.`Product` WHERE 1=1 ORDER BY `main`.`Product`.`createdAt` DESC LIMIT ? OFFSET ?
+    29→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?,?,?,?,?,?) LIMIT ? OFFSET ?
+    30→prisma:query SELECT `main`.`Seller`.`id`, `main`.`Seller`.`userId`, `main`.`Seller`.`storeName`, `main`.`Seller`.`storeSlug`, `main`.`Seller`.`storeDescription`, `main`.`Seller`.`storeLogo`, `main`.`Seller`.`rating`, `main`.`Seller`.`totalSales`, `main`.`Seller`.`isVerified`, `main`.`Seller`.`commissionRate`, `main`.`Seller`.`createdAt`, `main`.`Seller`.`updatedAt` FROM `main`.`Seller` WHERE `main`.`Seller`.`id` IN (?,?,?) LIMIT ? OFFSET ?
+    31→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Product`.`id` FROM `main`.`Product` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    32→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?,?,?) LIMIT ? OFFSET ?
+    33→ GET / 200 in 50ms (compile: 5ms, render: 45ms)
+    34→ GET /api/hero 200 in 9ms (compile: 3ms, render: 6ms)
+    35→prisma:query SELECT 1
+    36→prisma:query SELECT `main`.`HeroSlide`.`id`, `main`.`HeroSlide`.`title`, `main`.`HeroSlide`.`subtitle`, `main`.`HeroSlide`.`ctaText`, `main`.`HeroSlide`.`ctaLink`, `main`.`HeroSlide`.`image`, `main`.`HeroSlide`.`order`, `main`.`HeroSlide`.`active`, `main`.`HeroSlide`.`createdAt`, `main`.`HeroSlide`.`updatedAt` FROM `main`.`HeroSlide` WHERE `main`.`HeroSlide`.`active` = ? ORDER BY `main`.`HeroSlide`.`order` ASC LIMIT ? OFFSET ?
+    37→ GET /api/categories 200 in 8ms (compile: 2ms, render: 6ms)
+    38→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt`, COALESCE(`aggr_selection_0_Product`.`_aggr_count_products`, 0) AS `_aggr_count_products` FROM `main`.`Category` LEFT JOIN (SELECT `main`.`Product`.`categoryId`, COUNT(*) AS `_aggr_count_products` FROM `main`.`Product` WHERE 1=1 GROUP BY `main`.`Product`.`categoryId`) AS `aggr_selection_0_Product` ON (`main`.`Category`.`id` = `aggr_selection_0_Product`.`categoryId`) WHERE 1=1 ORDER BY `main`.`Category`.`name` ASC LIMIT ? OFFSET ?
+    39→ GET /api/products?featured=true&limit=4 200 in 10ms (compile: 3ms, render: 7ms)
+    40→prisma:query SELECT `main`.`Product`.`id`, `main`.`Product`.`name`, `main`.`Product`.`slug`, `main`.`Product`.`description`, `main`.`Product`.`price`, `main`.`Product`.`originalPrice`, `main`.`Product`.`image`, `main`.`Product`.`images`, `main`.`Product`.`rating`, `main`.`Product`.`reviewCount`, `main`.`Product`.`stock`, `main`.`Product`.`featured`, `main`.`Product`.`categoryId`, `main`.`Product`.`sellerId`, `main`.`Product`.`status`, `main`.`Product`.`createdAt`, `main`.`Product`.`updatedAt` FROM `main`.`Product` WHERE `main`.`Product`.`featured` = ? ORDER BY `main`.`Product`.`createdAt` DESC LIMIT ? OFFSET ?
+    41→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?,?,?,?) LIMIT ? OFFSET ?
+    42→prisma:query SELECT `main`.`Seller`.`id`, `main`.`Seller`.`userId`, `main`.`Seller`.`storeName`, `main`.`Seller`.`storeSlug`, `main`.`Seller`.`storeDescription`, `main`.`Seller`.`storeLogo`, `main`.`Seller`.`rating`, `main`.`Seller`.`totalSales`, `main`.`Seller`.`isVerified`, `main`.`Seller`.`commissionRate`, `main`.`Seller`.`createdAt`, `main`.`Seller`.`updatedAt` FROM `main`.`Seller` WHERE `main`.`Seller`.`id` IN (?,?) LIMIT ? OFFSET ?
+    43→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?,?) LIMIT ? OFFSET ?
+    44→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Product`.`id` FROM `main`.`Product` WHERE `main`.`Product`.`featured` = ? LIMIT ? OFFSET ?) AS `sub`
+    45→prisma:query SELECT 1
+    46→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Product`.`id` FROM `main`.`Product` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    47→prisma:query SELECT `main`.`Product`.`id`, `main`.`Product`.`name`, `main`.`Product`.`slug`, `main`.`Product`.`description`, `main`.`Product`.`price`, `main`.`Product`.`originalPrice`, `main`.`Product`.`image`, `main`.`Product`.`images`, `main`.`Product`.`rating`, `main`.`Product`.`reviewCount`, `main`.`Product`.`stock`, `main`.`Product`.`featured`, `main`.`Product`.`categoryId`, `main`.`Product`.`sellerId`, `main`.`Product`.`status`, `main`.`Product`.`createdAt`, `main`.`Product`.`updatedAt` FROM `main`.`Product` WHERE 1=1 ORDER BY `main`.`Product`.`createdAt` DESC LIMIT ? OFFSET ?
+    48→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?,?,?,?,?,?) LIMIT ? OFFSET ?
+    49→prisma:query SELECT `main`.`Seller`.`id`, `main`.`Seller`.`userId`, `main`.`Seller`.`storeName`, `main`.`Seller`.`storeSlug`, `main`.`Seller`.`storeDescription`, `main`.`Seller`.`storeLogo`, `main`.`Seller`.`rating`, `main`.`Seller`.`totalSales`, `main`.`Seller`.`isVerified`, `main`.`Seller`.`commissionRate`, `main`.`Seller`.`createdAt`, `main`.`Seller`.`updatedAt` FROM `main`.`Seller` WHERE `main`.`Seller`.`id` IN (?,?,?) LIMIT ? OFFSET ?
+    50→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?,?,?) LIMIT ? OFFSET ?
+    51→ GET /api/products?limit=50 200 in 9ms (compile: 1783µs, render: 7ms)
+    52→ GET / 200 in 73ms (compile: 9ms, render: 64ms)
+    53→prisma:query SELECT 1
+    54→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt`, COALESCE(`aggr_selection_0_Product`.`_aggr_count_products`, 0) AS `_aggr_count_products` FROM `main`.`Category` LEFT JOIN (SELECT `main`.`Product`.`categoryId`, COUNT(*) AS `_aggr_count_products` FROM `main`.`Product` WHERE 1=1 GROUP BY `main`.`Product`.`categoryId`) AS `aggr_selection_0_Product` ON (`main`.`Category`.`id` = `aggr_selection_0_Product`.`categoryId`) WHERE 1=1 ORDER BY `main`.`Category`.`name` ASC LIMIT ? OFFSET ?
+    55→ GET /api/categories 200 in 23ms (compile: 10ms, render: 13ms)
+    56→prisma:query SELECT `main`.`HeroSlide`.`id`, `main`.`HeroSlide`.`title`, `main`.`HeroSlide`.`subtitle`, `main`.`HeroSlide`.`ctaText`, `main`.`HeroSlide`.`ctaLink`, `main`.`HeroSlide`.`image`, `main`.`HeroSlide`.`order`, `main`.`HeroSlide`.`active`, `main`.`HeroSlide`.`createdAt`, `main`.`HeroSlide`.`updatedAt` FROM `main`.`HeroSlide` WHERE `main`.`HeroSlide`.`active` = ? ORDER BY `main`.`HeroSlide`.`order` ASC LIMIT ? OFFSET ?
+    57→ GET /api/hero 200 in 9ms (compile: 3ms, render: 6ms)
+    58→prisma:query SELECT `main`.`Product`.`id`, `main`.`Product`.`name`, `main`.`Product`.`slug`, `main`.`Product`.`description`, `main`.`Product`.`price`, `main`.`Product`.`originalPrice`, `main`.`Product`.`image`, `main`.`Product`.`images`, `main`.`Product`.`rating`, `main`.`Product`.`reviewCount`, `main`.`Product`.`stock`, `main`.`Product`.`featured`, `main`.`Product`.`categoryId`, `main`.`Product`.`sellerId`, `main`.`Product`.`status`, `main`.`Product`.`createdAt`, `main`.`Product`.`updatedAt` FROM `main`.`Product` WHERE 1=1 ORDER BY `main`.`Product`.`createdAt` DESC LIMIT ? OFFSET ?
+    59→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?,?,?,?,?,?) LIMIT ? OFFSET ?
+    60→prisma:query SELECT 1
+    61→prisma:query SELECT `main`.`Seller`.`id`, `main`.`Seller`.`userId`, `main`.`Seller`.`storeName`, `main`.`Seller`.`storeSlug`, `main`.`Seller`.`storeDescription`, `main`.`Seller`.`storeLogo`, `main`.`Seller`.`rating`, `main`.`Seller`.`totalSales`, `main`.`Seller`.`isVerified`, `main`.`Seller`.`commissionRate`, `main`.`Seller`.`createdAt`, `main`.`Seller`.`updatedAt` FROM `main`.`Seller` WHERE `main`.`Seller`.`id` IN (?,?,?) LIMIT ? OFFSET ?
+    62→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Product`.`id` FROM `main`.`Product` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    63→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?,?,?) LIMIT ? OFFSET ?
+    64→ GET /api/products?limit=50 200 in 13ms (compile: 2ms, render: 11ms)
+    65→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Product`.`id` FROM `main`.`Product` WHERE `main`.`Product`.`featured` = ? LIMIT ? OFFSET ?) AS `sub`
+    66→prisma:query SELECT `main`.`Product`.`id`, `main`.`Product`.`name`, `main`.`Product`.`slug`, `main`.`Product`.`description`, `main`.`Product`.`price`, `main`.`Product`.`originalPrice`, `main`.`Product`.`image`, `main`.`Product`.`images`, `main`.`Product`.`rating`, `main`.`Product`.`reviewCount`, `main`.`Product`.`stock`, `main`.`Product`.`featured`, `main`.`Product`.`categoryId`, `main`.`Product`.`sellerId`, `main`.`Product`.`status`, `main`.`Product`.`createdAt`, `main`.`Product`.`updatedAt` FROM `main`.`Product` WHERE `main`.`Product`.`featured` = ? ORDER BY `main`.`Product`.`createdAt` DESC LIMIT ? OFFSET ?
+    67→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?,?,?,?) LIMIT ? OFFSET ?
+    68→prisma:query SELECT `main`.`Seller`.`id`, `main`.`Seller`.`userId`, `main`.`Seller`.`storeName`, `main`.`Seller`.`storeSlug`, `main`.`Seller`.`storeDescription`, `main`.`Seller`.`storeLogo`, `main`.`Seller`.`rating`, `main`.`Seller`.`totalSales`, `main`.`Seller`.`isVerified`, `main`.`Seller`.`commissionRate`, `main`.`Seller`.`createdAt`, `main`.`Seller`.`updatedAt` FROM `main`.`Seller` WHERE `main`.`Seller`.`id` IN (?,?) LIMIT ? OFFSET ?
+    69→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?,?) LIMIT ? OFFSET ?
+    70→ GET /api/products?featured=true&limit=4 200 in 9ms (compile: 2ms, render: 7ms)
+    71→ GET / 200 in 43ms (compile: 3ms, render: 40ms)
+    72→prisma:query SELECT 1
+    73→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt`, COALESCE(`aggr_selection_0_Product`.`_aggr_count_products`, 0) AS `_aggr_count_products` FROM `main`.`Category` LEFT JOIN (SELECT `main`.`Product`.`categoryId`, COUNT(*) AS `_aggr_count_products` FROM `main`.`Product` WHERE 1=1 GROUP BY `main`.`Product`.`categoryId`) AS `aggr_selection_0_Product` ON (`main`.`Category`.`id` = `aggr_selection_0_Product`.`categoryId`) WHERE 1=1 ORDER BY `main`.`Category`.`name` ASC LIMIT ? OFFSET ?
+    74→ GET /api/categories 200 in 8ms (compile: 2ms, render: 6ms)
+    75→prisma:query SELECT `main`.`HeroSlide`.`id`, `main`.`HeroSlide`.`title`, `main`.`HeroSlide`.`subtitle`, `main`.`HeroSlide`.`ctaText`, `main`.`HeroSlide`.`ctaLink`, `main`.`HeroSlide`.`image`, `main`.`HeroSlide`.`order`, `main`.`HeroSlide`.`active`, `main`.`HeroSlide`.`createdAt`, `main`.`HeroSlide`.`updatedAt` FROM `main`.`HeroSlide` WHERE `main`.`HeroSlide`.`active` = ? ORDER BY `main`.`HeroSlide`.`order` ASC LIMIT ? OFFSET ?
+    76→ GET /api/hero 200 in 20ms (compile: 8ms, render: 12ms)
+    77→prisma:query SELECT `main`.`Product`.`id`, `main`.`Product`.`name`, `main`.`Product`.`slug`, `main`.`Product`.`description`, `main`.`Product`.`price`, `main`.`Product`.`originalPrice`, `main`.`Product`.`image`, `main`.`Product`.`images`, `main`.`Product`.`rating`, `main`.`Product`.`reviewCount`, `main`.`Product`.`stock`, `main`.`Product`.`featured`, `main`.`Product`.`categoryId`, `main`.`Product`.`sellerId`, `main`.`Product`.`status`, `main`.`Product`.`createdAt`, `main`.`Product`.`updatedAt` FROM `main`.`Product` WHERE 1=1 ORDER BY `main`.`Product`.`createdAt` DESC LIMIT ? OFFSET ?
+    78→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?,?,?,?,?,?) LIMIT ? OFFSET ?
+    79→prisma:query SELECT `main`.`Seller`.`id`, `main`.`Seller`.`userId`, `main`.`Seller`.`storeName`, `main`.`Seller`.`storeSlug`, `main`.`Seller`.`storeDescription`, `main`.`Seller`.`storeLogo`, `main`.`Seller`.`rating`, `main`.`Seller`.`totalSales`, `main`.`Seller`.`isVerified`, `main`.`Seller`.`commissionRate`, `main`.`Seller`.`createdAt`, `main`.`Seller`.`updatedAt` FROM `main`.`Seller` WHERE `main`.`Seller`.`id` IN (?,?,?) LIMIT ? OFFSET ?
+    80→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?,?,?) LIMIT ? OFFSET ?
+    81→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Product`.`id` FROM `main`.`Product` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+    82→prisma:query SELECT 1
+    83→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Product`.`id` FROM `main`.`Product` WHERE `main`.`Product`.`featured` = ? LIMIT ? OFFSET ?) AS `sub`
+    84→prisma:query SELECT `main`.`Product`.`id`, `main`.`Product`.`name`, `main`.`Product`.`slug`, `main`.`Product`.`description`, `main`.`Product`.`price`, `main`.`Product`.`originalPrice`, `main`.`Product`.`image`, `main`.`Product`.`images`, `main`.`Product`.`rating`, `main`.`Product`.`reviewCount`, `main`.`Product`.`stock`, `main`.`Product`.`featured`, `main`.`Product`.`categoryId`, `main`.`Product`.`sellerId`, `main`.`Product`.`status`, `main`.`Product`.`createdAt`, `main`.`Product`.`updatedAt` FROM `main`.`Product` WHERE `main`.`Product`.`featured` = ? ORDER BY `main`.`Product`.`createdAt` DESC LIMIT ? OFFSET ?
+    85→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug`, `main`.`Category`.`image`, `main`.`Category`.`description`, `main`.`Category`.`createdAt`, `main`.`Category`.`updatedAt` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?,?,?,?) LIMIT ? OFFSET ?
+    86→prisma:query SELECT `main`.`Seller`.`id`, `main`.`Seller`.`userId`, `main`.`Seller`.`storeName`, `main`.`Seller`.`storeSlug`, `main`.`Seller`.`storeDescription`, `main`.`Seller`.`storeLogo`, `main`.`Seller`.`rating`, `main`.`Seller`.`totalSales`, `main`.`Seller`.`isVerified`, `main`.`Seller`.`commissionRate`, `main`.`Seller`.`createdAt`, `main`.`Seller`.`updatedAt` FROM `main`.`Seller` WHERE `main`.`Seller`.`id` IN (?,?) LIMIT ? OFFSET ?
+    87→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?,?) LIMIT ? OFFSET ?
+    88→ GET /api/products?limit=50 200 in 23ms (compile: 3ms, render: 21ms)
+    89→ GET /api/products?featured=true&limit=4 200 in 25ms (compile: 9ms, render: 15ms)
+    90→ GET /sell 200 in 835ms (compile: 809ms, render: 25ms)
+    91→ GET /sell 200 in 50ms (compile: 26ms, render: 25ms)
+    92→ GET /sell 200 in 18ms (compile: 3ms, render: 14ms)
+    93→ GET /sell 200 in 17ms (compile: 3ms, render: 15ms)
+    94→ GET /sell 200 in 18ms (compile: 3ms, render: 16ms)
+    95→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+    96→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+    97→ GET /sell 200 in 19ms (compile: 3ms, render: 16ms)
+    98→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+    99→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   100→ GET /sell 200 in 21ms (compile: 3ms, render: 18ms)
+   101→ GET /sell 200 in 22ms (compile: 3ms, render: 19ms)
+   102→ GET /sell 200 in 22ms (compile: 9ms, render: 13ms)
+   103→ GET /sell 200 in 21ms (compile: 3ms, render: 17ms)
+   104→ GET /sell 200 in 18ms (compile: 4ms, render: 14ms)
+   105→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   106→ GET /sell 200 in 21ms (compile: 3ms, render: 18ms)
+   107→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   108→ GET /sell 200 in 17ms (compile: 5ms, render: 13ms)
+   109→ GET /sell 200 in 26ms (compile: 4ms, render: 22ms)
+   110→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   111→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   112→ GET /sell 200 in 35ms (compile: 5ms, render: 30ms)
+   113→ GET /sell 200 in 18ms (compile: 4ms, render: 14ms)
+   114→ GET /sell 200 in 27ms (compile: 5ms, render: 22ms)
+   115→ GET /sell 200 in 18ms (compile: 3ms, render: 14ms)
+   116→ GET /sell 200 in 20ms (compile: 4ms, render: 16ms)
+   117→ GET /sell 200 in 27ms (compile: 3ms, render: 24ms)
+   118→ GET /sell 200 in 19ms (compile: 3ms, render: 15ms)
+   119→ GET /sell 200 in 17ms (compile: 3ms, render: 13ms)
+   120→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   121→ GET /sell 200 in 17ms (compile: 4ms, render: 13ms)
+   122→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   123→ GET /sell 200 in 21ms (compile: 3ms, render: 18ms)
+   124→ GET /sell 200 in 17ms (compile: 4ms, render: 14ms)
+   125→ GET /sell 200 in 17ms (compile: 4ms, render: 14ms)
+   126→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   127→ GET /sell 200 in 45ms (compile: 27ms, render: 18ms)
+   128→ GET /sell 200 in 22ms (compile: 3ms, render: 19ms)
+   129→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   130→ GET /sell 200 in 16ms (compile: 3ms, render: 14ms)
+   131→ GET /sell 200 in 28ms (compile: 4ms, render: 23ms)
+   132→ GET /sell 200 in 16ms (compile: 4ms, render: 12ms)
+   133→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   134→ GET /sell 200 in 22ms (compile: 3ms, render: 18ms)
+   135→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   136→ GET /sell 200 in 24ms (compile: 4ms, render: 20ms)
+   137→ GET /sell 200 in 19ms (compile: 3ms, render: 16ms)
+   138→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   139→ GET /sell 200 in 17ms (compile: 3ms, render: 13ms)
+   140→ GET /sell 200 in 39ms (compile: 25ms, render: 14ms)
+   141→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   142→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   143→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   144→ GET /sell 200 in 17ms (compile: 4ms, render: 13ms)
+   145→ GET /sell 200 in 21ms (compile: 3ms, render: 18ms)
+   146→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   147→ GET /sell 200 in 24ms (compile: 4ms, render: 20ms)
+   148→ GET /sell 200 in 24ms (compile: 4ms, render: 21ms)
+   149→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   150→ GET /sell 200 in 44ms (compile: 3ms, render: 41ms)
+   151→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   152→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   153→ GET /sell 200 in 16ms (compile: 4ms, render: 12ms)
+   154→ GET /sell 200 in 19ms (compile: 3ms, render: 16ms)
+   155→ GET /sell 200 in 19ms (compile: 3ms, render: 16ms)
+   156→ GET /sell 200 in 21ms (compile: 3ms, render: 18ms)
+   157→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   158→ GET /sell 200 in 18ms (compile: 4ms, render: 14ms)
+   159→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   160→ GET /sell 200 in 21ms (compile: 3ms, render: 18ms)
+   161→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   162→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   163→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   164→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   165→ GET /sell 200 in 44ms (compile: 25ms, render: 19ms)
+   166→ GET /sell 200 in 29ms (compile: 4ms, render: 26ms)
+   167→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   168→ GET /sell 200 in 18ms (compile: 3ms, render: 14ms)
+   169→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   170→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   171→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   172→ GET /sell 200 in 30ms (compile: 4ms, render: 26ms)
+   173→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   174→ GET /sell 200 in 19ms (compile: 4ms, render: 15ms)
+   175→ GET /sell 200 in 28ms (compile: 4ms, render: 24ms)
+   176→ GET /sell 200 in 24ms (compile: 4ms, render: 20ms)
+   177→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   178→ GET /sell 200 in 19ms (compile: 3ms, render: 16ms)
+   179→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   180→ GET /sell 200 in 16ms (compile: 3ms, render: 14ms)
+   181→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   182→ GET /sell 200 in 21ms (compile: 3ms, render: 18ms)
+   183→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   184→ GET /sell 200 in 21ms (compile: 3ms, render: 18ms)
+   185→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   186→ GET /sell 200 in 15ms (compile: 3ms, render: 13ms)
+   187→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   188→ GET /sell 200 in 16ms (compile: 3ms, render: 12ms)
+   189→ GET /sell 200 in 22ms (compile: 3ms, render: 19ms)
+   190→ GET /sell 200 in 16ms (compile: 3ms, render: 12ms)
+   191→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   192→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   193→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   194→ GET /sell 200 in 21ms (compile: 3ms, render: 18ms)
+   195→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   196→ GET /sell 200 in 14ms (compile: 3ms, render: 12ms)
+   197→ GET /sell 200 in 32ms (compile: 4ms, render: 28ms)
+   198→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   199→ GET /sell 200 in 32ms (compile: 11ms, render: 21ms)
+   200→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   201→ GET /sell 200 in 48ms (compile: 4ms, render: 44ms)
+   202→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   203→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   204→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   205→ GET /sell 200 in 39ms (compile: 23ms, render: 16ms)
+   206→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   207→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   208→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   209→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   210→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   211→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   212→ GET /sell 200 in 16ms (compile: 3ms, render: 12ms)
+   213→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   214→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   215→ GET /sell 200 in 23ms (compile: 3ms, render: 20ms)
+   216→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   217→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   218→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   219→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   220→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   221→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   222→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   223→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   224→ GET /sell 200 in 30ms (compile: 3ms, render: 26ms)
+   225→ GET /sell 200 in 22ms (compile: 4ms, render: 18ms)
+   226→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   227→ GET /sell 200 in 16ms (compile: 3ms, render: 14ms)
+   228→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   229→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   230→ GET /sell 200 in 22ms (compile: 3ms, render: 19ms)
+   231→ GET /sell 200 in 14ms (compile: 3ms, render: 11ms)
+   232→ GET /sell 200 in 33ms (compile: 4ms, render: 29ms)
+   233→ GET /sell 200 in 14ms (compile: 3ms, render: 12ms)
+   234→ GET /sell 200 in 14ms (compile: 3ms, render: 11ms)
+   235→ GET /sell 200 in 57ms (compile: 10ms, render: 47ms)
+   236→ GET /sell 200 in 14ms (compile: 3ms, render: 11ms)
+   237→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   238→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   239→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   240→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   241→ GET /sell 200 in 43ms (compile: 8ms, render: 35ms)
+   242→ GET /sell 200 in 16ms (compile: 4ms, render: 12ms)
+   243→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   244→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   245→ GET /sell 200 in 30ms (compile: 3ms, render: 27ms)
+   246→ GET /sell 200 in 17ms (compile: 3ms, render: 13ms)
+   247→ GET /sell 200 in 54ms (compile: 22ms, render: 32ms)
+   248→ GET /sell 200 in 16ms (compile: 3ms, render: 12ms)
+   249→ GET /sell 200 in 30ms (compile: 3ms, render: 27ms)
+   250→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   251→ GET /sell 200 in 14ms (compile: 3ms, render: 11ms)
+   252→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   253→ GET /sell 200 in 25ms (compile: 3ms, render: 22ms)
+   254→ GET /sell 200 in 14ms (compile: 3ms, render: 11ms)
+   255→ GET /sell 200 in 18ms (compile: 3ms, render: 14ms)
+   256→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   257→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   258→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   259→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   260→ GET /sell 200 in 20ms (compile: 3ms, render: 16ms)
+   261→ GET /sell 200 in 16ms (compile: 3ms, render: 14ms)
+   262→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   263→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   264→ GET /sell 200 in 24ms (compile: 3ms, render: 21ms)
+   265→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   266→ GET /sell 200 in 31ms (compile: 3ms, render: 28ms)
+   267→ GET /sell 200 in 25ms (compile: 4ms, render: 22ms)
+   268→ GET /sell 200 in 23ms (compile: 3ms, render: 21ms)
+   269→ GET /sell 200 in 18ms (compile: 5ms, render: 13ms)
+   270→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   271→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   272→ GET /sell 200 in 16ms (compile: 4ms, render: 12ms)
+   273→ GET /sell 200 in 15ms (compile: 3ms, render: 13ms)
+   274→ GET /sell 200 in 15ms (compile: 3ms, render: 13ms)
+   275→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   276→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   277→ GET /sell 200 in 24ms (compile: 4ms, render: 20ms)
+   278→ GET /sell 200 in 16ms (compile: 3ms, render: 12ms)
+   279→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   280→ GET /sell 200 in 25ms (compile: 4ms, render: 21ms)
+   281→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   282→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   283→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   284→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   285→ GET /sell 200 in 42ms (compile: 3ms, render: 39ms)
+   286→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   287→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   288→ GET /sell 200 in 17ms (compile: 4ms, render: 13ms)
+   289→ GET /sell 200 in 16ms (compile: 4ms, render: 12ms)
+   290→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   291→ GET /sell 200 in 38ms (compile: 24ms, render: 15ms)
+   292→ GET /sell 200 in 17ms (compile: 5ms, render: 13ms)
+   293→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   294→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   295→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   296→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   297→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   298→ GET /sell 200 in 23ms (compile: 4ms, render: 19ms)
+   299→ GET /sell 200 in 17ms (compile: 3ms, render: 15ms)
+   300→ GET /sell 200 in 16ms (compile: 3ms, render: 14ms)
+   301→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   302→ GET /sell 200 in 22ms (compile: 3ms, render: 19ms)
+   303→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   304→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   305→ GET /sell 200 in 19ms (compile: 3ms, render: 16ms)
+   306→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   307→ GET /sell 200 in 29ms (compile: 3ms, render: 26ms)
+   308→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   309→ GET /sell 200 in 16ms (compile: 3ms, render: 14ms)
+   310→ GET /sell 200 in 20ms (compile: 3ms, render: 17ms)
+   311→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   312→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   313→ GET /sell 200 in 22ms (compile: 3ms, render: 18ms)
+   314→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   315→ GET /sell 200 in 28ms (compile: 4ms, render: 24ms)
+   316→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   317→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   318→ GET /sell 200 in 22ms (compile: 4ms, render: 19ms)
+   319→ GET /sell 200 in 19ms (compile: 3ms, render: 16ms)
+   320→ GET /sell 200 in 15ms (compile: 3ms, render: 13ms)
+   321→ GET /sell 200 in 17ms (compile: 3ms, render: 14ms)
+   322→ GET /sell 200 in 16ms (compile: 4ms, render: 13ms)
+   323→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   324→ GET /sell 200 in 16ms (compile: 3ms, render: 13ms)
+   325→ GET /sell 200 in 22ms (compile: 3ms, render: 18ms)
+   326→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   327→ GET /sell 200 in 25ms (compile: 4ms, render: 21ms)
+   328→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   329→ GET /sell 200 in 23ms (compile: 4ms, render: 18ms)
+   330→ GET /sell 200 in 44ms (compile: 3ms, render: 41ms)
+   331→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   332→ GET /sell 200 in 14ms (compile: 3ms, render: 11ms)
+   333→ GET /sell 200 in 18ms (compile: 3ms, render: 15ms)
+   334→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   335→ GET /sell 200 in 15ms (compile: 3ms, render: 12ms)
+   336→ GET /sell 200 in 14ms (compile: 3ms, render: 11ms)
+   337→prisma:query SELECT 1
+   338→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`User`.`id` FROM `main`.`User` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   339→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Seller`.`id` FROM `main`.`Seller` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   340→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Product`.`id` FROM `main`.`Product` WHERE `main`.`Product`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
+   341→prisma:query SELECT 1
+   342→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Delivery`.`id` FROM `main`.`Delivery` WHERE `main`.`Delivery`.`status` IN (?,?,?,?) LIMIT ? OFFSET ?) AS `sub`
+   343→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Order`.`id` FROM `main`.`Order` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   344→prisma:query SELECT SUM(`totalAmount`) AS `_sum$totalAmount` FROM (SELECT `main`.`Order`.`totalAmount` FROM `main`.`Order` WHERE `main`.`Order`.`paymentStatus` = ? LIMIT ? OFFSET ?) AS `sub`
+   345→ GET /api/admin/stats 200 in 129ms (compile: 114ms, render: 15ms)
+   346→prisma:query SELECT `main`.`Product`.`id`, `main`.`Product`.`name`, `main`.`Product`.`slug`, `main`.`Product`.`description`, `main`.`Product`.`price`, `main`.`Product`.`originalPrice`, `main`.`Product`.`image`, `main`.`Product`.`images`, `main`.`Product`.`rating`, `main`.`Product`.`reviewCount`, `main`.`Product`.`stock`, `main`.`Product`.`featured`, `main`.`Product`.`categoryId`, `main`.`Product`.`sellerId`, `main`.`Product`.`status`, `main`.`Product`.`createdAt`, `main`.`Product`.`updatedAt` FROM `main`.`Product` WHERE 1=1 ORDER BY `main`.`Product`.`createdAt` DESC LIMIT ? OFFSET ?
+   347→prisma:query SELECT `main`.`Category`.`id`, `main`.`Category`.`name`, `main`.`Category`.`slug` FROM `main`.`Category` WHERE `main`.`Category`.`id` IN (?,?,?,?,?,?) LIMIT ? OFFSET ?
+   348→prisma:query SELECT `main`.`Seller`.`id`, `main`.`Seller`.`storeName`, `main`.`Seller`.`userId` FROM `main`.`Seller` WHERE `main`.`Seller`.`id` IN (?,?,?) LIMIT ? OFFSET ?
+   349→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?,?,?) LIMIT ? OFFSET ?
+   350→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Product`.`id` FROM `main`.`Product` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   351→ GET /api/admin/products 200 in 222ms (compile: 204ms, render: 18ms)
+   352→ GET /login 200 in 1002ms (compile: 955ms, render: 47ms)
+   353→ GET /login 200 in 15ms (compile: 3ms, render: 13ms)
+   354→prisma:query SELECT `main`.`Order`.`id`, `main`.`Order`.`orderNumber`, `main`.`Order`.`buyerId`, `main`.`Order`.`status`, `main`.`Order`.`totalAmount`, `main`.`Order`.`platformFee`, `main`.`Order`.`sellerEarnings`, `main`.`Order`.`deliveryFee`, `main`.`Order`.`shippingAddress`, `main`.`Order`.`paymentStatus`, `main`.`Order`.`paidAt`, `main`.`Order`.`createdAt`, `main`.`Order`.`updatedAt` FROM `main`.`Order` WHERE 1=1 ORDER BY `main`.`Order`.`createdAt` DESC LIMIT ? OFFSET ?
+   355→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name`, `main`.`User`.`email` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?) LIMIT ? OFFSET ?
+   356→prisma:query SELECT `main`.`OrderItem`.`id`, `main`.`OrderItem`.`quantity`, `main`.`OrderItem`.`price`, `main`.`OrderItem`.`orderId` FROM `main`.`OrderItem` WHERE `main`.`OrderItem`.`orderId` IN (?,?,?,?) LIMIT ? OFFSET ?
+   357→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Order`.`id` FROM `main`.`Order` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   358→prisma:query SELECT `main`.`Delivery`.`id`, `main`.`Delivery`.`status`, `main`.`Delivery`.`deliveryPersonId`, `main`.`Delivery`.`orderId` FROM `main`.`Delivery` WHERE `main`.`Delivery`.`orderId` IN (?,?,?,?) LIMIT ? OFFSET ?
+   359→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?) LIMIT ? OFFSET ?
+   360→ GET /api/admin/orders 200 in 184ms (compile: 174ms, render: 10ms)
+   361→ GET /api/admin/orders 200 in 42ms (compile: 2ms, render: 39ms)
+   362→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Order`.`id` FROM `main`.`Order` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   363→prisma:query SELECT `main`.`Order`.`id`, `main`.`Order`.`orderNumber`, `main`.`Order`.`buyerId`, `main`.`Order`.`status`, `main`.`Order`.`totalAmount`, `main`.`Order`.`platformFee`, `main`.`Order`.`sellerEarnings`, `main`.`Order`.`deliveryFee`, `main`.`Order`.`shippingAddress`, `main`.`Order`.`paymentStatus`, `main`.`Order`.`paidAt`, `main`.`Order`.`createdAt`, `main`.`Order`.`updatedAt` FROM `main`.`Order` WHERE 1=1 ORDER BY `main`.`Order`.`createdAt` DESC LIMIT ? OFFSET ?
+   364→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name`, `main`.`User`.`email` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?) LIMIT ? OFFSET ?
+   365→prisma:query SELECT `main`.`OrderItem`.`id`, `main`.`OrderItem`.`quantity`, `main`.`OrderItem`.`price`, `main`.`OrderItem`.`orderId` FROM `main`.`OrderItem` WHERE `main`.`OrderItem`.`orderId` IN (?,?,?,?) LIMIT ? OFFSET ?
+   366→prisma:query SELECT `main`.`Delivery`.`id`, `main`.`Delivery`.`status`, `main`.`Delivery`.`deliveryPersonId`, `main`.`Delivery`.`orderId` FROM `main`.`Delivery` WHERE `main`.`Delivery`.`orderId` IN (?,?,?,?) LIMIT ? OFFSET ?
+   367→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?) LIMIT ? OFFSET ?
+   368→ GET /api/admin/sellers 200 in 261ms (compile: 240ms, render: 20ms)
+   369→prisma:query SELECT 1
+   370→prisma:query SELECT `main`.`Seller`.`id`, `main`.`Seller`.`userId`, `main`.`Seller`.`storeName`, `main`.`Seller`.`storeSlug`, `main`.`Seller`.`storeDescription`, `main`.`Seller`.`storeLogo`, `main`.`Seller`.`rating`, `main`.`Seller`.`totalSales`, `main`.`Seller`.`isVerified`, `main`.`Seller`.`commissionRate`, `main`.`Seller`.`createdAt`, `main`.`Seller`.`updatedAt`, COALESCE(`aggr_selection_0_Product`.`_aggr_count_products`, 0) AS `_aggr_count_products` FROM `main`.`Seller` LEFT JOIN (SELECT `main`.`Product`.`sellerId`, COUNT(*) AS `_aggr_count_products` FROM `main`.`Product` WHERE 1=1 GROUP BY `main`.`Product`.`sellerId`) AS `aggr_selection_0_Product` ON (`main`.`Seller`.`id` = `aggr_selection_0_Product`.`sellerId`) WHERE 1=1 ORDER BY `main`.`Seller`.`createdAt` DESC LIMIT ? OFFSET ?
+   371→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`name`, `main`.`User`.`email`, `main`.`User`.`phone` FROM `main`.`User` WHERE `main`.`User`.`id` IN (?,?,?) LIMIT ? OFFSET ?
+   372→prisma:query SELECT `main`.`Wallet`.`id`, `main`.`Wallet`.`balance`, `main`.`Wallet`.`totalEarnings`, `main`.`Wallet`.`pendingClearance`, `main`.`Wallet`.`sellerId` FROM `main`.`Wallet` WHERE `main`.`Wallet`.`sellerId` IN (?,?,?) LIMIT ? OFFSET ?
+   373→ GET /api/admin/users 200 in 272ms (compile: 238ms, render: 34ms)
+   374→prisma:query SELECT `main`.`User`.`id`, `main`.`User`.`email`, `main`.`User`.`name`, `main`.`User`.`phone`, `main`.`User`.`role`, `main`.`User`.`avatar`, `main`.`User`.`createdAt`, `main`.`User`.`updatedAt` FROM `main`.`User` WHERE 1=1 ORDER BY `main`.`User`.`createdAt` DESC LIMIT ? OFFSET ?
+   375→prisma:query SELECT `main`.`Seller`.`id`, `main`.`Seller`.`storeName`, `main`.`Seller`.`isVerified`, `main`.`Seller`.`userId` FROM `main`.`Seller` WHERE `main`.`Seller`.`userId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+   376→prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`User`.`id` FROM `main`.`User` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+   377→ GET /admin 200 in 2.1s (compile: 1894ms, render: 215ms)
+   378→
