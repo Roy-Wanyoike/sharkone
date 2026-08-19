@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail,
   Lock,
@@ -12,11 +12,13 @@ import {
   ShoppingBag,
   Truck,
   ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/store/auth-store';
 
 const Logo = () => (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -27,22 +29,63 @@ const Logo = () => (
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setLoginData, selectedAccount, isAuthenticated } = useAuthStore();
+
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({ email: '', password: '' });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isAuthenticated && selectedAccount) {
+      router.push(selectedAccount.redirectPath);
+    }
+  }, [isAuthenticated, selectedAccount, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
     if (!form.email.trim() || !form.password.trim()) {
-      toast.error('Please fill in all fields');
+      setError('Please fill in all fields');
       return;
     }
+
     setLoading(true);
-    setTimeout(() => {
-      toast.success('Welcome back! Redirecting...');
-      router.push('/');
-    }, 1000);
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Login failed');
+        setLoading(false);
+        return;
+      }
+
+      setLoginData(data.user, data.accounts);
+
+      if (data.requiresRoleSelection) {
+        toast.success(`Welcome, ${data.user.name}!`);
+        setLoading(false);
+      } else {
+        const account = data.accounts[0];
+        toast.success(`Welcome back, ${data.user.name}!`);
+        setLoading(false);
+        setTimeout(() => {
+          router.push(account.redirectPath);
+        }, 500);
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -75,14 +118,39 @@ export default function LoginPage() {
             </div>
 
             <h1 className="text-3xl font-bold text-[#0F172A]">Welcome Back</h1>
-            <p className="text-gray-500 mt-1.5 mb-8">Sign in to your account</p>
+            <p className="text-gray-500 mt-1.5 mb-2">Sign in to your account</p>
+
+            {/* Demo hint */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 mb-6">
+              <p className="text-xs text-amber-800">
+                <span className="font-semibold">Demo:</span> Use{' '}
+                <code className="bg-amber-100 px-1.5 py-0.5 rounded text-amber-900 font-mono">roy@sharkone.com</code>
+                {' '}with any password to see the multi-account role picker.
+                {' '}Or try{' '}
+                <code className="bg-amber-100 px-1.5 py-0.5 rounded text-amber-900 font-mono">techstore@sharkone.com</code>
+                {' '}for direct seller login.
+              </p>
+            </div>
+
+            {/* Error Alert */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-5 text-sm"
+                >
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  Email
-                </label>
+                <label htmlFor="email" className="text-sm font-medium text-gray-700">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -91,25 +159,23 @@ export default function LoginPage() {
                     placeholder="you@example.com"
                     className="pl-10 h-11"
                     value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    onChange={(e) => { setForm({ ...form, email: e.target.value }); setError(''); }}
                   />
                 </div>
               </div>
 
               {/* Password */}
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-gray-700">
-                  Password
-                </label>
+                <label htmlFor="password" className="text-sm font-medium text-gray-700">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
+                    placeholder="Enter any password (demo mode)"
                     className="pl-10 pr-10 h-11"
                     value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    onChange={(e) => { setForm({ ...form, password: e.target.value }); setError(''); }}
                   />
                   <button
                     type="button"
@@ -130,14 +196,9 @@ export default function LoginPage() {
                     checked={remember}
                     onCheckedChange={(v) => setRemember(v === true)}
                   />
-                  <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
-                    Remember me
-                  </label>
+                  <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">Remember me</label>
                 </div>
-                <Link
-                  href="#"
-                  className="text-sm text-amber-600 hover:text-amber-700 font-medium transition"
-                >
+                <Link href="#" className="text-sm text-amber-600 hover:text-amber-700 font-medium transition">
                   Forgot password?
                 </Link>
               </div>
@@ -175,22 +236,10 @@ export default function LoginPage() {
               onClick={() => toast.info('Google sign-in coming soon')}
             >
               <svg className="h-4 w-4 mr-2.5" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
               Continue with Google
             </Button>
@@ -198,10 +247,7 @@ export default function LoginPage() {
             {/* Register Link */}
             <p className="text-center text-sm text-gray-500 mt-7">
               Don&apos;t have an account?{' '}
-              <Link
-                href="/register"
-                className="text-amber-600 hover:text-amber-700 font-semibold transition"
-              >
+              <Link href="/register" className="text-amber-600 hover:text-amber-700 font-semibold transition">
                 Sign Up
               </Link>
             </p>
@@ -211,7 +257,6 @@ export default function LoginPage() {
 
       {/* Right Panel - Branded (Desktop Only) */}
       <div className="hidden lg:flex lg:w-[480px] xl:w-[540px] bg-[#0F172A] flex-col items-center justify-center px-12 xl:px-16 relative overflow-hidden">
-        {/* Decorative circles */}
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-amber-500/5" />
         <div className="absolute -bottom-48 -left-24 w-80 h-80 rounded-full bg-amber-500/5" />
 
@@ -221,7 +266,6 @@ export default function LoginPage() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="relative z-10 text-center max-w-sm"
         >
-          {/* Large Logo */}
           <div className="flex items-center justify-center gap-3 mb-3">
             <svg width="48" height="48" viewBox="0 0 32 32" fill="none" aria-hidden="true">
               <path d="M16 4C14 4 10 8 8 12C6 16 6 22 8 26C10 28 14 28 16 28C18 28 22 28 24 26C26 22 26 16 24 12C22 8 18 4 16 4Z" fill="#F59E0B" />
@@ -233,18 +277,10 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <p className="text-amber-400 text-lg font-medium mb-10 tracking-wide">
-            Shop. Ship. Smile.
-          </p>
+          <p className="text-amber-400 text-lg font-medium mb-10 tracking-wide">Shop. Ship. Smile.</p>
 
-          {/* Features */}
           <div className="space-y-6 text-left">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex items-start gap-4"
-            >
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }} className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
                 <ShoppingBag className="h-5 w-5 text-amber-400" />
               </div>
@@ -254,12 +290,7 @@ export default function LoginPage() {
               </div>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.55 }}
-              className="flex items-start gap-4"
-            >
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.55 }} className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
                 <Truck className="h-5 w-5 text-amber-400" />
               </div>
@@ -269,12 +300,7 @@ export default function LoginPage() {
               </div>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.7 }}
-              className="flex items-start gap-4"
-            >
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }} className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
                 <ShieldCheck className="h-5 w-5 text-amber-400" />
               </div>
