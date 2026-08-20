@@ -2,9 +2,17 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Loader2 } from 'lucide-react';
-import { useCartStore } from '@/store/cart-store';
+import { Search, X, Loader2, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import type { Product } from '@/types';
+
+function formatKES(amount: number): string {
+  return new Intl.NumberFormat('en-KE', {
+    style: 'currency',
+    currency: 'KES',
+    minimumFractionDigits: 0,
+  }).format(amount);
+}
 
 export function SearchDialog({
   open,
@@ -17,7 +25,6 @@ export function SearchDialog({
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const addItem = useCartStore((s) => s.addItem);
 
   // Focus input when dialog opens
   useEffect(() => {
@@ -112,13 +119,11 @@ export function SearchDialog({
                 </div>
               )}
               {displayResults.map((product) => (
-                <div
+                <Link
                   key={product.id}
-                  className="flex items-center gap-4 p-4 hover:bg-gray-50 cursor-pointer transition"
-                  onClick={() => {
-                    addItem(product);
-                    handleClose();
-                  }}
+                  href={`/product/${product.id}`}
+                  onClick={handleClose}
+                  className="flex items-center gap-4 p-4 hover:bg-gray-50 transition"
                 >
                   <img
                     src={product.image}
@@ -130,21 +135,23 @@ export function SearchDialog({
                       {product.name}
                     </h3>
                     <p className="text-sm font-semibold text-amber-700 mt-0.5">
-                      ${product.price.toFixed(2)}
+                      {formatKES(product.price)}
                     </p>
                   </div>
-                  <button
-                    className="text-xs text-amber-700 font-medium border border-amber-200 rounded-full px-3 py-1 hover:bg-amber-50 transition"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addItem(product);
-                      handleClose();
-                    }}
-                  >
-                    Add
-                  </button>
-                </div>
+                </Link>
               ))}
+
+              {/* See all results link */}
+              {displayResults.length > 0 && query.trim() && (
+                <Link
+                  href={`/search?q=${encodeURIComponent(query)}`}
+                  onClick={handleClose}
+                  className="flex items-center justify-center gap-2 p-4 border-t text-sm font-medium text-amber-700 hover:bg-amber-50 transition"
+                >
+                  See all results for &quot;{query}&quot;
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
             </div>
           </motion.div>
         </>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Search, Bell, ShoppingBag, Menu, X, User, Store, Truck, ChevronDown, LayoutDashboard } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCartStore } from '@/store/cart-store';
 import { motion, AnimatePresence } from 'framer-motion';
+import { NotificationDropdown } from '@/components/ecommerce/NotificationDropdown';
 import type { Role } from '@/types';
 
 interface NavbarProps {
@@ -28,11 +30,18 @@ const roleOptions: { value: Role; label: string; icon: React.ReactNode; href: st
 
 export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const totalItems = useCartStore((s) => s.totalItems);
   const openCart = useCartStore((s) => s.openCart);
 
   const currentRoleLabel = roleOptions.find((r) => r.value === activeRole)?.label ?? 'Buyer';
-  const notificationCount = 3;
+
+  const { data: notifData } = useQuery({
+    queryKey: ['notifications-unread'],
+    queryFn: () => fetch('/api/notifications').then((r) => r.json()),
+    refetchInterval: 30_000,
+  });
+  const notificationCount = notifData?.unreadCount ?? 0;
 
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-16 lg:px-32 py-3 backdrop-blur-md border-b border-gray-200 bg-white/90 shadow-sm">
@@ -102,19 +111,27 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
         </Button>
 
         {/* Notification Bell */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-          aria-label="Notifications"
-        >
-          <Bell className="h-5 w-5" />
-          {notificationCount > 0 && (
-            <span className="absolute top-1 right-1 h-4 w-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-              {notificationCount}
-            </span>
-          )}
-        </Button>
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            aria-label="Notifications"
+            onClick={() => setNotifOpen(!notifOpen)}
+          >
+            <Bell className="h-5 w-5" />
+            {notificationCount > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute top-1 right-1 h-4 w-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center"
+              >
+                {notificationCount}
+              </motion.span>
+            )}
+          </Button>
+          <NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} />
+        </div>
 
         {/* Login Button */}
         <Button asChild variant="ghost" size="sm" className="hidden lg:flex items-center gap-1.5 text-xs text-gray-700 hover:bg-gray-50 rounded-lg">

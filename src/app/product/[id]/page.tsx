@@ -3,7 +3,8 @@
 import React, { useState, use } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatDistanceToNow } from 'date-fns';
 import {
   Star,
   Minus,
@@ -138,38 +139,120 @@ function StarRating({ rating, size = 16 }: { rating: number; size?: number }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Mock Reviews                                                       */
+/*  Review Form Component                                              */
 /* ------------------------------------------------------------------ */
-const MOCK_REVIEWS = [
-  {
-    id: 'r1',
-    name: 'Alice Mwangi',
-    rating: 5,
-    date: '2025-12-15',
-    text: 'Absolutely love this product! The quality exceeded my expectations. Fast delivery and well-packaged. Will definitely order again from SHARKONE.',
-  },
-  {
-    id: 'r2',
-    name: 'Brian Odhiambo',
-    rating: 4,
-    date: '2025-12-08',
-    text: 'Great value for money. The product matches the description perfectly. Minor shipping delay but overall very satisfied with the purchase.',
-  },
-  {
-    id: 'r3',
-    name: 'Cynthia Wanjiku',
-    rating: 5,
-    date: '2025-11-29',
-    text: 'This is my third purchase from this seller. Consistently high quality and excellent customer service. Highly recommended!',
-  },
-  {
-    id: 'r4',
-    name: 'David Kamau',
-    rating: 4,
-    date: '2025-11-20',
-    text: 'Good product, works as described. The packaging could be better but the product itself is solid. Fair price for what you get.',
-  },
-];
+function ReviewForm({ productId }: { productId: string }) {
+  const queryClient = useQueryClient();
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [title, setTitle] = useState('');
+  const [comment, setComment] = useState('');
+  const [userName, setUserName] = useState('');
+
+  const mutation = useMutation({
+    mutationFn: async (data: { rating: number; title?: string; comment: string; userName: string }) => {
+      const res = await fetch(`/api/products/${productId}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to submit review');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Review submitted!');
+      queryClient.invalidateQueries({ queryKey: ['reviews', productId] });
+      setRating(0);
+      setTitle('');
+      setComment('');
+      setUserName('');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating === 0 || !comment.trim() || !userName.trim()) return;
+    mutation.mutate({ rating, title: title.trim() || undefined, comment: comment.trim(), userName: userName.trim() });
+  };
+
+  return (
+    <Card className="border-gray-100 mb-6">
+      <CardContent className="p-5">
+        <h3 className="font-bold text-base text-[#0F172A] mb-4">Write a Review</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Star selector */}
+          <div className="flex items-center gap-1">
+            <span className="text-sm font-medium text-gray-700 mr-2">Rating:</span>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() => setRating(star)}
+                onMouseEnter={() => setHoverRating(star)}
+                onMouseLeave={() => setHoverRating(0)}
+                className="p-0.5 transition-transform hover:scale-110"
+                aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+              >
+                <Star
+                  className={`h-6 w-6 transition-colors ${
+                    star <= (hoverRating || rating)
+                      ? 'fill-amber-400 text-amber-400'
+                      : 'fill-gray-200 text-gray-200'
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+          {/* Name */}
+          <div>
+            <input
+              type="text"
+              placeholder="Your name"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+            />
+          </div>
+          {/* Title */}
+          <div>
+            <input
+              type="text"
+              placeholder="Review title (optional)"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+            />
+          </div>
+          {/* Comment */}
+          <div>
+            <textarea
+              placeholder="Share your experience with this product..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              required
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={mutation.isPending || rating === 0 || !comment.trim() || !userName.trim()}
+            className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {mutation.isPending ? 'Submitting...' : 'Submit Review'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Mock Specs                                                         */
@@ -301,6 +384,113 @@ function ProductImageGallery({ product }: { product: Product }) {
                 className="w-full h-full object-cover"
               />
             </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Reviews Section                                                    */
+/* ------------------------------------------------------------------ */
+function ReviewSection({ productId }: { productId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['reviews', productId],
+    queryFn: async () => {
+      const res = await fetch(`/api/products/${productId}/reviews?limit=50`);
+      if (!res.ok) throw new Error('Failed to load reviews');
+      return res.json() as Promise<{ reviews: { id: string; userName: string; rating: number; title?: string | null; comment: string; isVerified: boolean; createdAt: string }[]; total: number; averageRating: number }>;
+    },
+  });
+
+  const reviews = data?.reviews ?? [];
+  const total = data?.total ?? 0;
+  const averageRating = data?.averageRating ?? 0;
+
+  return (
+    <div>
+      <ReviewForm productId={productId} />
+
+      {/* Summary */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="flex items-center gap-1.5">
+          <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+          <span className="text-lg font-bold text-[#0F172A]">
+            {averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
+          </span>
+        </div>
+        <span className="text-sm text-gray-500">
+          Based on {total} review{total !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* Review list */}
+      {isLoading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="border-gray-100">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+                <Skeleton className="h-4 w-full mt-3" />
+                <Skeleton className="h-4 w-3/4 mt-2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : reviews.length === 0 ? (
+        <p className="text-sm text-gray-500 text-center py-8">No reviews yet. Be the first to share your experience!</p>
+      ) : (
+        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+          {reviews.map((review) => (
+            <Card key={review.id} className="border-gray-100">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 bg-[#0F172A]">
+                      <AvatarFallback className="text-white text-sm font-semibold">
+                        {review.userName
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-sm text-[#0F172A]">
+                          {review.userName}
+                        </p>
+                        {review.isVerified && (
+                          <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-[10px] px-1.5 py-0">
+                            Verified
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
+                      </p>
+                    </div>
+                  </div>
+                  <StarRating rating={review.rating} size={14} />
+                </div>
+                {review.title && (
+                  <p className="mt-2 text-sm font-semibold text-[#0F172A]">
+                    {review.title}
+                  </p>
+                )}
+                <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                  {review.comment}
+                </p>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
@@ -715,42 +905,7 @@ export default function ProductDetailPage({
             </TabsContent>
 
             <TabsContent value="reviews" className="mt-6">
-              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                {MOCK_REVIEWS.map((review) => (
-                  <Card key={review.id} className="border-gray-100">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 bg-[#0F172A]">
-                            <AvatarFallback className="text-white text-sm font-semibold">
-                              {review.name
-                                .split(' ')
-                                .map((n) => n[0])
-                                .join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-semibold text-sm text-[#0F172A]">
-                              {review.name}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {new Date(review.date).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                        <StarRating rating={review.rating} size={14} />
-                      </div>
-                      <p className="mt-3 text-sm text-gray-600 leading-relaxed">
-                        {review.text}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              <ReviewSection productId={id} />
             </TabsContent>
           </Tabs>
         </section>
