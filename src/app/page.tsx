@@ -12,6 +12,7 @@ import { SearchDialog } from '@/components/ecommerce/SearchDialog';
 import { Footer } from '@/components/ecommerce/Footer';
 import { PromoBanner } from '@/components/ecommerce/PromoBanner';
 import { TrustBadges } from '@/components/ecommerce/TrustBadges';
+import { RecentlyViewed } from '@/components/ecommerce/RecentlyViewed';
 import { ScrollToTop } from '@/components/ecommerce/ScrollToTop';
 import { ProductDetailModal } from '@/components/ecommerce/ProductDetailModal';
 import { SellerDashboard } from '@/components/ecommerce/SellerDashboard';
@@ -96,6 +97,7 @@ export default function Home() {
                 <ProductGrid key={selectedCategory} categories={categories} initialCategory={selectedCategory} />
                 <PromoBanner onRoleChange={handleRoleChange} />
                 <TrustBadges />
+                <RecentlyViewed />
               </>
             )}
             {activeRole === 'seller' && <SellerDashboard />}

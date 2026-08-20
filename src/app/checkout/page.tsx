@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import {
   Check,
   CheckCircle2,
@@ -22,6 +23,8 @@ import {
   MapPin,
   Package,
   Loader2,
+  Star,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +40,9 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useCartStore } from '@/store/cart-store';
 import { Footer } from '@/components/ecommerce/Footer';
+import { CouponInput } from '@/components/ecommerce/CouponInput';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { CartItem } from '@/types';
 
 // ============================================================
@@ -201,13 +207,24 @@ function StepIndicator({ currentStep }: { currentStep: Step }) {
 function OrderSummarySidebar({
   items,
   deliveryFee,
+  couponDiscount,
+  couponCode,
+  isFreeShipping,
+  onCouponApply,
+  onCouponRemove,
 }: {
   items: CartItem[];
   deliveryFee: number;
+  couponDiscount: number;
+  couponCode: string | null;
+  isFreeShipping: boolean;
+  onCouponApply: (discount: number, code: string, isFreeShipping: boolean) => void;
+  onCouponRemove: () => void;
 }) {
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const platformFee = Math.round(subtotal * 0.02);
-  const total = subtotal + deliveryFee + platformFee;
+  const effectiveDeliveryFee = isFreeShipping ? 0 : deliveryFee;
+  const total = Math.max(0, subtotal + effectiveDeliveryFee + platformFee - couponDiscount);
 
   return (
     <div className="bg-gray-50 rounded-xl p-6 border border-gray-100 sticky top-24">
@@ -242,17 +259,39 @@ function OrderSummarySidebar({
         </div>
         <div className="flex justify-between text-gray-600">
           <span>Delivery</span>
-          <span>KES {deliveryFee.toLocaleString()}</span>
+          <span className={isFreeShipping ? 'line-through text-gray-400' : ''}>
+            KES {deliveryFee.toLocaleString()}
+          </span>
         </div>
+        {isFreeShipping && (
+          <div className="flex justify-between text-[#F59E0B] font-medium">
+            <span>Free Shipping</span>
+            <span>−KES {deliveryFee.toLocaleString()}</span>
+          </div>
+        )}
         <div className="flex justify-between text-gray-600">
           <span>Platform Fee (2%)</span>
           <span>KES {platformFee.toLocaleString()}</span>
         </div>
+        {couponDiscount > 0 && (
+          <div className="flex justify-between text-green-600 font-medium">
+            <span>Coupon Discount ({couponCode})</span>
+            <span>−KES {couponDiscount.toLocaleString()}</span>
+          </div>
+        )}
         <Separator className="!my-3" />
         <div className="flex justify-between font-bold text-[#0F172A]">
           <span>Total</span>
           <span className="text-base">KES {total.toLocaleString()}</span>
         </div>
+      </div>
+      <div className="mt-4">
+        <CouponInput
+          onApply={onCouponApply}
+          onRemove={onCouponRemove}
+          orderTotal={subtotal}
+          appliedCode={couponCode}
+        />
       </div>
     </div>
   );
@@ -261,6 +300,17 @@ function OrderSummarySidebar({
 // ============================================================
 // Step 1: Shipping
 // ============================================================
+
+interface SavedAddress {
+  id: string;
+  label: string;
+  fullName: string;
+  phone: string;
+  county: string;
+  city: string | null;
+  addressLine: string;
+  isDefault: boolean;
+}
 
 function ShippingStep({
   form,
@@ -271,12 +321,103 @@ function ShippingStep({
   errors: ShippingErrors;
   onChange: (field: keyof ShippingForm, value: string) => void;
 }) {
+  // Fetch saved addresses for the buyer
+  const { data: addressesData, isLoading: addressesLoading } = useQuery<{ addresses: SavedAddress[] }>({
+    queryKey: ['checkout-addresses'],
+    queryFn: () => fetch('/api/addresses').then((r) => r.json()),
+  });
+
+  const savedAddresses = addressesData?.addresses || [];
+
+  const selectAddress = (addr: SavedAddress) => {
+    onChange('fullName', addr.fullName);
+    onChange('phone', addr.phone);
+    onChange('address1', addr.addressLine);
+    onChange('city', addr.city || '');
+    onChange('state', addr.county);
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-[#0F172A]">Shipping Information</h2>
         <p className="text-sm text-gray-500 mt-1">Where should we deliver your order?</p>
       </div>
+
+      {/* Saved Addresses */}
+      {!addressesLoading && savedAddresses.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-gray-700">Saved Addresses</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {savedAddresses.map((addr) => (
+              <button
+                key={addr.id}
+                type="button"
+                onClick={() => selectAddress(addr)}
+                className={`text-left rounded-xl border-2 p-4 transition-all duration-200 hover:shadow-sm ${
+                  addr.isDefault
+                    ? 'border-[#F59E0B] bg-amber-50/30'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge
+                    variant="secondary"
+                    className={`text-[10px] font-semibold ${
+                      addr.label === 'Home'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : addr.label === 'Office'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    {addr.label}
+                  </Badge>
+                  {addr.isDefault && (
+                    <Badge className="bg-[#F59E0B] text-[#0F172A] text-[10px] font-semibold gap-1">
+                      <Star className="h-3 w-3" />
+                      Default
+                    </Badge>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-sm text-gray-900 font-medium">
+                    <User className="h-3 w-3 text-gray-400" />
+                    {addr.fullName}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <Phone className="h-3 w-3 text-gray-400" />
+                    {addr.phone}
+                  </div>
+                  <div className="flex items-start gap-1.5 text-xs text-gray-500">
+                    <MapPin className="h-3 w-3 text-gray-400 mt-0.5 shrink-0" />
+                    <span className="line-clamp-2">{addr.addressLine}{addr.city ? `, ${addr.city}` : ''}, {addr.county}</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white px-3 text-gray-400">or enter a new address below</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addressesLoading && (
+        <div className="space-y-3">
+          <Skeleton className="h-5 w-32" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Skeleton key={i} className="h-28 w-full rounded-xl" />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
@@ -637,6 +778,11 @@ function ReviewStep({
   deliveryFee,
   onPlaceOrder,
   isPlacing,
+  couponDiscount,
+  couponCode,
+  isFreeShipping,
+  onCouponApply,
+  onCouponRemove,
 }: {
   items: CartItem[];
   shipping: ShippingForm;
@@ -644,10 +790,16 @@ function ReviewStep({
   deliveryFee: number;
   onPlaceOrder: () => void;
   isPlacing: boolean;
+  couponDiscount: number;
+  couponCode: string | null;
+  isFreeShipping: boolean;
+  onCouponApply: (discount: number, code: string, isFreeShipping: boolean) => void;
+  onCouponRemove: () => void;
 }) {
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const platformFee = Math.round(subtotal * 0.02);
-  const total = subtotal + deliveryFee + platformFee;
+  const effectiveDeliveryFee = isFreeShipping ? 0 : deliveryFee;
+  const total = Math.max(0, subtotal + effectiveDeliveryFee + platformFee - couponDiscount);
 
   const paymentLabels: Record<PaymentMethod, string> = {
     mpesa: 'M-Pesa',
@@ -759,12 +911,26 @@ function ReviewStep({
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Delivery Fee</span>
-                <span>KES {deliveryFee.toLocaleString()}</span>
+                <span className={isFreeShipping ? 'line-through text-gray-400' : ''}>
+                  KES {deliveryFee.toLocaleString()}
+                </span>
               </div>
+              {isFreeShipping && (
+                <div className="flex justify-between text-[#F59E0B] font-medium">
+                  <span>Free Shipping</span>
+                  <span>−KES {deliveryFee.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between text-gray-600">
                 <span>Platform Fee (2%)</span>
                 <span>KES {platformFee.toLocaleString()}</span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-green-600 font-medium">
+                  <span>Coupon Discount ({couponCode})</span>
+                  <span>−KES {couponDiscount.toLocaleString()}</span>
+                </div>
+              )}
               <Separator className="!my-3" />
               <div className="flex justify-between font-bold text-[#0F172A] text-lg">
                 <span>Total</span>
@@ -938,6 +1104,23 @@ export default function CheckoutPage() {
   const [mpesaPhone, setMpesaPhone] = useState('');
   const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '' });
 
+  // Coupon
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [isFreeShipping, setIsFreeShipping] = useState(false);
+
+  const handleCouponApply = (discount: number, code: string, freeShipping: boolean) => {
+    setCouponDiscount(discount);
+    setCouponCode(code);
+    setIsFreeShipping(freeShipping);
+  };
+
+  const handleCouponRemove = () => {
+    setCouponDiscount(0);
+    setCouponCode(null);
+    setIsFreeShipping(false);
+  };
+
   // Order
   const [orderNumber, setOrderNumber] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
@@ -1003,7 +1186,8 @@ export default function CheckoutPage() {
 
     const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
     const platformFee = Math.round(subtotal * 0.02);
-    const total = subtotal + deliveryFee + platformFee;
+    const effectiveDeliveryFee = isFreeShipping ? 0 : deliveryFee;
+    const total = Math.max(0, subtotal + effectiveDeliveryFee + platformFee - couponDiscount);
 
     try {
       await fetch('/api/orders', {
@@ -1022,8 +1206,10 @@ export default function CheckoutPage() {
           shippingAddress: JSON.stringify(shipping),
           paymentMethod,
           totalAmount: total,
-          deliveryFee,
+          deliveryFee: effectiveDeliveryFee,
           platformFee,
+          couponCode: couponCode || undefined,
+          couponDiscount: couponDiscount || undefined,
           buyerEmail: shipping.email,
           buyerName: shipping.fullName,
           buyerPhone: shipping.phone,
@@ -1124,7 +1310,15 @@ export default function CheckoutPage() {
 
             {/* Sidebar */}
             <div>
-              <OrderSummarySidebar items={items} deliveryFee={deliveryFee} />
+              <OrderSummarySidebar
+                items={items}
+                deliveryFee={deliveryFee}
+                couponDiscount={couponDiscount}
+                couponCode={couponCode}
+                isFreeShipping={isFreeShipping}
+                onCouponApply={handleCouponApply}
+                onCouponRemove={handleCouponRemove}
+              />
             </div>
           </div>
         )}
@@ -1148,6 +1342,11 @@ export default function CheckoutPage() {
                   deliveryFee={deliveryFee}
                   onPlaceOrder={handlePlaceOrder}
                   isPlacing={isPlacing}
+                  couponDiscount={couponDiscount}
+                  couponCode={couponCode}
+                  isFreeShipping={isFreeShipping}
+                  onCouponApply={handleCouponApply}
+                  onCouponRemove={handleCouponRemove}
                 />
               </motion.div>
             </AnimatePresence>

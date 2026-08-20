@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, Bell, ShoppingBag, Menu, X, User, Store, Truck, ChevronDown, LayoutDashboard } from 'lucide-react';
+import { Search, Bell, ShoppingBag, Menu, X, User, Store, Truck, ChevronDown, LayoutDashboard, RotateCcw, GitCompareArrows } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCartStore } from '@/store/cart-store';
+import { useCompareStore } from '@/store/compare-store';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationDropdown } from '@/components/ecommerce/NotificationDropdown';
 import type { Role } from '@/types';
@@ -33,6 +34,7 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
   const [notifOpen, setNotifOpen] = useState(false);
   const totalItems = useCartStore((s) => s.totalItems);
   const openCart = useCartStore((s) => s.openCart);
+  const compareCount = useCompareStore((s) => s.productIds.length);
 
   const currentRoleLabel = roleOptions.find((r) => r.value === activeRole)?.label ?? 'Buyer';
 
@@ -84,6 +86,12 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
           Track Order
         </Link>
         <Link
+          href="/returns"
+          className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
+        >
+          Returns
+        </Link>
+        <Link
           href="/about"
           className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
         >
@@ -132,6 +140,28 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
           </Button>
           <NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} />
         </div>
+
+        {/* Compare Button */}
+        <Button
+          asChild
+          variant="ghost"
+          size="icon"
+          className="relative hidden lg:flex text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+          aria-label="Compare products"
+        >
+          <Link href="/compare">
+            <GitCompareArrows className="h-5 w-5" />
+            {compareCount > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-1 h-4 w-4 bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center"
+              >
+                {compareCount}
+              </motion.span>
+            )}
+          </Link>
+        </Button>
 
         {/* Login Button */}
         <Button asChild variant="ghost" size="sm" className="hidden lg:flex items-center gap-1.5 text-xs text-gray-700 hover:bg-gray-50 rounded-lg">
@@ -256,6 +286,13 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Track Order
+              </Link>
+              <Link
+                href="/returns"
+                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Returns
               </Link>
               <Link
                 href="/about"

@@ -2,9 +2,10 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Heart, Star, StarHalf, ShoppingBag } from 'lucide-react';
+import { GitCompareArrows, Heart, Star, StarHalf, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart-store';
+import { useCompareStore } from '@/store/compare-store';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
 
@@ -28,7 +29,12 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
   const addItem = useCartStore((s) => s.addItem);
   const toggleWishlist = useCartStore((s) => s.toggleWishlist);
   const isInWishlist = useCartStore((s) => s.isInWishlist);
+  const compareAdd = useCompareStore((s) => s.addProduct);
+  const compareRemove = useCompareStore((s) => s.removeProduct);
+  const isComparing = useCompareStore((s) => s.isComparing);
+  const compareIds = useCompareStore((s) => s.productIds);
   const wishlisted = isInWishlist(product.id);
+  const comparing = isComparing(product.id);
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
@@ -72,6 +78,33 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
               wishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'
             }`}
           />
+        </button>
+        {/* Compare button – bottom-right, visible on hover */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (comparing) {
+              compareRemove(product.id);
+              toast.info(`Removed ${product.name} from comparison`);
+            } else {
+              if (compareIds.length >= 4) {
+                toast.error('You can compare up to 4 products at a time');
+                return;
+              }
+              compareAdd(product.id);
+              toast.success(`Added ${product.name} to comparison`, {
+                action: { label: 'Compare', onClick: () => { window.location.href = '/compare'; } },
+              });
+            }
+          }}
+          className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-md hover:scale-110 transition-all opacity-0 group-hover:opacity-100 ${
+            comparing
+              ? 'bg-amber-500 text-white'
+              : 'bg-white text-gray-500 hover:text-amber-600'
+          }`}
+          aria-label="Toggle compare"
+        >
+          <GitCompareArrows className="h-3.5 w-3.5" />
         </button>
       </div>
 

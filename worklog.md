@@ -552,3 +552,30 @@ Stage Summary:
 - Modified: Navbar (notification integration), SearchDialog (KES + navigation fix), ProductGrid, Product detail page (real reviews), Prisma schema (Review model)
 - Build: PASSING (40 routes total) | Lint: PASSING (0 errors)
 - Total routes: 13 pages + 32 API endpoints
+
+---
+Task ID: phase5-parallel-8-agents
+Agent: Main Agent (8 parallel full-stack-developer subagents)
+Task: Phase 5 — 8 major features built simultaneously
+
+Work Log:
+- Built Returns & Refunds: ReturnRequest model, ReturnStatus/RefundStatus enums, 3 API routes, buyer returns page with CRUD, seeded 3 returns
+- Built Promotions & Coupons: Coupon/UsedCoupon models, CouponType enum, validate API, admin CRUD API, CouponInput widget, checkout integration, seeded 5 coupons
+- Built Wishlist Page: Dedicated /wishlist with product grid, move-to-cart, remove, loading skeletons
+- Built Recently Viewed: Zustand store (persisted, max 20), horizontal scrollable section, auto-track on product page, added to homepage
+- Built Product Comparison: Zustand compare store (max 4), /compare page with comparison table, compare button on ProductCard, navbar link with badge
+- Built Analytics Dashboard: /analytics with recharts (AreaChart, BarChart, PieChart), admin analytics API with raw SQL, KPI cards, seller table, activity feed
+- Built Delivery Assignment Engine: Auto-assign algorithm (scoring), 6 admin delivery API routes, /admin/deliveries management page with table/dialogs/auto-assign
+- Built Blog/CMS: BlogPost model, PostStatus enum, public blog API + admin CRUD, /blog listing with tag filters, /blog/[slug] detail with markdown, seeded 6 posts
+- Built Address Book: Address model, CRUD API, addresses tab in account page, checkout integration with saved addresses, seeded 3 addresses
+- Added Reorder button to delivered orders in account page
+- Fixed build errors: PackageReturn → RotateCcw, duplicate RotateCcw import, Search → Eye reference
+
+Stage Summary:
+- New pages: /wishlist, /compare, /analytics, /admin/deliveries, /blog, /blog/[slug], /returns
+- New API routes: 18 new endpoints (returns, coupons, delivery assign/admin, blog, addresses, analytics)
+- New models: ReturnRequest, Coupon, UsedCoupon, BlogPost, Address (5 new models)
+- New enums: ReturnStatus, RefundStatus, CouponType, PostStatus (4 new enums)
+- New stores: recently-viewed-store, compare-store (2 new Zustand stores)
+- New components: CouponInput, RecentlyViewed
+- Platform total: 23 pages, 50 API endpoints, 17 Prisma models, 0 build errors, 0 lint errors

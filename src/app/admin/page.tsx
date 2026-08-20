@@ -142,6 +142,7 @@ const navItems = [
   { key: 'orders', label: 'Orders', icon: ShoppingBag },
   { key: 'sellers', label: 'Sellers', icon: Store },
   { key: 'users', label: 'Users', icon: Users },
+  { key: 'deliveries', label: 'Deliveries', icon: Truck, href: '/admin/deliveries' },
 ];
 
 // ===================== HELPERS =====================
@@ -245,7 +246,22 @@ function Sidebar({
         <nav className="flex-1 px-3 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.key;
+            const isActive = 'href' in item ? false : activeTab === item.key;
+            const navClassName = `
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                  ${isActive
+                    ? 'bg-amber-500 text-white'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  }
+                `;
+            if ('href' in item) {
+              return (
+                <Link key={item.key} href={item.href} className={navClassName}>
+                  <Icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              );
+            }
             return (
               <button
                 key={item.key}
@@ -253,13 +269,7 @@ function Sidebar({
                   onTabChange(item.key);
                   onClose();
                 }}
-                className={`
-                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                  ${isActive
-                    ? 'bg-amber-500 text-white'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  }
-                `}
+                className={navClassName}
               >
                 <Icon className="h-5 w-5" />
                 {item.label}

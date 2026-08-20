@@ -26,7 +26,7 @@ export async function GET(
               select: { name: true, image: true, slug: true },
             },
             seller: {
-              select: { storeName: true },
+              select: { storeName: true, userId: true },
             },
           },
         },
@@ -56,6 +56,7 @@ export async function GET(
         productImage: item.product.image,
         productSlug: item.product.slug,
         sellerName: item.seller.storeName,
+        sellerUserId: item.seller.userId,
       })),
       deliveryStatus: o.delivery?.status ?? null,
     }));

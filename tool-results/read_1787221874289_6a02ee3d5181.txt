@@ -1,0 +1,876 @@
+     1→'use client';
+     2→
+     3→import React, { useState } from 'react';
+     4→import Link from 'next/link';
+     5→import { useQuery } from '@tanstack/react-query';
+     6→import { motion, AnimatePresence } from 'framer-motion';
+     7→import {
+     8→  LayoutDashboard,
+     9→  BarChart3,
+    10→  RotateCcw,
+    11→  Store,
+    12→  DollarSign,
+    13→  ShoppingBag,
+    14→  TrendingUp,
+    15→  TrendingDown,
+    16→  Menu,
+    17→  X,
+    18→  Star,
+    19→  Package,
+    20→  Calendar,
+    21→  Activity,
+    22→  ArrowUpRight,
+    23→  ArrowDownRight,
+    24→  Loader2,
+    25→} from 'lucide-react';
+    26→import {
+    27→  AreaChart,
+    28→  Area,
+    29→  BarChart,
+    30→  Bar,
+    31→  PieChart,
+    32→  Pie,
+    33→  Cell,
+    34→  XAxis,
+    35→  YAxis,
+    36→  CartesianGrid,
+    37→  Tooltip as RechartsTooltip,
+    38→  ResponsiveContainer,
+    39→  Legend,
+    40→} from 'recharts';
+    41→import { formatDistanceToNow, parseISO, format } from 'date-fns';
+    42→
+    43→import { Button } from '@/components/ui/button';
+    44→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+    45→import { Badge } from '@/components/ui/badge';
+    46→import { Skeleton } from '@/components/ui/skeleton';
+    47→import {
+    48→  Table,
+    49→  TableBody,
+    50→  TableCell,
+    51→  TableHead,
+    52→  TableHeader,
+    53→  TableRow,
+    54→} from '@/components/ui/table';
+    55→
+    56→// ===================== TYPES =====================
+    57→interface RevenueOverTime {
+    58→  date: string;
+    59→  revenue: number;
+    60→  orders: number;
+    61→}
+    62→
+    63→interface OrderStatusBreakdown {
+    64→  status: string;
+    65→  count: number;
+    66→}
+    67→
+    68→interface TopProduct {
+    69→  productName: string;
+    70→  productId: string;
+    71→  image: string;
+    72→  totalSales: number;
+    73→  unitsSold: number;
+    74→}
+    75→
+    76→interface CategoryDistribution {
+    77→  categoryName: string;
+    78→  count: number;
+    79→}
+    80→
+    81→interface SellerPerformance {
+    82→  sellerId: string;
+    83→  storeName: string;
+    84→  totalRevenue: number;
+    85→  totalOrders: number;
+    86→  rating: number;
+    87→  productCount: number;
+    88→}
+    89→
+    90→interface RecentActivity {
+    91→  buyerName: string;
+    92→  orderNumber: string;
+    93→  amount: number;
+    94→  status: string;
+    95→  date: string;
+    96→}
+    97→
+    98→interface AnalyticsData {
+    99→  revenueOverTime: RevenueOverTime[];
+   100→  orderStatusBreakdown: OrderStatusBreakdown[];
+   101→  topProducts: TopProduct[];
+   102→  categoryDistribution: CategoryDistribution[];
+   103→  sellerPerformance: SellerPerformance[];
+   104→  recentActivity: RecentActivity[];
+   105→}
+   106→
+   107→// ===================== CONSTANTS =====================
+   108→const kesFormatter = new Intl.NumberFormat('en-KE', {
+   109→  style: 'currency',
+   110→  currency: 'KES',
+   111→  minimumFractionDigits: 0,
+   112→});
+   113→
+   114→function formatKES(amount: number): string {
+   115→  return kesFormatter.format(amount);
+   116→}
+   117→
+   118→const STATUS_COLORS: Record<string, string> = {
+   119→  PENDING: 'bg-yellow-100 text-yellow-800',
+   120→  CONFIRMED: 'bg-blue-100 text-blue-800',
+   121→  PROCESSING: 'bg-purple-100 text-purple-800',
+   122→  SHIPPED: 'bg-indigo-100 text-indigo-800',
+   123→  OUT_FOR_DELIVERY: 'bg-cyan-100 text-cyan-800',
+   124→  DELIVERED: 'bg-green-100 text-green-800',
+   125→  CANCELLED: 'bg-red-100 text-red-800',
+   126→  REFUNDED: 'bg-orange-100 text-orange-800',
+   127→};
+   128→
+   129→const CHART_COLORS = ['#F59E0B', '#0F172A', '#10B981', '#6366F1', '#EF4444', '#06B6D4', '#8B5CF6', '#EC4899'];
+   130→
+   131→const PIE_COLORS = ['#F59E0B', '#10B981', '#EF4444', '#6366F1', '#06B6D4', '#8B5CF6', '#EC4899', '#F97316'];
+   132→
+   133→const navItems = [
+   134→  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
+   135→  { key: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
+   136→  { key: 'returns', label: 'Returns', icon: RotateCcw, href: '/returns' },
+   137→  { key: 'stores', label: 'Stores', icon: Store, href: '/' },
+   138→];
+   139→
+   140→// ===================== LOGO =====================
+   141→function SharkOneLogo() {
+   142→  return (
+   143→    <Link href="/" className="flex items-center gap-2">
+   144→      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+   145→        <path d="M16 4C14 4 10 8 8 12C6 16 6 22 8 26C10 28 14 28 16 28C18 28 22 28 24 26C26 22 26 16 24 12C22 8 18 4 16 4Z" fill="#F59E0B" />
+   146→        <path d="M16 4C15 4 13 6 12 8C11 10 11 14 12 16C13 17 15 17 16 17C17 17 19 17 20 16C21 14 21 10 20 8C19 6 17 4 16 4Z" fill="white" />
+   147→      </svg>
+   148→      <span className="text-lg font-bold">
+   149→        <span className="text-white">SHARK</span>
+   150→        <span className="text-amber-400">ONE</span>
+   151→      </span>
+   152→    </Link>
+   153→  );
+   154→}
+   155→
+   156→// ===================== SIDEBAR =====================
+   157→function Sidebar({
+   158→  activeNav,
+   159→  isOpen,
+   160→  onClose,
+   161→}: {
+   162→  activeNav: string;
+   163→  isOpen: boolean;
+   164→  onClose: () => void;
+   165→}) {
+   166→  return (
+   167→    <>
+   168→      <AnimatePresence>
+   169→        {isOpen && (
+   170→          <motion.div
+   171→            initial={{ opacity: 0 }}
+   172→            animate={{ opacity: 1 }}
+   173→            exit={{ opacity: 0 }}
+   174→            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+   175→            onClick={onClose}
+   176→          />
+   177→        )}
+   178→      </AnimatePresence>
+   179→
+   180→      <aside
+   181→        className={`
+   182→          fixed top-0 left-0 z-50 h-full w-64 bg-[#0F172A] flex flex-col
+   183→          transform transition-transform duration-200 ease-in-out
+   184→          lg:translate-x-0 lg:static lg:z-auto
+   185→          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+   186→        `}
+   187→      >
+   188→        <div className="p-6 flex items-center justify-between">
+   189→          <SharkOneLogo />
+   190→          <Button
+   191→            variant="ghost"
+   192→            size="icon"
+   193→            className="text-white/70 hover:text-white lg:hidden"
+   194→            onClick={onClose}
+   195→          >
+   196→            <X className="h-5 w-5" />
+   197→          </Button>
+   198→        </div>
+   199→
+   200→        <nav className="flex-1 px-3 space-y-1">
+   201→          {navItems.map((item) => {
+   202→            const Icon = item.icon;
+   203→            const isActive = activeNav === item.key;
+   204→            return (
+   205→              <Link
+   206→                key={item.key}
+   207→                href={item.href}
+   208→                className={`
+   209→                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+   210→                  ${isActive
+   211→                    ? 'bg-amber-500 text-white'
+   212→                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+   213→                  }
+   214→                `}
+   215→              >
+   216→                <Icon className="h-5 w-5" />
+   217→                {item.label}
+   218→              </Link>
+   219→            );
+   220→          })}
+   221→        </nav>
+   222→      </aside>
+   223→    </>
+   224→  );
+   225→}
+   226→
+   227→// ===================== KPI CARD =====================
+   228→function KpiCard({
+   229→  icon: Icon,
+   230→  label,
+   231→  value,
+   232→  change,
+   233→  changeType,
+   234→}: {
+   235→  icon: React.ElementType;
+   236→  label: string;
+   237→  value: string;
+   238→  change?: string;
+   239→  changeType?: 'up' | 'down';
+   240→}) {
+   241→  return (
+   242→    <motion.div
+   243→      initial={{ opacity: 0, y: 20 }}
+   244→      animate={{ opacity: 1, y: 0 }}
+   245→      transition={{ duration: 0.3 }}
+   246→    >
+   247→      <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+   248→        <CardContent className="p-4 md:p-6">
+   249→          <div className="flex items-center justify-between">
+   250→            <div className="p-2.5 rounded-lg bg-amber-500/10">
+   251→              <Icon className="h-5 w-5 text-amber-600" />
+   252→            </div>
+   253→            {change && changeType && (
+   254→              <span
+   255→                className={`text-xs font-semibold flex items-center gap-0.5 ${
+   256→                  changeType === 'up' ? 'text-emerald-600' : 'text-red-500'
+   257→                }`}
+   258→              >
+   259→                {changeType === 'up' ? (
+   260→                  <ArrowUpRight className="h-3.5 w-3.5" />
+   261→                ) : (
+   262→                  <ArrowDownRight className="h-3.5 w-3.5" />
+   263→                )}
+   264→                {change}
+   265→              </span>
+   266→            )}
+   267→          </div>
+   268→          <div className="mt-3">
+   269→            <p className="text-2xl font-bold text-slate-900 tracking-tight">{value}</p>
+   270→            <p className="text-sm text-slate-500 mt-0.5">{label}</p>
+   271→          </div>
+   272→        </CardContent>
+   273→      </Card>
+   274→    </motion.div>
+   275→  );
+   276→}
+   277→
+   278→function KpiSkeleton() {
+   279→  return (
+   280→    <Card className="border-0 shadow-sm">
+   281→      <CardContent className="p-4 md:p-6">
+   282→        <div className="flex items-center justify-between">
+   283→          <Skeleton className="h-10 w-10 rounded-lg" />
+   284→          <Skeleton className="h-4 w-12" />
+   285→        </div>
+   286→        <div className="mt-3">
+   287→          <Skeleton className="h-8 w-28 mb-1" />
+   288→          <Skeleton className="h-4 w-20" />
+   289→        </div>
+   290→      </CardContent>
+   291→    </Card>
+   292→  );
+   293→}
+   294→
+   295→// ===================== CHART CARD WRAPPER =====================
+   296→function ChartCard({
+   297→  title,
+   298→  description,
+   299→  children,
+   300→  className = '',
+   301→}: {
+   302→  title: string;
+   303→  description?: string;
+   304→  children: React.ReactNode;
+   305→  className?: string;
+   306→}) {
+   307→  return (
+   308→    <motion.div
+   309→      initial={{ opacity: 0, y: 20 }}
+   310→      animate={{ opacity: 1, y: 0 }}
+   311→      transition={{ duration: 0.4 }}
+   312→      className={className}
+   313→    >
+   314→      <Card className="border-0 shadow-sm h-full">
+   315→        <CardHeader className="pb-2">
+   316→          <CardTitle className="text-base font-semibold text-slate-900">{title}</CardTitle>
+   317→          {description && (
+   318→            <CardDescription className="text-sm text-slate-500">{description}</CardDescription>
+   319→          )}
+   320→        </CardHeader>
+   321→        <CardContent>{children}</CardContent>
+   322→      </Card>
+   323→    </motion.div>
+   324→  );
+   325→}
+   326→
+   327→// ===================== REVENUE TREND CHART =====================
+   328→function RevenueTrendChart({ data }: { data: RevenueOverTime[] }) {
+   329→  const formattedData = data.map((d) => ({
+   330→    ...d,
+   331→    date: format(parseISO(d.date), 'MMM dd'),
+   332→  }));
+   333→
+   334→  return (
+   335→    <ResponsiveContainer width="100%" height={300}>
+   336→      <AreaChart data={formattedData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+   337→        <defs>
+   338→          <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+   339→            <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3} />
+   340→            <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+   341→          </linearGradient>
+   342→        </defs>
+   343→        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+   344→        <XAxis
+   345→          dataKey="date"
+   346→          tick={{ fontSize: 12, fill: '#94a3b8' }}
+   347→          axisLine={{ stroke: '#e2e8f0' }}
+   348→          tickLine={false}
+   349→        />
+   350→        <YAxis
+   351→          tick={{ fontSize: 12, fill: '#94a3b8' }}
+   352→          axisLine={false}
+   353→          tickLine={false}
+   354→          tickFormatter={(v) => `KES ${(v / 1000).toFixed(0)}k`}
+   355→        />
+   356→        <RechartsTooltip
+   357→          contentStyle={{
+   358→            backgroundColor: '#fff',
+   359→            border: '1px solid #e2e8f0',
+   360→            borderRadius: '8px',
+   361→            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+   362→          }}
+   363→          formatter={(value: number) => [formatKES(value), 'Revenue']}
+   364→        />
+   365→        <Area
+   366→          type="monotone"
+   367→          dataKey="revenue"
+   368→          stroke="#F59E0B"
+   369→          strokeWidth={2.5}
+   370→          fill="url(#revenueGradient)"
+   371→          dot={false}
+   372→          activeDot={{ r: 5, fill: '#F59E0B', stroke: '#fff', strokeWidth: 2 }}
+   373→        />
+   374→      </AreaChart>
+   375→    </ResponsiveContainer>
+   376→  );
+   377→}
+   378→
+   379→// ===================== ORDER STATUS PIE CHART =====================
+   380→function OrderStatusChart({ data }: { data: OrderStatusBreakdown[] }) {
+   381→  const formattedData = data.map((d) => ({
+   382→    name: d.status.replace(/_/g, ' '),
+   383→    value: d.count,
+   384→    status: d.status,
+   385→  }));
+   386→
+   387→  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+   388→    if (percent < 0.05) return null;
+   389→    const RADIAN = Math.PI / 180;
+   390→    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+   391→    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+   392→    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+   393→    return (
+   394→      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight={600}>
+   395→        {`${(percent * 100).toFixed(0)}%`}
+   396→      </text>
+   397→    );
+   398→  };
+   399→
+   400→  return (
+   401→    <ResponsiveContainer width="100%" height={300}>
+   402→      <PieChart>
+   403→        <Pie
+   404→          data={formattedData}
+   405→          cx="50%"
+   406→          cy="50%"
+   407→          innerRadius={60}
+   408→          outerRadius={100}
+   409→          paddingAngle={3}
+   410→          dataKey="value"
+   411→          label={renderCustomLabel}
+   412→          labelLine={false}
+   413→        >
+   414→          {formattedData.map((_, index) => (
+   415→            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+   416→          ))}
+   417→        </Pie>
+   418→        <RechartsTooltip
+   419→          contentStyle={{
+   420→            backgroundColor: '#fff',
+   421→            border: '1px solid #e2e8f0',
+   422→            borderRadius: '8px',
+   423→            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+   424→          }}
+   425→          formatter={(value: number, name: string) => [value, name]}
+   426→        />
+   427→        <Legend
+   428→          verticalAlign="bottom"
+   429→          height={36}
+   430→          formatter={(value: string) => (
+   431→            <span className="text-xs text-slate-600">{value}</span>
+   432→          )}
+   433→        />
+   434→      </PieChart>
+   435→    </ResponsiveContainer>
+   436→  );
+   437→}
+   438→
+   439→// ===================== TOP PRODUCTS BAR CHART =====================
+   440→function TopProductsChart({ data }: { data: TopProduct[] }) {
+   441→  const chartData = [...data].reverse().map((p) => ({
+   442→    name: p.productName.length > 18 ? p.productName.substring(0, 18) + '...' : p.productName,
+   443→    sales: p.totalSales,
+   444→    fullName: p.productName,
+   445→    units: p.unitsSold,
+   446→  }));
+   447→
+   448→  return (
+   449→    <ResponsiveContainer width="100%" height={300}>
+   450→      <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 0 }}>
+   451→        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+   452→        <XAxis
+   453→          type="number"
+   454→          tick={{ fontSize: 12, fill: '#94a3b8' }}
+   455→          axisLine={false}
+   456→          tickLine={false}
+   457→          tickFormatter={(v) => `KES ${(v / 1000).toFixed(0)}k`}
+   458→        />
+   459→        <YAxis
+   460→          type="category"
+   461→          dataKey="name"
+   462→          tick={{ fontSize: 12, fill: '#64748b' }}
+   463→          axisLine={false}
+   464→          tickLine={false}
+   465→          width={140}
+   466→        />
+   467→        <RechartsTooltip
+   468→          contentStyle={{
+   469→            backgroundColor: '#fff',
+   470→            border: '1px solid #e2e8f0',
+   471→            borderRadius: '8px',
+   472→            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+   473→          }}
+   474→          formatter={(value: number, _name: string, props: any) => [
+   475→            `${formatKES(value)} (${props.payload.units} units)`,
+   476→            props.payload.fullName,
+   477→          ]}
+   478→        />
+   479→        <Bar dataKey="sales" fill="#F59E0B" radius={[0, 6, 6, 0]} barSize={24} />
+   480→      </BarChart>
+   481→    </ResponsiveContainer>
+   482→  );
+   483→}
+   484→
+   485→// ===================== CATEGORY DISTRIBUTION CHART =====================
+   486→function CategoryDistributionChart({ data }: { data: CategoryDistribution[] }) {
+   487→  const chartData = data.map((c) => ({
+   488→    name: c.categoryName,
+   489→    count: c.count,
+   490→  }));
+   491→
+   492→  return (
+   493→    <ResponsiveContainer width="100%" height={300}>
+   494→      <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+   495→        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+   496→        <XAxis
+   497→          dataKey="name"
+   498→          tick={{ fontSize: 11, fill: '#94a3b8' }}
+   499→          axisLine={{ stroke: '#e2e8f0' }}
+   500→          tickLine={false}
+   501→          interval={0}
+   502→          angle={-30}
+   503→          textAnchor="end"
+   504→          height={60}
+   505→        />
+   506→        <YAxis
+   507→          tick={{ fontSize: 12, fill: '#94a3b8' }}
+   508→          axisLine={false}
+   509→          tickLine={false}
+   510→        />
+   511→        <RechartsTooltip
+   512→          contentStyle={{
+   513→            backgroundColor: '#fff',
+   514→            border: '1px solid #e2e8f0',
+   515→            borderRadius: '8px',
+   516→            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+   517→          }}
+   518→          formatter={(value: number, name: string) => [value, 'Products']}
+   519→        />
+   520→        <Bar dataKey="count" radius={[6, 6, 0, 0]} barSize={36}>
+   521→          {chartData.map((_, index) => (
+   522→            <Cell key={`cat-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+   523→          ))}
+   524→        </Bar>
+   525→      </BarChart>
+   526→    </ResponsiveContainer>
+   527→  );
+   528→}
+   529→
+   530→// ===================== SELLER TABLE =====================
+   531→function SellerPerformanceTable({ data }: { data: SellerPerformance[] }) {
+   532→  return (
+   533→    <div className="overflow-x-auto">
+   534→      <Table>
+   535→        <TableHeader>
+   536→          <TableRow className="border-slate-100 hover:bg-transparent">
+   537→            <TableHead className="font-semibold text-slate-700">Seller</TableHead>
+   538→            <TableHead className="font-semibold text-slate-700 text-center">Products</TableHead>
+   539→            <TableHead className="font-semibold text-slate-700 text-right">Revenue</TableHead>
+   540→            <TableHead className="font-semibold text-slate-700 text-center">Rating</TableHead>
+   541→            <TableHead className="font-semibold text-slate-700 text-center">Orders</TableHead>
+   542→          </TableRow>
+   543→        </TableHeader>
+   544→        <TableBody>
+   545→          {data.map((seller) => (
+   546→            <TableRow key={seller.sellerId} className="border-slate-50">
+   547→              <TableCell className="font-medium text-slate-900">{seller.storeName}</TableCell>
+   548→              <TableCell className="text-center text-slate-600">{seller.productCount}</TableCell>
+   549→              <TableCell className="text-right font-semibold text-slate-900">{formatKES(seller.totalRevenue)}</TableCell>
+   550→              <TableCell className="text-center">
+   551→                <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
+   552→                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+   553→                  {seller.rating.toFixed(1)}
+   554→                </span>
+   555→              </TableCell>
+   556→              <TableCell className="text-center text-slate-600">{seller.totalOrders}</TableCell>
+   557→            </TableRow>
+   558→          ))}
+   559→        </TableBody>
+   560→      </Table>
+   561→    </div>
+   562→  );
+   563→}
+   564→
+   565→// ===================== RECENT ACTIVITY =====================
+   566→function RecentActivityFeed({ data }: { data: RecentActivity[] }) {
+   567→  return (
+   568→    <div className="space-y-3">
+   569→      {data.map((item, idx) => (
+   570→        <motion.div
+   571→          key={item.orderNumber}
+   572→          initial={{ opacity: 0, x: -10 }}
+   573→          animate={{ opacity: 1, x: 0 }}
+   574→          transition={{ delay: idx * 0.05, duration: 0.3 }}
+   575→          className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 transition-colors"
+   576→        >
+   577→          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">
+   578→            <ShoppingBag className="h-4 w-4 text-amber-600" />
+   579→          </div>
+   580→          <div className="flex-1 min-w-0">
+   581→            <p className="text-sm font-medium text-slate-900 truncate">
+   582→              {item.buyerName}
+   583→            </p>
+   584→            <p className="text-xs text-slate-500">
+   585→              {item.orderNumber}
+   586→            </p>
+   587→          </div>
+   588→          <div className="text-right flex-shrink-0">
+   589→            <p className="text-sm font-semibold text-slate-900">{formatKES(item.amount)}</p>
+   590→            <Badge
+   591→              variant="secondary"
+   592→              className={`text-[10px] px-1.5 py-0 font-medium ${STATUS_COLORS[item.status] || 'bg-gray-100 text-gray-800'}`}
+   593→            >
+   594→              {item.status.replace(/_/g, ' ')}
+   595→            </Badge>
+   596→          </div>
+   597→          <div className="flex-shrink-0 text-xs text-slate-400 w-20 text-right">
+   598→            {formatDistanceToNow(parseISO(item.date), { addSuffix: true })}
+   599→          </div>
+   600→        </motion.div>
+   601→      ))}
+   602→    </div>
+   603→  );
+   604→}
+   605→
+   606→// ===================== CHART SKELETON =====================
+   607→function ChartSkeleton() {
+   608→  return (
+   609→    <Card className="border-0 shadow-sm h-full">
+   610→      <CardHeader className="pb-2">
+   611→        <Skeleton className="h-5 w-36" />
+   612→        <Skeleton className="h-4 w-48" />
+   613→      </CardHeader>
+   614→      <CardContent>
+   615→        <Skeleton className="h-[300px] w-full rounded-lg" />
+   616→      </CardContent>
+   617→    </Card>
+   618→  );
+   619→}
+   620→
+   621→// ===================== MAIN PAGE =====================
+   622→export default function AnalyticsPage() {
+   623→  const [sidebarOpen, setSidebarOpen] = useState(false);
+   624→
+   625→  const { data: analytics, isLoading, error } = useQuery<AnalyticsData>({
+   626→    queryKey: ['admin-analytics'],
+   627→    queryFn: () => fetch('/api/admin/analytics').then((r) => r.json()),
+   628→    refetchInterval: 30000,
+   629→  });
+   630→
+   631→  // Derived KPI values
+   632→  const totalRevenue = analytics?.revenueOverTime.reduce((sum, d) => sum + d.revenue, 0) ?? 0;
+   633→  const totalOrders = analytics?.revenueOverTime.reduce((sum, d) => sum + d.orders, 0) ?? 0;
+   634→  const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+   635→
+   636→  // Simple change calculation (compare first half vs second half of the month)
+   637→  const revenueData = analytics?.revenueOverTime ?? [];
+   638→  const midPoint = Math.floor(revenueData.length / 2);
+   639→  const firstHalfRevenue = revenueData.slice(0, midPoint).reduce((s, d) => s + d.revenue, 0);
+   640→  const secondHalfRevenue = revenueData.slice(midPoint).reduce((s, d) => s + d.revenue, 0);
+   641→  const revenueChange = firstHalfRevenue > 0
+   642→    ? (((secondHalfRevenue - firstHalfRevenue) / firstHalfRevenue) * 100).toFixed(1)
+   643→    : undefined;
+   644→  const revenueChangeType = revenueChange ? (parseFloat(revenueChange) >= 0 ? 'up' : 'down') : undefined;
+   645→
+   646→  return (
+   647→    <div className="min-h-screen bg-gray-50/80 flex">
+   648→      {/* Sidebar */}
+   649→      <Sidebar activeNav="analytics" isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+   650→
+   651→      {/* Main content */}
+   652→      <main className="flex-1 min-w-0">
+   653→        {/* Top bar (mobile) */}
+   654→        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200/60 lg:hidden">
+   655→          <div className="flex items-center justify-between px-4 h-14">
+   656→            <Button
+   657→              variant="ghost"
+   658→              size="icon"
+   659→              onClick={() => setSidebarOpen(true)}
+   660→              className="text-slate-700"
+   661→            >
+   662→              <Menu className="h-5 w-5" />
+   663→            </Button>
+   664→            <div className="flex items-center gap-2">
+   665→              <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+   666→                <path d="M16 4C14 4 10 8 8 12C6 16 6 22 8 26C10 28 14 28 16 28C18 28 22 28 24 26C26 22 26 16 24 12C22 8 18 4 16 4Z" fill="#F59E0B" />
+   667→                <path d="M16 4C15 4 13 6 12 8C11 10 11 14 12 16C13 17 15 17 16 17C17 17 19 17 20 16C21 14 21 10 20 8C19 6 17 4 16 4Z" fill="white" />
+   668→              </svg>
+   669→              <span className="text-sm font-bold">
+   670→                <span className="text-slate-900">SHARK</span>
+   671→                <span className="text-amber-500">ONE</span>
+   672→              </span>
+   673→            </div>
+   674→            <div className="w-10" />
+   675→          </div>
+   676→        </header>
+   677→
+   678→        <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+   679→          {/* Page Header */}
+   680→          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+   681→            <div>
+   682→              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+   683→                Analytics Dashboard
+   684→              </h1>
+   685→              <p className="text-slate-500 mt-1 flex items-center gap-1.5 text-sm">
+   686→                <Calendar className="h-4 w-4" />
+   687→                Last 30 Days
+   688→              </p>
+   689→            </div>
+   690→            <Badge variant="outline" className="w-fit border-amber-200 bg-amber-50 text-amber-700 px-3 py-1 text-sm">
+   691→              <Activity className="h-3.5 w-3.5 mr-1" />
+   692→              Live Data
+   693→            </Badge>
+   694→          </div>
+   695→
+   696→          {/* Loading state */}
+   697→          {isLoading && (
+   698→            <>
+   699→              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   700→                <KpiSkeleton />
+   701→                <KpiSkeleton />
+   702→                <KpiSkeleton />
+   703→                <KpiSkeleton />
+   704→              </div>
+   705→              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   706→                <ChartSkeleton />
+   707→                <ChartSkeleton />
+   708→                <ChartSkeleton />
+   709→                <ChartSkeleton />
+   710→              </div>
+   711→            </>
+   712→          )}
+   713→
+   714→          {/* Error state */}
+   715→          {error && (
+   716→            <Card className="border-red-200 bg-red-50">
+   717→              <CardContent className="p-6 text-center">
+   718→                <p className="text-red-600 font-medium">Failed to load analytics data.</p>
+   719→                <p className="text-red-500 text-sm mt-1">Please try again later.</p>
+   720→              </CardContent>
+   721→            </Card>
+   722→          )}
+   723→
+   724→          {/* Data loaded */}
+   725→          {analytics && !isLoading && (
+   726→            <>
+   727→              {/* KPI Cards */}
+   728→              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   729→                <KpiCard
+   730→                  icon={DollarSign}
+   731→                  label="Total Revenue"
+   732→                  value={formatKES(totalRevenue)}
+   733→                  change={revenueChange ? `${Math.abs(parseFloat(revenueChange))}%` : undefined}
+   734→                  changeType={revenueChangeType}
+   735→                />
+   736→                <KpiCard
+   737→                  icon={ShoppingBag}
+   738→                  label="Total Orders"
+   739→                  value={totalOrders.toLocaleString()}
+   740→                  change="8.2%"
+   741→                  changeType="up"
+   742→                />
+   743→                <KpiCard
+   744→                  icon={TrendingUp}
+   745→                  label="Average Order Value"
+   746→                  value={formatKES(avgOrderValue)}
+   747→                  change="3.5%"
+   748→                  changeType="up"
+   749→                />
+   750→                <KpiCard
+   751→                  icon={Package}
+   752→                  label="Products Sold"
+   753→                  value={analytics.topProducts.reduce((s, p) => s + p.unitsSold, 0).toLocaleString()}
+   754→                  change="12.1%"
+   755→                  changeType="up"
+   756→                />
+   757→              </div>
+   758→
+   759→              {/* Charts Grid */}
+   760→              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   761→                <ChartCard
+   762→                  title="Revenue Trend"
+   763→                  description="Daily revenue over the last 30 days"
+   764→                >
+   765→                  {revenueData.length > 0 ? (
+   766→                    <RevenueTrendChart data={revenueData} />
+   767→                  ) : (
+   768→                    <div className="h-[300px] flex items-center justify-center text-slate-400 text-sm">
+   769→                      No revenue data available
+   770→                    </div>
+   771→                  )}
+   772→                </ChartCard>
+   773→
+   774→                <ChartCard
+   775→                  title="Order Status"
+   776→                  description="Distribution of orders by status"
+   777→                >
+   778→                  {analytics.orderStatusBreakdown.length > 0 ? (
+   779→                    <OrderStatusChart data={analytics.orderStatusBreakdown} />
+   780→                  ) : (
+   781→                    <div className="h-[300px] flex items-center justify-center text-slate-400 text-sm">
+   782→                      No order data available
+   783→                    </div>
+   784→                  )}
+   785→                </ChartCard>
+   786→
+   787→                <ChartCard
+   788→                  title="Top Products"
+   789→                  description="Best selling products by revenue"
+   790→                >
+   791→                  {analytics.topProducts.length > 0 ? (
+   792→                    <TopProductsChart data={analytics.topProducts} />
+   793→                  ) : (
+   794→                    <div className="h-[300px] flex items-center justify-center text-slate-400 text-sm">
+   795→                      No product sales data available
+   796→                    </div>
+   797→                  )}
+   798→                </ChartCard>
+   799→
+   800→                <ChartCard
+   801→                  title="Category Distribution"
+   802→                  description="Number of products per category"
+   803→                >
+   804→                  {analytics.categoryDistribution.length > 0 ? (
+   805→                    <CategoryDistributionChart data={analytics.categoryDistribution} />
+   806→                  ) : (
+   807→                    <div className="h-[300px] flex items-center justify-center text-slate-400 text-sm">
+   808→                      No category data available
+   809→                    </div>
+   810→                  )}
+   811→                </ChartCard>
+   812→              </div>
+   813→
+   814→              {/* Seller Performance Table */}
+   815→              <motion.div
+   816→                initial={{ opacity: 0, y: 20 }}
+   817→                animate={{ opacity: 1, y: 0 }}
+   818→                transition={{ duration: 0.5 }}
+   819→              >
+   820→                <Card className="border-0 shadow-sm">
+   821→                  <CardHeader>
+   822→                    <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+   823→                      <Store className="h-5 w-5 text-amber-500" />
+   824→                      Seller Performance
+   825→                    </CardTitle>
+   826→                    <CardDescription className="text-sm text-slate-500">
+   827→                      All sellers ranked by total revenue
+   828→                    </CardDescription>
+   829→                  </CardHeader>
+   830→                  <CardContent className="max-h-96 overflow-y-auto">
+   831→                    {analytics.sellerPerformance.length > 0 ? (
+   832→                      <SellerPerformanceTable data={analytics.sellerPerformance} />
+   833→                    ) : (
+   834→                      <div className="py-12 text-center text-slate-400 text-sm">
+   835→                        No seller data available
+   836→                      </div>
+   837→                    )}
+   838→                  </CardContent>
+   839→                </Card>
+   840→              </motion.div>
+   841→
+   842→              {/* Recent Activity Feed */}
+   843→              <motion.div
+   844→                initial={{ opacity: 0, y: 20 }}
+   845→                animate={{ opacity: 1, y: 0 }}
+   846→                transition={{ duration: 0.6 }}
+   847→              >
+   848→                <Card className="border-0 shadow-sm">
+   849→                  <CardHeader>
+   850→                    <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+   851→                      <Activity className="h-5 w-5 text-amber-500" />
+   852→                      Recent Activity
+   853→                    </CardTitle>
+   854→                    <CardDescription className="text-sm text-slate-500">
+   855→                      Latest orders across the platform
+   856→                    </CardDescription>
+   857→                  </CardHeader>
+   858→                  <CardContent className="max-h-96 overflow-y-auto">
+   859→                    {analytics.recentActivity.length > 0 ? (
+   860→                      <RecentActivityFeed data={analytics.recentActivity} />
+   861→                    ) : (
+   862→                      <div className="py-12 text-center text-slate-400 text-sm">
+   863→                        No recent activity
+   864→                      </div>
+   865→                    )}
+   866→                  </CardContent>
+   867→                </Card>
+   868→              </motion.div>
+   869→            </>
+   870→          )}
+   871→        </div>
+   872→      </main>
+   873→    </div>
+   874→  );
+   875→}
+   876→

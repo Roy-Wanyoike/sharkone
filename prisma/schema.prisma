@@ -71,6 +71,36 @@ enum NotificationType {
   SYSTEM
 }
 
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PICKUP_SCHEDULED
+  PICKED_UP
+  INSPECTING
+  COMPLETED
+  CANCELLED
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_SHIPPING
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 // ============================================================
 // Models
 // ============================================================
@@ -88,10 +118,14 @@ model User {
   // Relations
   seller        Seller?
   orders        Order[]
- deliveries    Delivery[]
- transactions  Transaction[]
- notifications Notification[]
- reviews       Review[]
+  deliveries    Delivery[]
+  transactions  Transaction[]
+  notifications Notification[]
+  reviews       Review[]
+  buyerReturns  ReturnRequest[]  @relation("BuyerReturns")
+  sellerReturns ReturnRequest[]  @relation("SellerReturns")
+  usedCoupons   UsedCoupon[]  @relation("UsedCoupons")
+  addresses     Address[]    @relation("UserAddresses")
 }
 
 model Seller {
@@ -174,6 +208,7 @@ model Order {
   orderItems OrderItem[]
   delivery   Delivery?
   transactions Transaction[]
+  returns    ReturnRequest[]
 }
 
 model OrderItem {
@@ -189,9 +224,10 @@ model OrderItem {
   updatedAt     DateTime @updatedAt
 
   // Relations
-  order   Order   @relation(fields: [orderId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
-  seller  Seller  @relation(fields: [sellerId], references: [id])
+  order         Order           @relation(fields: [orderId], references: [id])
+  product       Product         @relation(fields: [productId], references: [id])
+  seller        Seller          @relation(fields: [sellerId], references: [id])
+  returnRequest ReturnRequest?
 }
 
 model Delivery {
@@ -277,6 +313,34 @@ model Review {
   @@index([userId])
 }
 
+model ReturnRequest {
+  id              String         @id @default(uuid())
+  returnNumber    String         @unique
+  orderId         String
+  orderItemId     String         @unique
+  buyerId         String
+  sellerId        String
+  reason          String
+  description     String?
+  status          ReturnStatus   @default(PENDING)
+  refundAmount    Float
+  refundStatus    RefundStatus   @default(PENDING)
+  resolvedAt      DateTime?
+  adminNotes      String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  order           Order          @relation(fields: [orderId], references: [id])
+  orderItem       OrderItem      @relation(fields: [orderItemId], references: [id])
+  buyer           User           @relation("BuyerReturns", fields: [buyerId], references: [id])
+  seller          User           @relation("SellerReturns", fields: [sellerId], references: [id])
+
+  @@index([orderId])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+}
+
 model HeroSlide {
   id        String   @id @default(cuid())
   title     String
@@ -288,4 +352,74 @@ model HeroSlide {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Coupon {
+  id                  String        @id @default(uuid())
+  code                String        @unique
+  type                CouponType    @default(PERCENTAGE)
+  value               Float
+  minOrderValue       Float?
+  maxDiscount         Float?
+  usageLimit          Int?
+  usageCount          Int           @default(0)
+  perUserLimit        Int           @default(1)
+  validFrom           DateTime?
+  validUntil          DateTime?
+  isActive            Boolean       @default(true)
+  applicableCategories String?
+  description         String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  usedCoupons         UsedCoupon[]
+}
+
+model UsedCoupon {
+  id          String   @id @default(uuid())
+  couponId    String
+  userId      String
+  orderId     String?
+  usedAt      DateTime @default(now())
+
+  coupon      Coupon   @relation(fields: [couponId], references: [id])
+  user        User     @relation("UsedCoupons", fields: [userId], references: [id])
+
+  @@unique([couponId, userId])
+}
+
+model BlogPost {
+  id          String     @id @default(uuid())
+  title       String
+  slug        String     @unique
+  excerpt     String?
+  content     String
+  coverImage  String?
+  author      String
+  tags        String?
+  status      PostStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([slug])
+  @@index([status])
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  label       String
+  fullName    String
+  phone       String
+  county      String
+  city        String?
+  addressLine String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation("UserAddresses", fields: [userId], references: [id])
+
+  @@index([userId])
 }

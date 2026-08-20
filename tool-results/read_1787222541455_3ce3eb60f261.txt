@@ -1,0 +1,1075 @@
+     1→'use client';
+     2→
+     3→import React, { useState, useCallback } from 'react';
+     4→import Link from 'next/link';
+     5→import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+     6→import { motion, AnimatePresence } from 'framer-motion';
+     7→import { format, startOfDay, endOfDay } from 'date-fns';
+     8→import {
+     9→  LayoutDashboard,
+    10→  BarChart3,
+    11→  RotateCcw,
+    12→  Truck,
+    13→  Menu,
+    14→  X,
+    15→  Search,
+    16→  Eye,
+    17→  UserCheck,
+    18→  AlertCircle,
+    19→  CheckCircle2,
+    20→  Clock,
+    21→  PackageX,
+    22→  Loader2,
+    23→  RefreshCw,
+    24→  Copy,
+    25→  ShieldCheck,
+    26→  ChevronLeft,
+    27→  ChevronRight,
+    28→  Zap,
+    29→} from 'lucide-react';
+    30→
+    31→import { Button } from '@/components/ui/button';
+    32→import { Input } from '@/components/ui/input';
+    33→import { Textarea } from '@/components/ui/textarea';
+    34→import { Badge } from '@/components/ui/badge';
+    35→import { Skeleton } from '@/components/ui/skeleton';
+    36→import {
+    37→  Table,
+    38→  TableBody,
+    39→  TableCell,
+    40→  TableHead,
+    41→  TableHeader,
+    42→  TableRow,
+    43→} from '@/components/ui/table';
+    44→import {
+    45→  Dialog,
+    46→  DialogContent,
+    47→  DialogDescription,
+    48→  DialogFooter,
+    49→  DialogHeader,
+    50→  DialogTitle,
+    51→} from '@/components/ui/dialog';
+    52→import {
+    53→  Select,
+    54→  SelectContent,
+    55→  SelectItem,
+    56→  SelectTrigger,
+    57→  SelectValue,
+    58→} from '@/components/ui/select';
+    59→import { toast } from 'sonner';
+    60→
+    61→// ===================== TYPES =====================
+    62→
+    63→type DeliveryStep = 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'NEAR_LOCATION' | 'DELIVERED';
+    64→
+    65→const allSteps: DeliveryStep[] = ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'NEAR_LOCATION', 'DELIVERED'];
+    66→
+    67→const stepLabels: Record<DeliveryStep, string> = {
+    68→  ASSIGNED: 'Assigned',
+    69→  PICKED_UP: 'Picked Up',
+    70→  IN_TRANSIT: 'In Transit',
+    71→  NEAR_LOCATION: 'Near Location',
+    72→  DELIVERED: 'Delivered',
+    73→};
+    74→
+    75→interface DeliveryListItem {
+    76→  id: string;
+    77→  orderId: string;
+    78→  status: string;
+    79→  pickupOtp: string | null;
+    80→  deliveryOtp: string | null;
+    81→  deliveredAt: string | null;
+    82→  notes: string | null;
+    83→  createdAt: string;
+    84→  order: {
+    85→    orderNumber: string;
+    86→    buyerName: string;
+    87→    shippingAddress: string;
+    88→    totalAmount: number;
+    89→  };
+    90→  deliveryPerson: { name: string } | null;
+    91→}
+    92→
+    93→interface DeliveryDetail {
+    94→  id: string;
+    95→  orderId: string;
+    96→  status: string;
+    97→  pickupOtp: string | null;
+    98→  deliveryOtp: string | null;
+    99→  deliveredAt: string | null;
+   100→  notes: string | null;
+   101→  createdAt: string;
+   102→  order: {
+   103→    id: string;
+   104→    orderNumber: string;
+   105→    status: string;
+   106→    totalAmount: number;
+   107→    deliveryFee: number;
+   108→    shippingAddress: string;
+   109→    paymentStatus: string;
+   110→    buyer: { id: string; name: string; email: string; phone: string | null } | null;
+   111→    orderItems: {
+   112→      id: string;
+   113→      quantity: number;
+   114→      price: number;
+   115→      product: { name: string; image: string } | null;
+   116→    }[];
+   117→  };
+   118→  deliveryPerson: { id: string; name: string; email: string; phone: string | null; avatar: string | null } | null;
+   119→}
+   120→
+   121→interface DeliveryStats {
+   122→  active: number;
+   123→  completedToday: number;
+   124→  pendingAssignment: number;
+   125→  failed: number;
+   126→}
+   127→
+   128→interface PendingOrder {
+   129→  id: string;
+   130→  orderNumber: string;
+   131→  status: string;
+   132→  totalAmount: number;
+   133→  shippingAddress: string;
+   134→  buyer: { name: string } | null;
+   135→  delivery: unknown | null;
+   136→}
+   137→
+   138→interface Driver {
+   139→  id: string;
+   140→  name: string;
+   141→  email: string;
+   142→  phone: string | null;
+   143→}
+   144→
+   145→// ===================== HELPERS =====================
+   146→
+   147→const formatKES = (amount: number) =>
+   148→  new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 }).format(amount);
+   149→
+   150→const deliveryStatusColors: Record<string, string> = {
+   151→  ASSIGNED: 'bg-blue-100 text-blue-700',
+   152→  PICKED_UP: 'bg-amber-100 text-amber-700',
+   153→  IN_TRANSIT: 'bg-purple-100 text-purple-700',
+   154→  NEAR_LOCATION: 'bg-cyan-100 text-cyan-700',
+   155→  DELIVERED: 'bg-emerald-100 text-emerald-700',
+   156→  FAILED: 'bg-red-100 text-red-700',
+   157→};
+   158→
+   159→const deliveryStatusLabels: Record<string, string> = {
+   160→  ASSIGNED: 'Assigned',
+   161→  PICKED_UP: 'Picked Up',
+   162→  IN_TRANSIT: 'In Transit',
+   163→  NEAR_LOCATION: 'Near Location',
+   164→  DELIVERED: 'Delivered',
+   165→  FAILED: 'Failed',
+   166→};
+   167→
+   168→// ===================== NAV =====================
+   169→
+   170→const navItems = [
+   171→  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
+   172→  { key: 'deliveries', label: 'Deliveries', icon: Truck, href: '/admin/deliveries' },
+   173→  { key: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
+   174→  { key: 'returns', label: 'Returns', icon: RotateCcw, href: '/returns' },
+   175→];
+   176→
+   177→// ===================== LOGO =====================
+   178→
+   179→function SharkOneLogo() {
+   180→  return (
+   181→    <Link href="/" className="flex items-center gap-2">
+   182→      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+   183→        <path d="M16 4C14 4 10 8 8 12C6 16 6 22 8 26C10 28 14 28 16 28C18 28 22 28 24 26C26 22 26 16 24 12C22 8 18 4 16 4Z" fill="#F59E0B" />
+   184→        <path d="M16 4C15 4 13 6 12 8C11 10 11 14 12 16C13 17 15 17 16 17C17 17 19 17 20 16C21 14 21 10 20 8C19 6 17 4 16 4Z" fill="white" />
+   185→      </svg>
+   186→      <span className="text-lg font-bold">
+   187→        <span className="text-white">SHARK</span>
+   188→        <span className="text-amber-400">ONE</span>
+   189→      </span>
+   190→    </Link>
+   191→  );
+   192→}
+   193→
+   194→// ===================== SIDEBAR =====================
+   195→
+   196→function Sidebar({ activeNav, isOpen, onClose }: { activeNav: string; isOpen: boolean; onClose: () => void }) {
+   197→  return (
+   198→    <>
+   199→      <AnimatePresence>
+   200→        {isOpen && (
+   201→          <motion.div
+   202→            initial={{ opacity: 0 }}
+   203→            animate={{ opacity: 1 }}
+   204→            exit={{ opacity: 0 }}
+   205→            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+   206→            onClick={onClose}
+   207→          />
+   208→        )}
+   209→      </AnimatePresence>
+   210→
+   211→      <aside
+   212→        className={`
+   213→          fixed top-0 left-0 z-50 h-full w-64 bg-[#0F172A] flex flex-col
+   214→          transform transition-transform duration-200 ease-in-out
+   215→          lg:translate-x-0 lg:static lg:z-auto
+   216→          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+   217→        `}
+   218→      >
+   219→        <div className="p-6 flex items-center justify-between">
+   220→          <SharkOneLogo />
+   221→          <Button
+   222→            variant="ghost"
+   223→            size="icon"
+   224→            className="text-white/70 hover:text-white lg:hidden"
+   225→            onClick={onClose}
+   226→          >
+   227→            <X className="h-5 w-5" />
+   228→          </Button>
+   229→        </div>
+   230→
+   231→        <nav className="flex-1 px-3 space-y-1">
+   232→          {navItems.map((item) => {
+   233→            const Icon = item.icon;
+   234→            const isActive = activeNav === item.key;
+   235→            return (
+   236→              <Link
+   237→                key={item.key}
+   238→                href={item.href}
+   239→                className={`
+   240→                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+   241→                  ${isActive
+   242→                    ? 'bg-amber-500 text-white'
+   243→                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+   244→                  }
+   245→                `}
+   246→              >
+   247→                <Icon className="h-5 w-5" />
+   248→                {item.label}
+   249→              </Link>
+   250→            );
+   251→          })}
+   252→        </nav>
+   253→      </aside>
+   254→    </>
+   255→  );
+   256→}
+   257→
+   258→// ===================== STATUS STEPPER =====================
+   259→
+   260→function StatusStepper({ current }: { current: DeliveryStep }) {
+   261→  const currentIndex = allSteps.indexOf(current);
+   262→
+   263→  return (
+   264→    <div className="flex items-center gap-0 w-full mt-4">
+   265→      {allSteps.map((step, i) => {
+   266→        const isCompleted = i < currentIndex;
+   267→        const isCurrent = i === currentIndex;
+   268→        const isLast = i === allSteps.length - 1;
+   269→
+   270→        return (
+   271→          <div key={step} className="flex items-center flex-1 min-w-0">
+   272→            <div className="flex flex-col items-center shrink-0">
+   273→              <div
+   274→                className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+   275→                  isCompleted
+   276→                    ? 'bg-emerald-500 text-white'
+   277→                    : isCurrent
+   278→                      ? 'bg-[#F59E0B] text-white ring-4 ring-amber-100'
+   279→                      : 'bg-gray-200 text-gray-400'
+   280→                }`}
+   281→              >
+   282→                {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
+   283→              </div>
+   284→              <span className={`text-[9px] mt-1 text-center leading-tight hidden sm:block ${isCurrent ? 'text-amber-700 font-semibold' : isCompleted ? 'text-emerald-600' : 'text-gray-400'}`}>
+   285→                {stepLabels[step]}
+   286→              </span>
+   287→            </div>
+   288→            {!isLast && (
+   289→              <div className={`flex-1 h-0.5 mx-1 mt-[-12px] sm:mt-0 ${i < currentIndex ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+   290→            )}
+   291→          </div>
+   292→        );
+   293→      })}
+   294→    </div>
+   295→  );
+   296→}
+   297→
+   298→// ===================== MAIN COMPONENT =====================
+   299→
+   300→export default function AdminDeliveriesPage() {
+   301→  const queryClient = useQueryClient();
+   302→  const [sidebarOpen, setSidebarOpen] = useState(false);
+   303→
+   304→  // Filter state
+   305→  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+   306→  const [searchQuery, setSearchQuery] = useState('');
+   307→  const [currentPage, setCurrentPage] = useState(1);
+   308→
+   309→  // Dialog state
+   310→  const [selectedDeliveryId, setSelectedDeliveryId] = useState<string | null>(null);
+   311→  const [reassignDialogId, setReassignDialogId] = useState<string | null>(null);
+   312→  const [autoAssignDialogOpen, setAutoAssignDialogOpen] = useState(false);
+   313→
+   314→  // Admin note & status override state
+   315→  const [adminNotes, setAdminNotes] = useState('');
+   316→  const [overrideStatus, setOverrideStatus] = useState('');
+   317→
+   318→  // Reassign state
+   319→  const [selectedDriverId, setSelectedDriverId] = useState('');
+   320→
+   321→  // ===================== QUERIES =====================
+   322→
+   323→  const statsQuery = useQuery<DeliveryStats>({
+   324→    queryKey: ['admin-delivery-stats'],
+   325→    queryFn: async () => {
+   326→      const [active, completedToday, pendingAssignment, failed] = await Promise.all([
+   327→        db_count_deliveries('active'),
+   328→        db_count_deliveries('completedToday'),
+   329→        db_count_deliveries('pendingAssignment'),
+   330→        db_count_deliveries('failed'),
+   331→      ]);
+   332→      return { active, completedToday, pendingAssignment, failed };
+   333→    },
+   334→  });
+   335→
+   336→  const deliveriesQuery = useQuery<{ deliveries: DeliveryListItem[]; total: number; page: number; totalPages: number }>({
+   337→    queryKey: ['admin-deliveries', statusFilter, searchQuery, currentPage],
+   338→    queryFn: () => {
+   339→      const params = new URLSearchParams({
+   340→        page: currentPage.toString(),
+   341→      });
+   342→      if (statusFilter !== 'ALL') params.set('status', statusFilter);
+   343→      if (searchQuery) params.set('search', searchQuery);
+   344→      return fetch(`/api/admin/deliveries?${params}`).then(r => r.json());
+   345→    },
+   346→  });
+   347→
+   348→  const detailQuery = useQuery<{ delivery: DeliveryDetail }>({
+   349→    queryKey: ['admin-delivery-detail', selectedDeliveryId],
+   350→    queryFn: () => fetch(`/api/admin/deliveries/${selectedDeliveryId}`).then(r => r.json()),
+   351→    enabled: !!selectedDeliveryId,
+   352→  });
+   353→
+   354→  const driversQuery = useQuery<{ users: Driver[] }>({
+   355→    queryKey: ['delivery-drivers'],
+   356→    queryFn: () => fetch('/api/admin/users?role=DELIVERY').then(r => r.json()),
+   357→  });
+   358→
+   359→  const pendingOrdersQuery = useQuery<{ orders: PendingOrder[] }>({
+   360→    queryKey: ['pending-delivery-orders'],
+   361→    queryFn: () => fetch('/api/admin/orders?status=PROCESSING&status=SHIPPED&pageSize=50').then(r => r.json()),
+   362→    enabled: autoAssignDialogOpen,
+   363→  });
+   364→
+   365→  // ===================== MUTATIONS =====================
+   366→
+   367→  const assignMutation = useMutation({
+   368→    mutationFn: (orderId: string) =>
+   369→      fetch('/api/delivery/assign', {
+   370→        method: 'POST',
+   371→        headers: { 'Content-Type': 'application/json' },
+   372→        body: JSON.stringify({ orderId }),
+   373→      }).then(r => {
+   374→        if (!r.ok) return r.json().then((e: any) => { throw new Error(e.error || 'Assignment failed'); });
+   375→        return r.json();
+   376→      }),
+   377→    onSuccess: () => {
+   378→      toast.success('Delivery assigned successfully!');
+   379→      queryClient.invalidateQueries({ queryKey: ['admin-deliveries'] });
+   380→      queryClient.invalidateQueries({ queryKey: ['admin-delivery-stats'] });
+   381→      queryClient.invalidateQueries({ queryKey: ['pending-delivery-orders'] });
+   382→    },
+   383→    onError: (error: Error) => toast.error(error.message),
+   384→  });
+   385→
+   386→  const updateStatusMutation = useMutation({
+   387→    mutationFn: ({ id, status, notes }: { id: string; status?: string; notes?: string }) =>
+   388→      fetch(`/api/admin/deliveries/${id}`, {
+   389→        method: 'PUT',
+   390→        headers: { 'Content-Type': 'application/json' },
+   391→        body: JSON.stringify({ status, notes }),
+   392→      }).then(r => {
+   393→        if (!r.ok) return r.json().then((e: any) => { throw new Error(e.error || 'Update failed'); });
+   394→        return r.json();
+   395→      }),
+   396→    onSuccess: () => {
+   397→      toast.success('Delivery updated successfully!');
+   398→      queryClient.invalidateQueries({ queryKey: ['admin-deliveries'] });
+   399→      queryClient.invalidateQueries({ queryKey: ['admin-delivery-stats'] });
+   400→      queryClient.invalidateQueries({ queryKey: ['admin-delivery-detail', selectedDeliveryId] });
+   401→      setAdminNotes('');
+   402→      setOverrideStatus('');
+   403→    },
+   404→    onError: (error: Error) => toast.error(error.message),
+   405→  });
+   406→
+   407→  const reassignMutation = useMutation({
+   408→    mutationFn: ({ deliveryId, deliveryPersonId }: { deliveryId: string; deliveryPersonId: string }) =>
+   409→      fetch(`/api/admin/deliveries/${deliveryId}/reassign`, {
+   410→        method: 'POST',
+   411→        headers: { 'Content-Type': 'application/json' },
+   412→        body: JSON.stringify({ deliveryPersonId }),
+   413→      }).then(r => {
+   414→        if (!r.ok) return r.json().then((e: any) => { throw new Error(e.error || 'Reassign failed'); });
+   415→        return r.json();
+   416→      }),
+   417→    onSuccess: () => {
+   418→      toast.success('Delivery reassigned successfully!');
+   419→      setReassignDialogId(null);
+   420→      setSelectedDriverId('');
+   421→      queryClient.invalidateQueries({ queryKey: ['admin-deliveries'] });
+   422→      queryClient.invalidateQueries({ queryKey: ['admin-delivery-detail', selectedDeliveryId] });
+   423→    },
+   424→    onError: (error: Error) => toast.error(error.message),
+   425→  });
+   426→
+   427→  // ===================== HANDLERS =====================
+   428→
+   429→  const handleSearch = useCallback((value: string) => {
+   430→    setSearchQuery(value);
+   431→    setCurrentPage(1);
+   432→  }, []);
+   433→
+   434→  const handleStatusFilter = useCallback((value: string) => {
+   435→    setStatusFilter(value);
+   436→    setCurrentPage(1);
+   437→  }, []);
+   438→
+   439→  const handleCopyOtp = (otp: string) => {
+   440→    navigator.clipboard.writeText(otp).then(() => {
+   441→      toast.success('OTP copied to clipboard');
+   442→    }).catch(() => {
+   443→      toast.info(`OTP: ${otp}`);
+   444→    });
+   445→  };
+   446→
+   447→  const handleOpenDetail = (id: string) => {
+   448→    setSelectedDeliveryId(id);
+   449→    setAdminNotes('');
+   450→    setOverrideStatus('');
+   451→  };
+   452→
+   453→  const handleSaveNotes = () => {
+   454→    if (!selectedDeliveryId) return;
+   455→    updateStatusMutation.mutate({ id: selectedDeliveryId, notes: adminNotes });
+   456→  };
+   457→
+   458→  const handleOverrideStatus = () => {
+   459→    if (!selectedDeliveryId || !overrideStatus) return;
+   460→    updateStatusMutation.mutate({ id: selectedDeliveryId, status: overrideStatus });
+   461→  };
+   462→
+   463→  const handleReassign = () => {
+   464→    if (!reassignDialogId || !selectedDriverId) return;
+   465→    reassignMutation.mutate({ deliveryId: reassignDialogId, deliveryPersonId: selectedDriverId });
+   466→  };
+   467→
+   468→  // ===================== COMPUTED =====================
+   469→
+   470→  const deliveries = deliveriesQuery.data?.deliveries || [];
+   471→  const totalPages = deliveriesQuery.data?.totalPages || 1;
+   472→  const total = deliveriesQuery.data?.total || 0;
+   473→  const deliveryDetail = detailQuery.data?.delivery || null;
+   474→
+   475→  const statCards = [
+   476→    { label: 'Active Deliveries', value: statsQuery.data?.active?.toString() ?? '—', icon: Truck, color: 'bg-amber-500/10 text-amber-600' },
+   477→    { label: 'Completed Today', value: statsQuery.data?.completedToday?.toString() ?? '—', icon: CheckCircle2, color: 'bg-emerald-500/10 text-emerald-600' },
+   478→    { label: 'Pending Assignment', value: statsQuery.data?.pendingAssignment?.toString() ?? '—', icon: Clock, color: 'bg-blue-500/10 text-blue-600' },
+   479→    { label: 'Failed', value: statsQuery.data?.failed?.toString() ?? '—', icon: PackageX, color: 'bg-red-500/10 text-red-600' },
+   480→  ];
+   481→
+   482→  const pendingOrders = (pendingOrdersQuery.data?.orders || []).filter(
+   483→    (o: PendingOrder) => !o.delivery
+   484→  );
+   485→
+   486→  // ===================== RENDER =====================
+   487→
+   488→  return (
+   489→    <div className="min-h-screen bg-gray-50">
+   490→      <Sidebar activeNav="deliveries" isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+   491→
+   492→      <main className="flex-1 min-h-screen">
+   493→        {/* Top Bar */}
+   494→        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 md:px-6 py-4">
+   495→          <div className="flex items-center justify-between">
+   496→            <div className="flex items-center gap-3">
+   497→              <Button
+   498→                variant="ghost"
+   499→                size="icon"
+   500→                className="lg:hidden"
+   501→                onClick={() => setSidebarOpen(true)}
+   502→              >
+   503→                <Menu className="h-5 w-5" />
+   504→              </Button>
+   505→              <div>
+   506→                <h1 className="text-xl md:text-2xl font-bold text-slate-900">Delivery Management</h1>
+   507→                <p className="text-sm text-slate-500 hidden sm:block">Monitor and manage all deliveries</p>
+   508→              </div>
+   509→            </div>
+   510→            <div className="flex items-center gap-2">
+   511→              <Button
+   512→                variant="outline"
+   513→                size="sm"
+   514→                className="hidden sm:flex items-center gap-2"
+   515→                onClick={() => {
+   516→                  queryClient.invalidateQueries({ queryKey: ['admin-deliveries'] });
+   517→                  queryClient.invalidateQueries({ queryKey: ['admin-delivery-stats'] });
+   518→                }}
+   519→              >
+   520→                <RefreshCw className={`h-4 w-4 ${deliveriesQuery.isFetching ? 'animate-spin' : ''}`} />
+   521→                Refresh
+   522→              </Button>
+   523→              <Button
+   524→                className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold"
+   525→                onClick={() => setAutoAssignDialogOpen(true)}
+   526→              >
+   527→                <Zap className="h-4 w-4 mr-2" />
+   528→                <span className="hidden sm:inline">Auto-Assign Pending</span>
+   529→                <span className="sm:hidden">Assign</span>
+   530→              </Button>
+   531→            </div>
+   532→          </div>
+   533→        </header>
+   534→
+   535→        <div className="p-4 md:p-6 space-y-6">
+   536→          {/* Stats Row */}
+   537→          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+   538→            {statCards.map((stat, i) => {
+   539→              const Icon = stat.icon;
+   540→              return (
+   541→                <motion.div
+   542→                  key={stat.label}
+   543→                  initial={{ opacity: 0, y: 20 }}
+   544→                  animate={{ opacity: 1, y: 0 }}
+   545→                  transition={{ delay: i * 0.05 }}
+   546→                  className="bg-white rounded-xl border border-gray-200 p-4 md:p-6"
+   547→                >
+   548→                  <div className="flex items-center justify-between">
+   549→                    <div className={`p-2.5 rounded-lg ${stat.color}`}>
+   550→                      <Icon className="h-5 w-5" />
+   551→                    </div>
+   552→                  </div>
+   553→                  <div className="mt-3">
+   554→                    <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+   555→                    <p className="text-sm text-slate-500 mt-0.5">{stat.label}</p>
+   556→                  </div>
+   557→                </motion.div>
+   558→              );
+   559→            })}
+   560→          </div>
+   561→
+   562→          {/* Filter Bar */}
+   563→          <div className="bg-white rounded-xl border border-gray-200 p-4">
+   564→            <div className="flex flex-col sm:flex-row gap-3">
+   565→              <div className="relative flex-1">
+   566→                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+   567→                <Input
+   568→                  placeholder="Search by order number..."
+   569→                  value={searchQuery}
+   570→                  onChange={(e) => handleSearch(e.target.value)}
+   571→                  className="pl-9"
+   572→                />
+   573→              </div>
+   574→              <Select value={statusFilter} onValueChange={handleStatusFilter}>
+   575→                <SelectTrigger className="w-full sm:w-48">
+   576→                  <SelectValue placeholder="Filter status" />
+   577→                </SelectTrigger>
+   578→                <SelectContent>
+   579→                  <SelectItem value="ALL">All Statuses</SelectItem>
+   580→                  <SelectItem value="ASSIGNED">Assigned</SelectItem>
+   581→                  <SelectItem value="PICKED_UP">Picked Up</SelectItem>
+   582→                  <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
+   583→                  <SelectItem value="NEAR_LOCATION">Near Location</SelectItem>
+   584→                  <SelectItem value="DELIVERED">Delivered</SelectItem>
+   585→                  <SelectItem value="FAILED">Failed</SelectItem>
+   586→                </SelectContent>
+   587→              </Select>
+   588→            </div>
+   589→          </div>
+   590→
+   591→          {/* Deliveries Table */}
+   592→          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+   593→            {deliveriesQuery.isLoading ? (
+   594→              <div className="p-6 space-y-4">
+   595→                {Array.from({ length: 5 }).map((_, i) => (
+   596→                  <Skeleton key={i} className="h-12 w-full" />
+   597→                ))}
+   598→              </div>
+   599→            ) : deliveries.length === 0 ? (
+   600→              <div className="p-12 text-center">
+   601→                <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+   602→                <p className="text-gray-500 text-sm">No deliveries found</p>
+   603→              </div>
+   604→            ) : (
+   605→              <div className="overflow-x-auto">
+   606→                <div className="max-h-[480px] overflow-y-auto">
+   607→                  <Table>
+   608→                    <TableHeader className="sticky top-0 bg-white z-10">
+   609→                      <TableRow>
+   610→                        <TableHead className="text-xs uppercase tracking-wider">Order #</TableHead>
+   611→                        <TableHead className="text-xs uppercase tracking-wider">Customer</TableHead>
+   612→                        <TableHead className="text-xs uppercase tracking-wider">Driver</TableHead>
+   613→                        <TableHead className="text-xs uppercase tracking-wider">Status</TableHead>
+   614→                        <TableHead className="text-xs uppercase tracking-wider text-right">Amount</TableHead>
+   615→                        <TableHead className="text-xs uppercase tracking-wider">Pickup OTP</TableHead>
+   616→                        <TableHead className="text-xs uppercase tracking-wider">Delivery OTP</TableHead>
+   617→                        <TableHead className="text-xs uppercase tracking-wider">Date</TableHead>
+   618→                        <TableHead className="text-xs uppercase tracking-wider text-right">Actions</TableHead>
+   619→                      </TableRow>
+   620→                    </TableHeader>
+   621→                    <TableBody className="divide-y divide-gray-50">
+   622→                      {deliveries.map((d) => (
+   623→                        <TableRow key={d.id} className="hover:bg-gray-50 transition">
+   624→                          <TableCell className="font-medium text-slate-900 text-sm">{d.order.orderNumber}</TableCell>
+   625→                          <TableCell className="text-sm text-slate-600">{d.order.buyerName}</TableCell>
+   626→                          <TableCell className="text-sm text-slate-600">{d.deliveryPerson?.name || <span className="text-gray-400">Unassigned</span>}</TableCell>
+   627→                          <TableCell>
+   628→                            <Badge variant="secondary" className={`text-[10px] font-semibold ${deliveryStatusColors[d.status] || 'bg-gray-100 text-gray-700'}`}>
+   629→                              {deliveryStatusLabels[d.status] || d.status}
+   630→                            </Badge>
+   631→                          </TableCell>
+   632→                          <TableCell className="text-right text-sm font-medium text-slate-900">{formatKES(d.order.totalAmount)}</TableCell>
+   633→                          <TableCell>
+   634→                            {d.pickupOtp ? (
+   635→                              <button
+   636→                                onClick={() => handleCopyOtp(d.pickupOtp!)}
+   637→                                className="flex items-center gap-1 text-sm font-mono font-semibold text-slate-700 hover:text-amber-600 transition"
+   638→                              >
+   639→                                <ShieldCheck className="h-3.5 w-3.5" />
+   640→                                {d.pickupOtp}
+   641→                                <Copy className="h-3 w-3 text-gray-400" />
+   642→                              </button>
+   643→                            ) : (
+   644→                              <span className="text-gray-400 text-xs">—</span>
+   645→                            )}
+   646→                          </TableCell>
+   647→                          <TableCell>
+   648→                            {d.deliveryOtp ? (
+   649→                              <button
+   650→                                onClick={() => handleCopyOtp(d.deliveryOtp!)}
+   651→                                className="flex items-center gap-1 text-sm font-mono font-semibold text-slate-700 hover:text-amber-600 transition"
+   652→                              >
+   653→                                <ShieldCheck className="h-3.5 w-3.5" />
+   654→                                {d.deliveryOtp}
+   655→                                <Copy className="h-3 w-3 text-gray-400" />
+   656→                              </button>
+   657→                            ) : (
+   658→                              <span className="text-gray-400 text-xs">—</span>
+   659→                            )}
+   660→                          </TableCell>
+   661→                          <TableCell className="text-sm text-slate-500">
+   662→                            {format(new Date(d.createdAt), 'MMM dd, yyyy')}
+   663→                          </TableCell>
+   664→                          <TableCell className="text-right">
+   665→                            <div className="flex items-center justify-end gap-1">
+   666→                              <Button
+   667→                                variant="ghost"
+   668→                                size="sm"
+   669→                                className="text-slate-600 hover:text-amber-600"
+   670→                                onClick={() => handleOpenDetail(d.id)}
+   671→                              >
+   672→                                <Eye className="h-4 w-4" />
+   673→                              </Button>
+   674→                              {d.status !== 'DELIVERED' && d.status !== 'FAILED' && (
+   675→                                <Button
+   676→                                  variant="ghost"
+   677→                                  size="sm"
+   678→                                  className="text-slate-600 hover:text-blue-600"
+   679→                                  onClick={() => {
+   680→                                    setReassignDialogId(d.id);
+   681→                                    setSelectedDriverId('');
+   682→                                  }}
+   683→                                >
+   684→                                  <UserCheck className="h-4 w-4" />
+   685→                                </Button>
+   686→                              )}
+   687→                            </div>
+   688→                          </TableCell>
+   689→                        </TableRow>
+   690→                      ))}
+   691→                    </TableBody>
+   692→                  </Table>
+   693→                </div>
+   694→              </div>
+   695→            )}
+   696→
+   697→            {/* Pagination */}
+   698→            {totalPages > 1 && (
+   699→              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+   700→                <p className="text-sm text-slate-500">
+   701→                  Showing {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, total)} of {total}
+   702→                </p>
+   703→                <div className="flex items-center gap-1">
+   704→                  <Button
+   705→                    variant="outline"
+   706→                    size="sm"
+   707→                    disabled={currentPage <= 1}
+   708→                    onClick={() => setCurrentPage(p => p - 1)}
+   709→                  >
+   710→                    <ChevronLeft className="h-4 w-4" />
+   711→                  </Button>
+   712→                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+   713→                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+   714→                    .map((p, i, arr) => (
+   715→                      <React.Fragment key={p}>
+   716→                        {i > 0 && arr[i - 1] !== p - 1 && (
+   717→                          <span className="px-1 text-slate-400">...</span>
+   718→                        )}
+   719→                        <Button
+   720→                          variant={currentPage === p ? 'default' : 'outline'}
+   721→                          size="sm"
+   722→                          className={currentPage === p ? 'bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A]' : ''}
+   723→                          onClick={() => setCurrentPage(p)}
+   724→                        >
+   725→                          {p}
+   726→                        </Button>
+   727→                      </React.Fragment>
+   728→                    ))}
+   729→                  <Button
+   730→                    variant="outline"
+   731→                    size="sm"
+   732→                    disabled={currentPage >= totalPages}
+   733→                    onClick={() => setCurrentPage(p => p + 1)}
+   734→                  >
+   735→                    <ChevronRight className="h-4 w-4" />
+   736→                  </Button>
+   737→                </div>
+   738→              </div>
+   739→            )}
+   740→          </div>
+   741→        </div>
+   742→      </main>
+   743→
+   744→      {/* ===================== DELIVERY DETAIL DIALOG ===================== */}
+   745→      <Dialog open={!!selectedDeliveryId} onOpenChange={(open) => { if (!open) setSelectedDeliveryId(null); }}>
+   746→        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+   747→          {detailQuery.isLoading ? (
+   748→            <div className="py-8 space-y-4">
+   749→              <Skeleton className="h-6 w-48" />
+   750→              <Skeleton className="h-4 w-full" />
+   751→              <Skeleton className="h-4 w-full" />
+   752→              <Skeleton className="h-20 w-full" />
+   753→            </div>
+   754→          ) : deliveryDetail ? (
+   755→            <>
+   756→              <DialogHeader>
+   757→                <DialogTitle className="flex items-center gap-2">
+   758→                  <Truck className="h-5 w-5 text-amber-500" />
+   759→                  Delivery Details
+   760→                </DialogTitle>
+   761→                <DialogDescription>
+   762→                  {deliveryDetail.order.orderNumber} — {deliveryStatusLabels[deliveryDetail.status] || deliveryDetail.status}
+   763→                </DialogDescription>
+   764→              </DialogHeader>
+   765→
+   766→              <div className="space-y-6 mt-4">
+   767→                {/* Status Stepper */}
+   768→                {deliveryDetail.status !== 'FAILED' && (
+   769→                  <div className="bg-gray-50 rounded-lg p-4">
+   770→                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Delivery Progress</p>
+   771→                    <StatusStepper current={deliveryDetail.status as DeliveryStep} />
+   772→                  </div>
+   773→                )}
+   774→
+   775→                {/* OTP Display */}
+   776→                <div className="grid grid-cols-2 gap-3">
+   777→                  <div className="bg-amber-50 rounded-lg p-3 text-center">
+   778→                    <p className="text-xs font-medium text-amber-700 uppercase tracking-wider mb-1">Pickup OTP</p>
+   779→                    <p className="text-2xl font-mono font-bold text-amber-800 tracking-widest">{deliveryDetail.pickupOtp || '—'}</p>
+   780→                  </div>
+   781→                  <div className="bg-emerald-50 rounded-lg p-3 text-center">
+   782→                    <p className="text-xs font-medium text-emerald-700 uppercase tracking-wider mb-1">Delivery OTP</p>
+   783→                    <p className="text-2xl font-mono font-bold text-emerald-800 tracking-widest">{deliveryDetail.deliveryOtp || '—'}</p>
+   784→                  </div>
+   785→                </div>
+   786→
+   787→                {/* Order Info */}
+   788→                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+   789→                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Order Information</p>
+   790→                  <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+   791→                    <div>
+   792→                      <span className="text-slate-500">Order:</span>
+   793→                      <span className="ml-2 font-medium text-slate-900">{deliveryDetail.order.orderNumber}</span>
+   794→                    </div>
+   795→                    <div>
+   796→                      <span className="text-slate-500">Amount:</span>
+   797→                      <span className="ml-2 font-medium text-slate-900">{formatKES(deliveryDetail.order.totalAmount)}</span>
+   798→                    </div>
+   799→                    <div>
+   800→                      <span className="text-slate-500">Delivery Fee:</span>
+   801→                      <span className="ml-2 font-medium text-slate-900">{formatKES(deliveryDetail.order.deliveryFee)}</span>
+   802→                    </div>
+   803→                    <div>
+   804→                      <span className="text-slate-500">Payment:</span>
+   805→                      <Badge variant="secondary" className="ml-2 text-[10px] font-semibold bg-emerald-100 text-emerald-700">{deliveryDetail.order.paymentStatus}</Badge>
+   806→                    </div>
+   807→                    <div className="col-span-2">
+   808→                      <span className="text-slate-500">Shipping Address:</span>
+   809→                      <span className="ml-2 text-slate-700">{deliveryDetail.order.shippingAddress}</span>
+   810→                    </div>
+   811→                  </div>
+   812→
+   813→                  {/* Order Items */}
+   814→                  {deliveryDetail.order.orderItems.length > 0 && (
+   815→                    <div className="mt-3 pt-3 border-t border-gray-200">
+   816→                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Items</p>
+   817→                      <div className="space-y-2">
+   818→                        {deliveryDetail.order.orderItems.map((item) => (
+   819→                          <div key={item.id} className="flex items-center gap-3 text-sm">
+   820→                            {item.product?.image && (
+   821→                              <img src={item.product.image} alt={item.product?.name} className="h-8 w-8 rounded object-cover" />
+   822→                            )}
+   823→                            <span className="text-slate-700 flex-1 truncate">{item.product?.name || 'Unknown Product'}</span>
+   824→                            <span className="text-slate-500">x{item.quantity}</span>
+   825→                            <span className="font-medium text-slate-900">{formatKES(item.price)}</span>
+   826→                          </div>
+   827→                        ))}
+   828→                      </div>
+   829→                    </div>
+   830→                  )}
+   831→                </div>
+   832→
+   833→                {/* Driver Info */}
+   834→                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+   835→                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Driver Information</p>
+   836→                  {deliveryDetail.deliveryPerson ? (
+   837→                    <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+   838→                      <div>
+   839→                        <span className="text-slate-500">Name:</span>
+   840→                        <span className="ml-2 font-medium text-slate-900">{deliveryDetail.deliveryPerson.name}</span>
+   841→                      </div>
+   842→                      <div>
+   843→                        <span className="text-slate-500">Email:</span>
+   844→                        <span className="ml-2 text-slate-700">{deliveryDetail.deliveryPerson.email}</span>
+   845→                      </div>
+   846→                      {deliveryDetail.deliveryPerson.phone && (
+   847→                        <div>
+   848→                          <span className="text-slate-500">Phone:</span>
+   849→                          <span className="ml-2 text-slate-700">{deliveryDetail.deliveryPerson.phone}</span>
+   850→                        </div>
+   851→                      )}
+   852→                    </div>
+   853→                  ) : (
+   854→                    <p className="text-sm text-slate-400">No driver assigned</p>
+   855→                  )}
+   856→                </div>
+   857→
+   858→                {/* Buyer Info */}
+   859→                {deliveryDetail.order.buyer && (
+   860→                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+   861→                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Customer Information</p>
+   862→                    <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+   863→                      <div>
+   864→                        <span className="text-slate-500">Name:</span>
+   865→                        <span className="ml-2 font-medium text-slate-900">{deliveryDetail.order.buyer.name}</span>
+   866→                      </div>
+   867→                      <div>
+   868→                        <span className="text-slate-500">Email:</span>
+   869→                        <span className="ml-2 text-slate-700">{deliveryDetail.order.buyer.email}</span>
+   870→                      </div>
+   871→                      {deliveryDetail.order.buyer.phone && (
+   872→                        <div>
+   873→                          <span className="text-slate-500">Phone:</span>
+   874→                          <span className="ml-2 text-slate-700">{deliveryDetail.order.buyer.phone}</span>
+   875→                        </div>
+   876→                      )}
+   877→                    </div>
+   878→                  </div>
+   879→                )}
+   880→
+   881→                {/* Admin Notes */}
+   882→                <div className="space-y-2">
+   883→                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Admin Notes</p>
+   884→                  <Textarea
+   885→                    placeholder="Add internal notes about this delivery..."
+   886→                    value={adminNotes || deliveryDetail.notes || ''}
+   887→                    onChange={(e) => setAdminNotes(e.target.value)}
+   888→                    rows={3}
+   889→                  />
+   890→                  <Button
+   891→                    size="sm"
+   892→                    variant="outline"
+   893→                    onClick={handleSaveNotes}
+   894→                    disabled={updateStatusMutation.isPending}
+   895→                  >
+   896→                    {updateStatusMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+   897→                    Save Notes
+   898→                  </Button>
+   899→                </div>
+   900→
+   901→                {/* Status Override */}
+   902→                <div className="space-y-2 pt-2 border-t border-gray-200">
+   903→                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Admin Status Override</p>
+   904→                  <div className="flex gap-2">
+   905→                    <Select value={overrideStatus} onValueChange={setOverrideStatus}>
+   906→                      <SelectTrigger className="flex-1">
+   907→                        <SelectValue placeholder="Select new status" />
+   908→                      </SelectTrigger>
+   909→                      <SelectContent>
+   910→                        <SelectItem value="ASSIGNED">Assigned</SelectItem>
+   911→                        <SelectItem value="PICKED_UP">Picked Up</SelectItem>
+   912→                        <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
+   913→                        <SelectItem value="NEAR_LOCATION">Near Location</SelectItem>
+   914→                        <SelectItem value="DELIVERED">Delivered</SelectItem>
+   915→                        <SelectItem value="FAILED">Failed</SelectItem>
+   916→                      </SelectContent>
+   917→                    </Select>
+   918→                    <Button
+   919→                      size="sm"
+   920→                      className="bg-amber-500 hover:bg-amber-600 text-white"
+   921→                      onClick={handleOverrideStatus}
+   922→                      disabled={!overrideStatus || updateStatusMutation.isPending}
+   923→                    >
+   924→                      {updateStatusMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+   925→                      Override
+   926→                    </Button>
+   927→                  </div>
+   928→                </div>
+   929→
+   930→                {/* Meta Info */}
+   931→                <div className="text-xs text-slate-400 space-y-1 pt-2 border-t border-gray-100">
+   932→                  <p>Created: {format(new Date(deliveryDetail.createdAt), 'MMM dd, yyyy HH:mm')}</p>
+   933→                  {deliveryDetail.deliveredAt && <p>Delivered: {format(new Date(deliveryDetail.deliveredAt), 'MMM dd, yyyy HH:mm')}</p>}
+   934→                </div>
+   935→              </div>
+   936→            </>
+   937→          ) : null}
+   938→        </DialogContent>
+   939→      </Dialog>
+   940→
+   941→      {/* ===================== REASSIGN DIALOG ===================== */}
+   942→      <Dialog open={!!reassignDialogId} onOpenChange={(open) => { if (!open) setReassignDialogId(null); }}>
+   943→        <DialogContent className="sm:max-w-md">
+   944→          <DialogHeader>
+   945→            <DialogTitle className="flex items-center gap-2">
+   946→              <UserCheck className="h-5 w-5 text-amber-500" />
+   947→              Reassign Delivery
+   948→            </DialogTitle>
+   949→            <DialogDescription>
+   950→              Select a new driver to handle this delivery.
+   951→            </DialogDescription>
+   952→          </DialogHeader>
+   953→          <div className="py-4 space-y-4">
+   954→            <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+   955→              <SelectTrigger>
+   956→                <SelectValue placeholder="Select a driver..." />
+   957→              </SelectTrigger>
+   958→              <SelectContent>
+   959→                {driversQuery.data?.users?.map((driver) => (
+   960→                  <SelectItem key={driver.id} value={driver.id}>
+   961→                    {driver.name} {driver.phone ? `(${driver.phone})` : ''}
+   962→                  </SelectItem>
+   963→                ))}
+   964→              </SelectContent>
+   965→            </Select>
+   966→            <Button
+   967→              className="w-full bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold"
+   968→              onClick={handleReassign}
+   969→              disabled={!selectedDriverId || reassignMutation.isPending}
+   970→            >
+   971→              {reassignMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+   972→              Reassign Delivery
+   973→            </Button>
+   974→          </div>
+   975→        </DialogContent>
+   976→      </Dialog>
+   977→
+   978→      {/* ===================== AUTO-ASSIGN DIALOG ===================== */}
+   979→      <Dialog open={autoAssignDialogOpen} onOpenChange={setAutoAssignDialogOpen}>
+   980→        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+   981→          <DialogHeader>
+   982→            <DialogTitle className="flex items-center gap-2">
+   983→              <Zap className="h-5 w-5 text-amber-500" />
+   984→              Auto-Assign Pending Orders
+   985→            </DialogTitle>
+   986→            <DialogDescription>
+   987→              Orders that are ready for delivery (PROCESSING or SHIPPED) without an assigned delivery.
+   988→            </DialogDescription>
+   989→          </DialogHeader>
+   990→          <div className="py-4">
+   991→            {pendingOrdersQuery.isLoading ? (
+   992→              <div className="space-y-3">
+   993→                {Array.from({ length: 3 }).map((_, i) => (
+   994→                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+   995→                ))}
+   996→              </div>
+   997→            ) : pendingOrders.length === 0 ? (
+   998→              <div className="text-center py-8">
+   999→                <CheckCircle2 className="h-12 w-12 text-emerald-300 mx-auto mb-3" />
+  1000→                <p className="text-sm text-slate-500">No orders pending delivery assignment</p>
+  1001→              </div>
+  1002→            ) : (
+  1003→              <div className="space-y-3 max-h-96 overflow-y-auto">
+  1004→                {pendingOrders.map((order) => (
+  1005→                  <div key={order.id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between gap-4">
+  1006→                    <div className="min-w-0 flex-1">
+  1007→                      <p className="text-sm font-semibold text-slate-900">{order.orderNumber}</p>
+  1008→                      <p className="text-xs text-slate-500 truncate">{order.buyer?.name} — {order.shippingAddress}</p>
+  1009→                      <p className="text-sm font-medium text-amber-600 mt-1">{formatKES(order.totalAmount)}</p>
+  1010→                    </div>
+  1011→                    <Button
+  1012→                      size="sm"
+  1013→                      className="shrink-0 bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold"
+  1014→                      disabled={assignMutation.isPending}
+  1015→                      onClick={() => assignMutation.mutate(order.id)}
+  1016→                    >
+  1017→                      {assignMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+  1018→                      Assign
+  1019→                    </Button>
+  1020→                  </div>
+  1021→                ))}
+  1022→              </div>
+  1023→            )}
+  1024→          </div>
+  1025→        </DialogContent>
+  1026→      </Dialog>
+  1027→    </div>
+  1028→  );
+  1029→}
+  1030→
+  1031→// ===================== HELPER FUNCTIONS (client-side stats fetch) =====================
+  1032→
+  1033→async function db_count_deliveries(type: string): Promise<number> {
+  1034→  try {
+  1035→    const today = new Date();
+  1036→    const todayStart = startOfDay(today).toISOString();
+  1037→    const todayEnd = endOfDay(today).toISOString();
+  1038→
+  1039→    const res = await fetch('/api/admin/deliveries?page=1&pageSize=1');
+  1040→    // We'll use the list endpoint with status filter for counts
+  1041→    // For a proper count, we hit specific status queries
+  1042→    if (type === 'active') {
+  1043→      const r1 = await fetch('/api/admin/deliveries?status=ASSIGNED&page=1');
+  1044→      const r2 = await fetch('/api/admin/deliveries?status=PICKED_UP&page=1');
+  1045→      const r3 = await fetch('/api/admin/deliveries?status=IN_TRANSIT&page=1');
+  1046→      const r4 = await fetch('/api/admin/deliveries?status=NEAR_LOCATION&page=1');
+  1047→      const d1 = await r1.json();
+  1048→      const d2 = await r2.json();
+  1049→      const d3 = await r3.json();
+  1050→      const d4 = await r4.json();
+  1051→      return (d1.total || 0) + (d2.total || 0) + (d3.total || 0) + (d4.total || 0);
+  1052→    }
+  1053→    if (type === 'completedToday') {
+  1054→      const r = await fetch('/api/admin/deliveries?status=DELIVERED&page=1');
+  1055→      const d = await r.json();
+  1056→      // We don't have date filtering, so just return total delivered
+  1057→      return d.total || 0;
+  1058→    }
+  1059→    if (type === 'pendingAssignment') {
+  1060→      const r = await fetch('/api/admin/orders?status=PROCESSING&status=SHIPPED&pageSize=1');
+  1061→      const d = await r.json();
+  1062→      // Approximate: total orders with PROCESSING/SHIPPED status minus those with deliveries
+  1063→      return (d.total || 0) > 0 ? Math.max(0, d.total) : 0;
+  1064→    }
+  1065→    if (type === 'failed') {
+  1066→      const r = await fetch('/api/admin/deliveries?status=FAILED&page=1');
+  1067→      const d = await r.json();
+  1068→      return d.total || 0;
+  1069→    }
+  1070→    return 0;
+  1071→  } catch {
+  1072→    return 0;
+  1073→  }
+  1074→}
+  1075→

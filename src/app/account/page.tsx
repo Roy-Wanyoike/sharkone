@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, Suspense } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -11,7 +11,22 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Bell,
   ShoppingCart,
@@ -26,6 +41,11 @@ import {
   Eye,
   AlertCircle,
   Pencil,
+  MapPin,
+  Repeat,
+  Star,
+  Phone,
+  User,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Footer } from '@/components/ecommerce/Footer';
@@ -35,6 +55,18 @@ const queryClient = new QueryClient();
 
 const formatKES = (amount: number) =>
   new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 }).format(amount);
+
+const KENYAN_COUNTIES = [
+  'Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Uasin Gishu',
+  'Kiambu', 'Machakos', 'Kakamega', 'Meru', 'Embu',
+  'Nyeri', "Murang'a", 'Kisii', 'Nyamira', 'Bungoma',
+  'Trans Nzoia', 'Nandi', 'Baringo', 'Laikipia', 'Narok',
+  'Kajiado', 'Makueni', 'Kitui', 'Tharaka Nithi',
+  'Homa Bay', 'Migori', 'Siaya', 'Busia', 'Vihiga',
+  'West Pokot', 'Samburu', 'Turkana', 'Marsabit', 'Isiolo',
+  'Garissa', 'Wajir', 'Mandera', 'Lamu', 'Tana River',
+  'Taita Taveta', 'Kilifi', 'Kwale', 'Other',
+];
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -55,6 +87,7 @@ interface OrderItemData {
   productImage: string;
   productSlug: string;
   sellerName: string;
+  productId: string;
 }
 
 interface BuyerOrder {
@@ -91,6 +124,30 @@ interface BuyerUser {
   createdAt: string;
 }
 
+interface Address {
+  id: string;
+  userId: string;
+  label: string;
+  fullName: string;
+  phone: string;
+  county: string;
+  city: string | null;
+  addressLine: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface AddressFormData {
+  label: string;
+  fullName: string;
+  phone: string;
+  county: string;
+  city: string;
+  addressLine: string;
+  isDefault: boolean;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Status Colors                                                     */
 /* ------------------------------------------------------------------ */
@@ -111,6 +168,12 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
   PENDING: 'bg-yellow-100 text-yellow-700',
   FAILED: 'bg-red-100 text-red-700',
   REFUNDED: 'bg-gray-100 text-gray-700',
+};
+
+const LABEL_COLORS: Record<string, string> = {
+  Home: 'bg-emerald-100 text-emerald-700',
+  Office: 'bg-blue-100 text-blue-700',
+  Other: 'bg-gray-100 text-gray-700',
 };
 
 /* ------------------------------------------------------------------ */
@@ -137,6 +200,16 @@ function TableSkeleton() {
   );
 }
 
+const emptyAddressForm: AddressFormData = {
+  label: 'Home',
+  fullName: '',
+  phone: '',
+  county: '',
+  city: '',
+  addressLine: '',
+  isDefault: false,
+};
+
 /* ------------------------------------------------------------------ */
 /*  Main Page Component                                                */
 /* ------------------------------------------------------------------ */
@@ -144,6 +217,7 @@ function TableSkeleton() {
 function AccountPageContent() {
   const searchParams = useSearchParams();
   const idParam = searchParams.get('id');
+  const queryClientQC = useQueryClient();
 
   // Fetch buyer user
   const usersQuery = useQuery<{ users: BuyerUser[] }>({
@@ -194,12 +268,144 @@ function AccountPageContent() {
     enabled: !!buyerId,
   });
 
+  // Addresses
+  const addressesQuery = useQuery<{ addresses: Address[] }>({
+    queryKey: ['addresses', buyerId],
+    queryFn: () => fetch(`/api/addresses?userId=${buyerId}`).then((r) => r.json()),
+    enabled: !!buyerId,
+  });
+
+  // Address mutations
+  const createAddressMutation = useMutation({
+    mutationFn: (data: AddressFormData) =>
+      fetch('/api/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, userId: buyerId }),
+      }).then((r) => r.json()),
+    onSuccess: () => {
+      queryClientQC.invalidateQueries({ queryKey: ['addresses'] });
+      toast.success('Address added successfully!');
+      setAddressDialogOpen(false);
+      setEditingAddress(null);
+      setAddressForm(emptyAddressForm);
+    },
+    onError: () => toast.error('Failed to add address'),
+  });
+
+  const updateAddressMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<AddressFormData> }) =>
+      fetch(`/api/addresses/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }).then((r) => r.json()),
+    onSuccess: () => {
+      queryClientQC.invalidateQueries({ queryKey: ['addresses'] });
+      toast.success('Address updated successfully!');
+      setAddressDialogOpen(false);
+      setEditingAddress(null);
+      setAddressForm(emptyAddressForm);
+    },
+    onError: () => toast.error('Failed to update address'),
+  });
+
+  const deleteAddressMutation = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/addresses/${id}`, { method: 'DELETE' }).then((r) => r.json()),
+    onSuccess: () => {
+      queryClientQC.invalidateQueries({ queryKey: ['addresses'] });
+      toast.success('Address deleted successfully!');
+    },
+    onError: () => toast.error('Failed to delete address'),
+  });
+
+  const setDefaultMutation = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/addresses/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isDefault: true }),
+      }).then((r) => r.json()),
+    onSuccess: () => {
+      queryClientQC.invalidateQueries({ queryKey: ['addresses'] });
+      toast.success('Default address updated!');
+    },
+    onError: () => toast.error('Failed to set default address'),
+  });
+
+  // Address dialog state
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [addressForm, setAddressForm] = useState<AddressFormData>(emptyAddressForm);
+
+  const openNewAddressDialog = () => {
+    setEditingAddress(null);
+    setAddressForm({ ...emptyAddressForm, fullName: buyer?.name || '', phone: buyer?.phone || '' });
+    setAddressDialogOpen(true);
+  };
+
+  const openEditAddressDialog = (addr: Address) => {
+    setEditingAddress(addr);
+    setAddressForm({
+      label: addr.label,
+      fullName: addr.fullName,
+      phone: addr.phone,
+      county: addr.county,
+      city: addr.city || '',
+      addressLine: addr.addressLine,
+      isDefault: addr.isDefault,
+    });
+    setAddressDialogOpen(true);
+  };
+
+  const handleAddressSubmit = () => {
+    if (!addressForm.fullName || !addressForm.phone || !addressForm.county || !addressForm.addressLine) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    if (editingAddress) {
+      updateAddressMutation.mutate({ id: editingAddress.id, data: addressForm });
+    } else {
+      createAddressMutation.mutate(addressForm);
+    }
+  };
+
   // Wishlist from cart store
-  const { wishlist, toggleWishlist, addItem, isInWishlist } = useCartStore();
+  const { wishlist, toggleWishlist, addItem, openCart } = useCartStore();
 
   const orders = ordersQuery.data?.orders || [];
   const transactions = transactionsQuery.data?.transactions || [];
+  const addresses = addressesQuery.data?.addresses || [];
   const stats = statsQuery.data;
+
+  // Reorder handler
+  const handleReorder = async (order: BuyerOrder) => {
+    try {
+      // Fetch the order details to get product IDs
+      const orderRes = await fetch(`/api/orders/${order.id}`);
+      const orderData = await orderRes.json();
+      const orderItems = orderData.order?.orderItems || [];
+
+      for (const item of orderItems) {
+        // Fetch the full product
+        const productRes = await fetch(`/api/products/${item.productId}`);
+        const productData = await productRes.json();
+        if (productData.product) {
+          // Add the product to cart, with the original quantity
+          const product = productData.product;
+          for (let i = 0; i < item.quantity; i++) {
+            addItem(product);
+          }
+        }
+      }
+
+      toast.success('Items added to cart');
+      openCart();
+    } catch {
+      toast.error('Failed to reorder items');
+    }
+  };
 
   const initials = buyer?.name
     ? buyer.name
@@ -305,6 +511,10 @@ function AccountPageContent() {
                 <Heart className="h-4 w-4" />
                 Wishlist
               </TabsTrigger>
+              <TabsTrigger value="addresses" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
+                <MapPin className="h-4 w-4" />
+                Addresses
+              </TabsTrigger>
               <TabsTrigger value="settings" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
                 <Settings className="h-4 w-4" />
                 Settings
@@ -337,7 +547,7 @@ function AccountPageContent() {
                           <th className="px-6 py-3">Status</th>
                           <th className="px-6 py-3">Payment</th>
                           <th className="px-6 py-3">Date</th>
-                          <th className="px-6 py-3"></th>
+                          <th className="px-6 py-3">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
@@ -358,12 +568,25 @@ function AccountPageContent() {
                             </td>
                             <td className="px-6 py-3 text-gray-500">{format(new Date(order.createdAt), 'MMM dd, yyyy')}</td>
                             <td className="px-6 py-3">
-                              <Link href={`/track`}>
-                                <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 gap-1">
-                                  <Eye className="h-4 w-4" />
-                                  View
-                                </Button>
-                              </Link>
+                              <div className="flex items-center gap-1">
+                                <Link href={`/track`}>
+                                  <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 gap-1">
+                                    <Eye className="h-4 w-4" />
+                                    View
+                                  </Button>
+                                </Link>
+                                {order.status === 'DELIVERED' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 gap-1"
+                                    onClick={() => handleReorder(order)}
+                                  >
+                                    <Repeat className="h-4 w-4" />
+                                    Reorder
+                                  </Button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -449,6 +672,128 @@ function AccountPageContent() {
               )}
             </TabsContent>
 
+            {/* Addresses Tab */}
+            <TabsContent value="addresses">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Saved Addresses</h3>
+                    <p className="text-sm text-gray-500">Manage your delivery addresses</p>
+                  </div>
+                  <Button
+                    onClick={openNewAddressDialog}
+                    className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add New Address
+                  </Button>
+                </div>
+
+                {addressesQuery.isLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="bg-white border border-gray-200 rounded-xl p-6">
+                        <Skeleton className="h-5 w-20 mb-4" />
+                        <Skeleton className="h-4 w-40 mb-2" />
+                        <Skeleton className="h-4 w-32 mb-2" />
+                        <Skeleton className="h-4 w-full" />
+                      </div>
+                    ))}
+                  </div>
+                ) : addresses.length === 0 ? (
+                  <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+                    <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">No saved addresses yet</p>
+                    <Button
+                      onClick={openNewAddressDialog}
+                      className="mt-4 bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Your First Address
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {addresses.map((addr) => (
+                      <div
+                        key={addr.id}
+                        className={`bg-white border rounded-xl p-5 transition-all hover:shadow-sm ${
+                          addr.isDefault ? 'border-[#F59E0B] ring-1 ring-amber-200' : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="secondary"
+                              className={`text-[10px] font-semibold ${LABEL_COLORS[addr.label] || 'bg-gray-100 text-gray-700'}`}
+                            >
+                              {addr.label === 'Other' ? 'Other' : addr.label}
+                            </Badge>
+                            {addr.isDefault && (
+                              <Badge className="bg-[#F59E0B] text-[#0F172A] text-[10px] font-semibold gap-1">
+                                <Star className="h-3 w-3" />
+                                Default
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5 mb-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-900 font-medium">
+                            <User className="h-3.5 w-3.5 text-gray-400" />
+                            {addr.fullName}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Phone className="h-3.5 w-3.5 text-gray-400" />
+                            {addr.phone}
+                          </div>
+                          <div className="flex items-start gap-2 text-sm text-gray-600">
+                            <MapPin className="h-3.5 w-3.5 text-gray-400 mt-0.5 shrink-0" />
+                            <span>
+                              {addr.addressLine}
+                              {addr.city && `, ${addr.city}`}
+                              {`, ${addr.county}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg text-xs gap-1"
+                            onClick={() => openEditAddressDialog(addr)}
+                          >
+                            <Pencil className="h-3 w-3" />
+                            Edit
+                          </Button>
+                          {!addr.isDefault && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg text-xs gap-1"
+                              onClick={() => setDefaultMutation.mutate(addr.id)}
+                            >
+                              <Star className="h-3 w-3" />
+                              Set Default
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-red-200 hover:bg-red-50 text-red-600 rounded-lg text-xs gap-1"
+                            onClick={() => deleteAddressMutation.mutate(addr.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
             {/* Settings Tab */}
             <TabsContent value="settings">
               <div className="bg-white border border-gray-200 rounded-xl p-6 max-w-xl">
@@ -492,6 +837,107 @@ function AccountPageContent() {
           </Tabs>
         </div>
       </main>
+
+      {/* Address Dialog */}
+      <Dialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid gap-2">
+              <Label>Label</Label>
+              <Select value={addressForm.label} onValueChange={(v) => setAddressForm((f) => ({ ...f, label: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select label" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Home">Home</SelectItem>
+                  <SelectItem value="Office">Office</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Full Name *</Label>
+              <Input
+                placeholder="John Doe"
+                value={addressForm.fullName}
+                onChange={(e) => setAddressForm((f) => ({ ...f, fullName: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Phone *</Label>
+              <Input
+                placeholder="+254 712 345 678"
+                value={addressForm.phone}
+                onChange={(e) => setAddressForm((f) => ({ ...f, phone: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>County *</Label>
+              <Select value={addressForm.county} onValueChange={(v) => setAddressForm((f) => ({ ...f, county: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select county" />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  {KENYAN_COUNTIES.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>City</Label>
+              <Input
+                placeholder="e.g. Kilimani"
+                value={addressForm.city}
+                onChange={(e) => setAddressForm((f) => ({ ...f, city: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Address Line *</Label>
+              <Input
+                placeholder="Street address, estate, building"
+                value={addressForm.addressLine}
+                onChange={(e) => setAddressForm((f) => ({ ...f, addressLine: e.target.value }))}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="is-default"
+                checked={addressForm.isDefault}
+                onCheckedChange={(checked) => setAddressForm((f) => ({ ...f, isDefault: !!checked }))}
+              />
+              <Label htmlFor="is-default" className="text-sm font-normal cursor-pointer">
+                Set as default address
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddressDialogOpen(false)} className="rounded-lg">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddressSubmit}
+              disabled={createAddressMutation.isPending || updateAddressMutation.isPending}
+              className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg"
+            >
+              {createAddressMutation.isPending || updateAddressMutation.isPending
+                ? 'Saving...'
+                : editingAddress
+                  ? 'Update Address'
+                  : 'Add Address'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <Footer />

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -39,6 +39,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useCartStore } from '@/store/cart-store';
+import { useRecentlyViewedStore } from '@/store/recently-viewed-store';
 import { Footer } from '@/components/ecommerce/Footer';
 import type { Product } from '@/types';
 
@@ -582,6 +583,13 @@ export default function ProductDetailPage({
 
   const product = data?.product;
   const relatedProducts = data?.relatedProducts ?? [];
+  const addRecentlyViewed = useRecentlyViewedStore((s) => s.addProduct);
+
+  useEffect(() => {
+    if (product) {
+      addRecentlyViewed(product.id);
+    }
+  }, [product, addRecentlyViewed]);
 
   if (isLoading) {
     return (
