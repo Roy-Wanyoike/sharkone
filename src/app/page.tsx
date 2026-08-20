@@ -11,6 +11,8 @@ import { CartSidebar } from '@/components/ecommerce/CartSidebar';
 import { SearchDialog } from '@/components/ecommerce/SearchDialog';
 import { Footer } from '@/components/ecommerce/Footer';
 import { PromoBanner } from '@/components/ecommerce/PromoBanner';
+import { FlashSaleBanner } from '@/components/ecommerce/FlashSaleBanner';
+import { MarketingBanners } from '@/components/ecommerce/MarketingBanners';
 import { TrustBadges } from '@/components/ecommerce/TrustBadges';
 import { RecentlyViewed } from '@/components/ecommerce/RecentlyViewed';
 import { ScrollToTop } from '@/components/ecommerce/ScrollToTop';
@@ -92,6 +94,8 @@ export default function Home() {
             {activeRole === 'buyer' && (
               <>
                 <HeroCarousel slides={heroSlides} />
+                <FlashSaleBanner />
+                <MarketingBanners />
                 <FeaturedCategories categories={categories} onCategorySelect={handleCategorySelect} />
                 <TrendingProducts onViewProduct={setDetailProduct} />
                 <ProductGrid key={selectedCategory} categories={categories} initialCategory={selectedCategory} />
