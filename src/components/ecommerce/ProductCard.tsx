@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { GitCompareArrows, Heart, Star, StarHalf, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart-store';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 import { useCompareStore } from '@/store/compare-store';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
@@ -33,6 +35,7 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
   const compareRemove = useCompareStore((s) => s.removeProduct);
   const isComparing = useCompareStore((s) => s.isComparing);
   const compareIds = useCompareStore((s) => s.productIds);
+  const currencyCode = useCurrencyStore(s => s.code);
   const wishlisted = isInWishlist(product.id);
   const comparing = isComparing(product.id);
   const discount = product.originalPrice
@@ -126,11 +129,11 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
         <div className="flex items-end justify-between w-full mt-1.5">
           <div className="flex items-baseline gap-2">
             <span className="text-base font-semibold text-gray-900">
-              ${product.price.toFixed(2)}
+              {formatCurrency(product.price, currencyCode)}
             </span>
             {product.originalPrice && (
               <span className="text-xs text-gray-400 line-through">
-                ${product.originalPrice.toFixed(2)}
+                {formatCurrency(product.originalPrice, currencyCode)}
               </span>
             )}
           </div>
@@ -143,7 +146,7 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
               addItem(product);
               toast.success(`${product.name} added to cart`, {
                 icon: <ShoppingBag className="h-4 w-4" />,
-                description: `$${product.price.toFixed(2)}`,
+                description: formatCurrency(product.price, currencyCode),
                 action: { label: 'View Cart', onClick: () => useCartStore.getState().openCart() },
               });
             }}

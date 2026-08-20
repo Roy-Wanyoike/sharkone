@@ -5,13 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Tag, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-
-const KES = (amount: number) =>
-  new Intl.NumberFormat('en-KE', {
-    style: 'currency',
-    currency: 'KES',
-    minimumFractionDigits: 0,
-  }).format(amount);
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 
 interface CouponInputProps {
   onApply: (discount: number, code: string, isFreeShipping: boolean) => void;
@@ -30,6 +25,7 @@ export function CouponInput({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const currencyCode = useCurrencyStore(s => s.code);
 
   const handleApply = async () => {
     const trimmed = code.trim();
@@ -53,7 +49,7 @@ export function CouponInput({
           setSuccess('Free shipping applied!');
           onApply(0, trimmed, true);
         } else {
-          setSuccess(`${trimmed} applied — you save ${KES(data.discount)}`);
+          setSuccess(`${trimmed} applied — you save ${formatCurrency(data.discount, currencyCode)}`);
           onApply(data.discount, trimmed, false);
         }
         setCode('');

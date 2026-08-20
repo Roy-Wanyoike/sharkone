@@ -37,17 +37,6 @@ import { Footer } from '@/components/ecommerce/Footer';
 import type { Product, Category } from '@/types';
 
 /* ------------------------------------------------------------------ */
-/*  formatKES                                                           */
-/* ------------------------------------------------------------------ */
-function formatKES(amount: number): string {
-  return new Intl.NumberFormat('en-KE', {
-    style: 'currency',
-    currency: 'KES',
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
-
-/* ------------------------------------------------------------------ */
 /*  Simple Navbar                                                      */
 /* ------------------------------------------------------------------ */
 function SimpleNavbar() {
@@ -238,9 +227,6 @@ function FilterPanel({
               <span className="text-sm text-gray-700 group-hover:text-gray-900 transition">
                 {cat.name}
               </span>
-              {cat._count && (
-                <span className="text-xs text-gray-400 ml-auto">{cat._count.products}</span>
-              )}
             </label>
           ))}
         </div>

@@ -1,0 +1,521 @@
+     1→   501→                className="hidden sm:flex items-center gap-2"
+     2→   502→                onClick={() => {
+     3→   503→                  queryClient.invalidateQueries({ queryKey: ['admin-deliveries'] });
+     4→   504→                  queryClient.invalidateQueries({ queryKey: ['admin-delivery-stats'] });
+     5→   505→                }}
+     6→   506→              >
+     7→   507→                <RefreshCw className={`h-4 w-4 ${deliveriesQuery.isFetching ? 'animate-spin' : ''}`} />
+     8→   508→                Refresh
+     9→   509→              </Button>
+    10→   510→              <Button
+    11→   511→                className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold"
+    12→   512→                onClick={() => setAutoAssignDialogOpen(true)}
+    13→   513→              >
+    14→   514→                <Zap className="h-4 w-4 mr-2" />
+    15→   515→                <span className="hidden sm:inline">Auto-Assign Pending</span>
+    16→   516→                <span className="sm:hidden">Assign</span>
+    17→   517→              </Button>
+    18→   518→            </div>
+    19→   519→          </div>
+    20→   520→        </header>
+    21→   521→
+    22→   522→        <div className="p-4 md:p-6 space-y-6 flex-1">
+    23→   523→          {/* Stats Row */}
+    24→   524→          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    25→   525→            {statCards.map((stat, i) => {
+    26→   526→              const Icon = stat.icon;
+    27→   527→              return (
+    28→   528→                <motion.div
+    29→   529→                  key={stat.label}
+    30→   530→                  initial={{ opacity: 0, y: 20 }}
+    31→   531→                  animate={{ opacity: 1, y: 0 }}
+    32→   532→                  transition={{ delay: i * 0.05 }}
+    33→   533→                  className="bg-white rounded-xl border border-gray-200 p-4 md:p-6"
+    34→   534→                >
+    35→   535→                  <div className="flex items-center justify-between">
+    36→   536→                    <div className={`p-2.5 rounded-lg ${stat.color}`}>
+    37→   537→                      <Icon className="h-5 w-5" />
+    38→   538→                    </div>
+    39→   539→                  </div>
+    40→   540→                  <div className="mt-3">
+    41→   541→                    <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+    42→   542→                    <p className="text-sm text-slate-500 mt-0.5">{stat.label}</p>
+    43→   543→                  </div>
+    44→   544→                </motion.div>
+    45→   545→              );
+    46→   546→            })}
+    47→   547→          </div>
+    48→   548→
+    49→   549→          {/* Filter Bar */}
+    50→   550→          <div className="bg-white rounded-xl border border-gray-200 p-4">
+    51→   551→            <div className="flex flex-col sm:flex-row gap-3">
+    52→   552→              <div className="relative flex-1">
+    53→   553→                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+    54→   554→                <Input
+    55→   555→                  placeholder="Search by order number..."
+    56→   556→                  value={searchQuery}
+    57→   557→                  onChange={(e) => handleSearch(e.target.value)}
+    58→   558→                  className="pl-9"
+    59→   559→                />
+    60→   560→              </div>
+    61→   561→              <Select value={statusFilter} onValueChange={handleStatusFilter}>
+    62→   562→                <SelectTrigger className="w-full sm:w-48">
+    63→   563→                  <SelectValue placeholder="Filter status" />
+    64→   564→                </SelectTrigger>
+    65→   565→                <SelectContent>
+    66→   566→                  <SelectItem value="ALL">All Statuses</SelectItem>
+    67→   567→                  <SelectItem value="ASSIGNED">Assigned</SelectItem>
+    68→   568→                  <SelectItem value="PICKED_UP">Picked Up</SelectItem>
+    69→   569→                  <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
+    70→   570→                  <SelectItem value="NEAR_LOCATION">Near Location</SelectItem>
+    71→   571→                  <SelectItem value="DELIVERED">Delivered</SelectItem>
+    72→   572→                  <SelectItem value="FAILED">Failed</SelectItem>
+    73→   573→                </SelectContent>
+    74→   574→              </Select>
+    75→   575→            </div>
+    76→   576→          </div>
+    77→   577→
+    78→   578→          {/* Deliveries Table */}
+    79→   579→          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    80→   580→            {deliveriesQuery.isLoading ? (
+    81→   581→              <div className="p-6 space-y-4">
+    82→   582→                {Array.from({ length: 5 }).map((_, i) => (
+    83→   583→                  <Skeleton key={i} className="h-12 w-full" />
+    84→   584→                ))}
+    85→   585→              </div>
+    86→   586→            ) : deliveries.length === 0 ? (
+    87→   587→              <div className="p-12 text-center">
+    88→   588→                <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+    89→   589→                <p className="text-gray-500 text-sm">No deliveries found</p>
+    90→   590→              </div>
+    91→   591→            ) : (
+    92→   592→              <div className="overflow-x-auto">
+    93→   593→                <div className="max-h-[480px] overflow-y-auto">
+    94→   594→                  <Table>
+    95→   595→                    <TableHeader className="sticky top-0 bg-white z-10">
+    96→   596→                      <TableRow>
+    97→   597→                        <TableHead className="text-xs uppercase tracking-wider">Order #</TableHead>
+    98→   598→                        <TableHead className="text-xs uppercase tracking-wider">Customer</TableHead>
+    99→   599→                        <TableHead className="text-xs uppercase tracking-wider">Driver</TableHead>
+   100→   600→                        <TableHead className="text-xs uppercase tracking-wider">Status</TableHead>
+   101→   601→                        <TableHead className="text-xs uppercase tracking-wider text-right">Amount</TableHead>
+   102→   602→                        <TableHead className="text-xs uppercase tracking-wider">Pickup OTP</TableHead>
+   103→   603→                        <TableHead className="text-xs uppercase tracking-wider">Delivery OTP</TableHead>
+   104→   604→                        <TableHead className="text-xs uppercase tracking-wider">Date</TableHead>
+   105→   605→                        <TableHead className="text-xs uppercase tracking-wider text-right">Actions</TableHead>
+   106→   606→                      </TableRow>
+   107→   607→                    </TableHeader>
+   108→   608→                    <TableBody className="divide-y divide-gray-50">
+   109→   609→                      {deliveries.map((d) => (
+   110→   610→                        <TableRow key={d.id} className="hover:bg-gray-50 transition">
+   111→   611→                          <TableCell className="font-medium text-slate-900 text-sm">{d.order.orderNumber}</TableCell>
+   112→   612→                          <TableCell className="text-sm text-slate-600">{d.order.buyerName}</TableCell>
+   113→   613→                          <TableCell className="text-sm text-slate-600">{d.deliveryPerson?.name || <span className="text-gray-400">Unassigned</span>}</TableCell>
+   114→   614→                          <TableCell>
+   115→   615→                            <Badge variant="secondary" className={`text-[10px] font-semibold ${deliveryStatusColors[d.status] || 'bg-gray-100 text-gray-700'}`}>
+   116→   616→                              {deliveryStatusLabels[d.status] || d.status}
+   117→   617→                            </Badge>
+   118→   618→                          </TableCell>
+   119→   619→                          <TableCell className="text-right text-sm font-medium text-slate-900">{formatKES(d.order.totalAmount)}</TableCell>
+   120→   620→                          <TableCell>
+   121→   621→                            {d.pickupOtp ? (
+   122→   622→                              <button
+   123→   623→                                onClick={() => handleCopyOtp(d.pickupOtp!)}
+   124→   624→                                className="flex items-center gap-1 text-sm font-mono font-semibold text-slate-700 hover:text-amber-600 transition"
+   125→   625→                                aria-label="Copy pickup OTP"
+   126→   626→                              >
+   127→   627→                                <ShieldCheck className="h-3.5 w-3.5" />
+   128→   628→                                {d.pickupOtp}
+   129→   629→                                <Copy className="h-3 w-3 text-gray-400" />
+   130→   630→                              </button>
+   131→   631→                            ) : (
+   132→   632→                              <span className="text-gray-400 text-xs">—</span>
+   133→   633→                            )}
+   134→   634→                          </TableCell>
+   135→   635→                          <TableCell>
+   136→   636→                            {d.deliveryOtp ? (
+   137→   637→                              <button
+   138→   638→                                onClick={() => handleCopyOtp(d.deliveryOtp!)}
+   139→   639→                                className="flex items-center gap-1 text-sm font-mono font-semibold text-slate-700 hover:text-amber-600 transition"
+   140→   640→                                aria-label="Copy delivery OTP"
+   141→   641→                              >
+   142→   642→                                <ShieldCheck className="h-3.5 w-3.5" />
+   143→   643→                                {d.deliveryOtp}
+   144→   644→                                <Copy className="h-3 w-3 text-gray-400" />
+   145→   645→                              </button>
+   146→   646→                            ) : (
+   147→   647→                              <span className="text-gray-400 text-xs">—</span>
+   148→   648→                            )}
+   149→   649→                          </TableCell>
+   150→   650→                          <TableCell className="text-sm text-slate-500">
+   151→   651→                            {format(new Date(d.createdAt), 'MMM dd, yyyy')}
+   152→   652→                          </TableCell>
+   153→   653→                          <TableCell className="text-right">
+   154→   654→                            <div className="flex items-center justify-end gap-1">
+   155→   655→                              <Button
+   156→   656→                                variant="ghost"
+   157→   657→                                size="sm"
+   158→   658→                                className="text-slate-600 hover:text-amber-600"
+   159→   659→                                onClick={() => handleOpenDetail(d.id)}
+   160→   660→                                aria-label="View details"
+   161→   661→                              >
+   162→   662→                                <Eye className="h-4 w-4" />
+   163→   663→                              </Button>
+   164→   664→                              {d.status !== 'DELIVERED' && d.status !== 'FAILED' && (
+   165→   665→                                <Button
+   166→   666→                                  variant="ghost"
+   167→   667→                                  size="sm"
+   168→   668→                                  className="text-slate-600 hover:text-blue-600"
+   169→   669→                                  onClick={() => {
+   170→   670→                                    setReassignDialogId(d.id);
+   171→   671→                                    setSelectedDriverId('');
+   172→   672→                                  }}
+   173→   673→                                  aria-label="Reassign driver"
+   174→   674→                                >
+   175→   675→                                  <UserCheck className="h-4 w-4" />
+   176→   676→                                </Button>
+   177→   677→                              )}
+   178→   678→                            </div>
+   179→   679→                          </TableCell>
+   180→   680→                        </TableRow>
+   181→   681→                      ))}
+   182→   682→                    </TableBody>
+   183→   683→                  </Table>
+   184→   684→                </div>
+   185→   685→              </div>
+   186→   686→            )}
+   187→   687→
+   188→   688→            {/* Pagination */}
+   189→   689→            {totalPages > 1 && (
+   190→   690→              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+   191→   691→                <p className="text-sm text-slate-500">
+   192→   692→                  Showing {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, total)} of {total}
+   193→   693→                </p>
+   194→   694→                <div className="flex items-center gap-1">
+   195→   695→                  <Button
+   196→   696→                    variant="outline"
+   197→   697→                    size="sm"
+   198→   698→                    disabled={currentPage <= 1}
+   199→   699→                    onClick={() => setCurrentPage(p => p - 1)}
+   200→   700→                  >
+   201→   701→                    <ChevronLeft className="h-4 w-4" />
+   202→   702→                  </Button>
+   203→   703→                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+   204→   704→                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+   205→   705→                    .map((p, i, arr) => (
+   206→   706→                      <React.Fragment key={p}>
+   207→   707→                        {i > 0 && arr[i - 1] !== p - 1 && (
+   208→   708→                          <span className="px-1 text-slate-400">...</span>
+   209→   709→                        )}
+   210→   710→                        <Button
+   211→   711→                          variant={currentPage === p ? 'default' : 'outline'}
+   212→   712→                          size="sm"
+   213→   713→                          className={currentPage === p ? 'bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A]' : ''}
+   214→   714→                          onClick={() => setCurrentPage(p)}
+   215→   715→                        >
+   216→   716→                          {p}
+   217→   717→                        </Button>
+   218→   718→                      </React.Fragment>
+   219→   719→                    ))}
+   220→   720→                  <Button
+   221→   721→                    variant="outline"
+   222→   722→                    size="sm"
+   223→   723→                    disabled={currentPage >= totalPages}
+   224→   724→                    onClick={() => setCurrentPage(p => p + 1)}
+   225→   725→                  >
+   226→   726→                    <ChevronRight className="h-4 w-4" />
+   227→   727→                  </Button>
+   228→   728→                </div>
+   229→   729→              </div>
+   230→   730→            )}
+   231→   731→          </div>
+   232→   732→        </div>
+   233→   733→      </main>
+   234→   734→
+   235→   735→      {/* ===================== DELIVERY DETAIL DIALOG ===================== */}
+   236→   736→      <Dialog open={!!selectedDeliveryId} onOpenChange={(open) => { if (!open) setSelectedDeliveryId(null); }}>
+   237→   737→        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+   238→   738→          {detailQuery.isLoading ? (
+   239→   739→            <div className="py-8 space-y-4">
+   240→   740→              <Skeleton className="h-6 w-48" />
+   241→   741→              <Skeleton className="h-4 w-full" />
+   242→   742→              <Skeleton className="h-4 w-full" />
+   243→   743→              <Skeleton className="h-20 w-full" />
+   244→   744→            </div>
+   245→   745→          ) : deliveryDetail ? (
+   246→   746→            <>
+   247→   747→              <DialogHeader>
+   248→   748→                <DialogTitle className="flex items-center gap-2">
+   249→   749→                  <Truck className="h-5 w-5 text-amber-500" />
+   250→   750→                  Delivery Details
+   251→   751→                </DialogTitle>
+   252→   752→                <DialogDescription>
+   253→   753→                  {deliveryDetail.order.orderNumber} — {deliveryStatusLabels[deliveryDetail.status] || deliveryDetail.status}
+   254→   754→                </DialogDescription>
+   255→   755→              </DialogHeader>
+   256→   756→
+   257→   757→              <div className="space-y-6 mt-4">
+   258→   758→                {/* Status Stepper */}
+   259→   759→                {deliveryDetail.status !== 'FAILED' && (
+   260→   760→                  <div className="bg-gray-50 rounded-lg p-4">
+   261→   761→                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Delivery Progress</p>
+   262→   762→                    <StatusStepper current={deliveryDetail.status as DeliveryStep} />
+   263→   763→                  </div>
+   264→   764→                )}
+   265→   765→
+   266→   766→                {/* OTP Display */}
+   267→   767→                <div className="grid grid-cols-2 gap-3">
+   268→   768→                  <div className="bg-amber-50 rounded-lg p-3 text-center">
+   269→   769→                    <p className="text-xs font-medium text-amber-700 uppercase tracking-wider mb-1">Pickup OTP</p>
+   270→   770→                    <p className="text-2xl font-mono font-bold text-amber-800 tracking-widest">{deliveryDetail.pickupOtp || '—'}</p>
+   271→   771→                  </div>
+   272→   772→                  <div className="bg-emerald-50 rounded-lg p-3 text-center">
+   273→   773→                    <p className="text-xs font-medium text-emerald-700 uppercase tracking-wider mb-1">Delivery OTP</p>
+   274→   774→                    <p className="text-2xl font-mono font-bold text-emerald-800 tracking-widest">{deliveryDetail.deliveryOtp || '—'}</p>
+   275→   775→                  </div>
+   276→   776→                </div>
+   277→   777→
+   278→   778→                {/* Order Info */}
+   279→   779→                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+   280→   780→                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Order Information</p>
+   281→   781→                  <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+   282→   782→                    <div>
+   283→   783→                      <span className="text-slate-500">Order:</span>
+   284→   784→                      <span className="ml-2 font-medium text-slate-900">{deliveryDetail.order.orderNumber}</span>
+   285→   785→                    </div>
+   286→   786→                    <div>
+   287→   787→                      <span className="text-slate-500">Amount:</span>
+   288→   788→                      <span className="ml-2 font-medium text-slate-900">{formatKES(deliveryDetail.order.totalAmount)}</span>
+   289→   789→                    </div>
+   290→   790→                    <div>
+   291→   791→                      <span className="text-slate-500">Delivery Fee:</span>
+   292→   792→                      <span className="ml-2 font-medium text-slate-900">{formatKES(deliveryDetail.order.deliveryFee)}</span>
+   293→   793→                    </div>
+   294→   794→                    <div>
+   295→   795→                      <span className="text-slate-500">Payment:</span>
+   296→   796→                      <Badge variant="secondary" className="ml-2 text-[10px] font-semibold bg-emerald-100 text-emerald-700">{deliveryDetail.order.paymentStatus}</Badge>
+   297→   797→                    </div>
+   298→   798→                    <div className="col-span-2">
+   299→   799→                      <span className="text-slate-500">Shipping Address:</span>
+   300→   800→                      <span className="ml-2 text-slate-700">{deliveryDetail.order.shippingAddress}</span>
+   301→   801→                    </div>
+   302→   802→                  </div>
+   303→   803→
+   304→   804→                  {/* Order Items */}
+   305→   805→                  {deliveryDetail.order.orderItems.length > 0 && (
+   306→   806→                    <div className="mt-3 pt-3 border-t border-gray-200">
+   307→   807→                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Items</p>
+   308→   808→                      <div className="space-y-2">
+   309→   809→                        {deliveryDetail.order.orderItems.map((item) => (
+   310→   810→                          <div key={item.id} className="flex items-center gap-3 text-sm">
+   311→   811→                            {item.product?.image && (
+   312→   812→                              <img src={item.product.image} alt={item.product?.name} className="h-8 w-8 rounded object-cover" />
+   313→   813→                            )}
+   314→   814→                            <span className="text-slate-700 flex-1 truncate">{item.product?.name || 'Unknown Product'}</span>
+   315→   815→                            <span className="text-slate-500">x{item.quantity}</span>
+   316→   816→                            <span className="font-medium text-slate-900">{formatKES(item.price)}</span>
+   317→   817→                          </div>
+   318→   818→                        ))}
+   319→   819→                      </div>
+   320→   820→                    </div>
+   321→   821→                  )}
+   322→   822→                </div>
+   323→   823→
+   324→   824→                {/* Driver Info */}
+   325→   825→                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+   326→   826→                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Driver Information</p>
+   327→   827→                  {deliveryDetail.deliveryPerson ? (
+   328→   828→                    <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+   329→   829→                      <div>
+   330→   830→                        <span className="text-slate-500">Name:</span>
+   331→   831→                        <span className="ml-2 font-medium text-slate-900">{deliveryDetail.deliveryPerson.name}</span>
+   332→   832→                      </div>
+   333→   833→                      <div>
+   334→   834→                        <span className="text-slate-500">Email:</span>
+   335→   835→                        <span className="ml-2 text-slate-700">{deliveryDetail.deliveryPerson.email}</span>
+   336→   836→                      </div>
+   337→   837→                      {deliveryDetail.deliveryPerson.phone && (
+   338→   838→                        <div>
+   339→   839→                          <span className="text-slate-500">Phone:</span>
+   340→   840→                          <span className="ml-2 text-slate-700">{deliveryDetail.deliveryPerson.phone}</span>
+   341→   841→                        </div>
+   342→   842→                      )}
+   343→   843→                    </div>
+   344→   844→                  ) : (
+   345→   845→                    <p className="text-sm text-slate-400">No driver assigned</p>
+   346→   846→                  )}
+   347→   847→                </div>
+   348→   848→
+   349→   849→                {/* Buyer Info */}
+   350→   850→                {deliveryDetail.order.buyer && (
+   351→   851→                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+   352→   852→                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Customer Information</p>
+   353→   853→                    <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+   354→   854→                      <div>
+   355→   855→                        <span className="text-slate-500">Name:</span>
+   356→   856→                        <span className="ml-2 font-medium text-slate-900">{deliveryDetail.order.buyer.name}</span>
+   357→   857→                      </div>
+   358→   858→                      <div>
+   359→   859→                        <span className="text-slate-500">Email:</span>
+   360→   860→                        <span className="ml-2 text-slate-700">{deliveryDetail.order.buyer.email}</span>
+   361→   861→                      </div>
+   362→   862→                      {deliveryDetail.order.buyer.phone && (
+   363→   863→                        <div>
+   364→   864→                          <span className="text-slate-500">Phone:</span>
+   365→   865→                          <span className="ml-2 text-slate-700">{deliveryDetail.order.buyer.phone}</span>
+   366→   866→                        </div>
+   367→   867→                      )}
+   368→   868→                    </div>
+   369→   869→                  </div>
+   370→   870→                )}
+   371→   871→
+   372→   872→                {/* Admin Notes */}
+   373→   873→                <div className="space-y-2">
+   374→   874→                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Admin Notes</p>
+   375→   875→                  <Textarea
+   376→   876→                    placeholder="Add internal notes about this delivery..."
+   377→   877→                    value={adminNotes || deliveryDetail.notes || ''}
+   378→   878→                    onChange={(e) => setAdminNotes(e.target.value)}
+   379→   879→                    rows={3}
+   380→   880→                  />
+   381→   881→                  <Button
+   382→   882→                    size="sm"
+   383→   883→                    variant="outline"
+   384→   884→                    onClick={handleSaveNotes}
+   385→   885→                    disabled={updateStatusMutation.isPending}
+   386→   886→                  >
+   387→   887→                    {updateStatusMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+   388→   888→                    Save Notes
+   389→   889→                  </Button>
+   390→   890→                </div>
+   391→   891→
+   392→   892→                {/* Status Override */}
+   393→   893→                <div className="space-y-2 pt-2 border-t border-gray-200">
+   394→   894→                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Admin Status Override</p>
+   395→   895→                  <div className="flex gap-2">
+   396→   896→                    <Select value={overrideStatus} onValueChange={setOverrideStatus}>
+   397→   897→                      <SelectTrigger className="flex-1">
+   398→   898→                        <SelectValue placeholder="Select new status" />
+   399→   899→                      </SelectTrigger>
+   400→   900→                      <SelectContent>
+   401→   901→                        <SelectItem value="ASSIGNED">Assigned</SelectItem>
+   402→   902→                        <SelectItem value="PICKED_UP">Picked Up</SelectItem>
+   403→   903→                        <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
+   404→   904→                        <SelectItem value="NEAR_LOCATION">Near Location</SelectItem>
+   405→   905→                        <SelectItem value="DELIVERED">Delivered</SelectItem>
+   406→   906→                        <SelectItem value="FAILED">Failed</SelectItem>
+   407→   907→                      </SelectContent>
+   408→   908→                    </Select>
+   409→   909→                    <Button
+   410→   910→                      size="sm"
+   411→   911→                      className="bg-amber-500 hover:bg-amber-600 text-white"
+   412→   912→                      onClick={handleOverrideStatus}
+   413→   913→                      disabled={!overrideStatus || updateStatusMutation.isPending}
+   414→   914→                    >
+   415→   915→                      {updateStatusMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+   416→   916→                      Override
+   417→   917→                    </Button>
+   418→   918→                  </div>
+   419→   919→                </div>
+   420→   920→
+   421→   921→                {/* Meta Info */}
+   422→   922→                <div className="text-xs text-slate-400 space-y-1 pt-2 border-t border-gray-100">
+   423→   923→                  <p>Created: {format(new Date(deliveryDetail.createdAt), 'MMM dd, yyyy HH:mm')}</p>
+   424→   924→                  {deliveryDetail.deliveredAt && <p>Delivered: {format(new Date(deliveryDetail.deliveredAt), 'MMM dd, yyyy HH:mm')}</p>}
+   425→   925→                </div>
+   426→   926→              </div>
+   427→   927→            </>
+   428→   928→          ) : null}
+   429→   929→        </DialogContent>
+   430→   930→      </Dialog>
+   431→   931→
+   432→   932→      {/* ===================== REASSIGN DIALOG ===================== */}
+   433→   933→      <Dialog open={!!reassignDialogId} onOpenChange={(open) => { if (!open) setReassignDialogId(null); }}>
+   434→   934→        <DialogContent className="sm:max-w-md">
+   435→   935→          <DialogHeader>
+   436→   936→            <DialogTitle className="flex items-center gap-2">
+   437→   937→              <UserCheck className="h-5 w-5 text-amber-500" />
+   438→   938→              Reassign Delivery
+   439→   939→            </DialogTitle>
+   440→   940→            <DialogDescription>
+   441→   941→              Select a new driver to handle this delivery.
+   442→   942→            </DialogDescription>
+   443→   943→          </DialogHeader>
+   444→   944→          <div className="py-4 space-y-4">
+   445→   945→            <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+   446→   946→              <SelectTrigger>
+   447→   947→                <SelectValue placeholder="Select a driver..." />
+   448→   948→              </SelectTrigger>
+   449→   949→              <SelectContent>
+   450→   950→                {driversQuery.data?.users?.map((driver) => (
+   451→   951→                  <SelectItem key={driver.id} value={driver.id}>
+   452→   952→                    {driver.name} {driver.phone ? `(${driver.phone})` : ''}
+   453→   953→                  </SelectItem>
+   454→   954→                ))}
+   455→   955→              </SelectContent>
+   456→   956→            </Select>
+   457→   957→            <Button
+   458→   958→              className="w-full bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold"
+   459→   959→              onClick={handleReassign}
+   460→   960→              disabled={!selectedDriverId || reassignMutation.isPending}
+   461→   961→            >
+   462→   962→              {reassignMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+   463→   963→              Reassign Delivery
+   464→   964→            </Button>
+   465→   965→          </div>
+   466→   966→        </DialogContent>
+   467→   967→      </Dialog>
+   468→   968→
+   469→   969→      {/* ===================== AUTO-ASSIGN DIALOG ===================== */}
+   470→   970→      <Dialog open={autoAssignDialogOpen} onOpenChange={setAutoAssignDialogOpen}>
+   471→   971→        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+   472→   972→          <DialogHeader>
+   473→   973→            <DialogTitle className="flex items-center gap-2">
+   474→   974→              <Zap className="h-5 w-5 text-amber-500" />
+   475→   975→              Auto-Assign Pending Orders
+   476→   976→            </DialogTitle>
+   477→   977→            <DialogDescription>
+   478→   978→              Orders that are ready for delivery (PROCESSING or SHIPPED) without an assigned delivery.
+   479→   979→            </DialogDescription>
+   480→   980→          </DialogHeader>
+   481→   981→          <div className="py-4">
+   482→   982→            {pendingOrdersQuery.isLoading ? (
+   483→   983→              <div className="space-y-3">
+   484→   984→                {Array.from({ length: 3 }).map((_, i) => (
+   485→   985→                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+   486→   986→                ))}
+   487→   987→              </div>
+   488→   988→            ) : pendingOrders.length === 0 ? (
+   489→   989→              <div className="text-center py-8">
+   490→   990→                <CheckCircle2 className="h-12 w-12 text-emerald-300 mx-auto mb-3" />
+   491→   991→                <p className="text-sm text-slate-500">No orders pending delivery assignment</p>
+   492→   992→              </div>
+   493→   993→            ) : (
+   494→   994→              <div className="space-y-3 max-h-96 overflow-y-auto">
+   495→   995→                {pendingOrders.map((order) => (
+   496→   996→                  <div key={order.id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between gap-4">
+   497→   997→                    <div className="min-w-0 flex-1">
+   498→   998→                      <p className="text-sm font-semibold text-slate-900">{order.orderNumber}</p>
+   499→   999→                      <p className="text-xs text-slate-500 truncate">{order.buyer?.name} — {order.shippingAddress}</p>
+   500→  1000→                      <p className="text-sm font-medium text-amber-600 mt-1">{formatKES(order.totalAmount)}</p>
+   501→  1001→                    </div>
+   502→  1002→                    <Button
+   503→  1003→                      size="sm"
+   504→  1004→                      className="shrink-0 bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold"
+   505→  1005→                      disabled={assignMutation.isPending}
+   506→  1006→                      onClick={() => assignMutation.mutate(order.id)}
+   507→  1007→                    >
+   508→  1008→                      {assignMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+   509→  1009→                      Assign
+   510→  1010→                    </Button>
+   511→  1011→                  </div>
+   512→  1012→                ))}
+   513→  1013→              </div>
+   514→  1014→            )}
+   515→  1015→          </div>
+   516→  1016→        </DialogContent>
+   517→  1017→      </Dialog>
+   518→  1018→    </div>
+   519→  1019→  );
+   520→  1020→}
+   521→  1021→

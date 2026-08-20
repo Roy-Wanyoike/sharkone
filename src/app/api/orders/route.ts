@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { audit } from '@/lib/audit';
 
 export async function POST(request: Request) {
   try {
@@ -76,6 +77,8 @@ export async function POST(request: Request) {
         },
       });
     }
+
+    audit({ userId: buyer.id, role: 'BUYER', action: 'CREATE_ORDER', resource: 'order', resourceId: order.id, details: `Order ${order.orderNumber}, total: ${totalAmount}`, req: request });
 
     return NextResponse.json(order, { status: 201 });
   } catch (error) {

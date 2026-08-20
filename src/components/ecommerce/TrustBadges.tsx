@@ -7,7 +7,7 @@ const badges = [
   {
     icon: <Truck className="h-6 w-6" />,
     title: 'Free Shipping',
-    description: 'On orders over $50',
+    description: 'On orders over KSh 5,000',
   },
   {
     icon: <Shield className="h-6 w-6" />,

@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { TrendingUp, ShoppingBag, Star, StarHalf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart-store';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
 
@@ -32,6 +34,7 @@ export function TrendingProducts({
 }) {
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
+  const currencyCode = useCurrencyStore(s => s.code);
 
   const { data: products = [] } = useQuery({
     queryKey: ['trending-products'],
@@ -98,10 +101,10 @@ export function TrendingProducts({
                 </div>
                 <div className="flex items-center justify-between mt-3">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-bold text-gray-900">${product.price.toFixed(2)}</span>
+                    <span className="text-lg font-bold text-gray-900">{formatCurrency(product.price, currencyCode)}</span>
                     {product.originalPrice && (
                       <span className="text-xs text-gray-400 line-through">
-                        ${product.originalPrice.toFixed(2)}
+                        {formatCurrency(product.originalPrice, currencyCode)}
                       </span>
                     )}
                   </div>
@@ -114,7 +117,7 @@ export function TrendingProducts({
                       addItem(product);
                       toast.success(`${product.name} added to cart`, {
                         icon: <ShoppingBag className="h-4 w-4" />,
-                        description: `$${product.price.toFixed(2)}`,
+                        description: formatCurrency(product.price, currencyCode),
                         action: { label: 'View Cart', onClick: openCart },
                       });
                     }}

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.order = {
-        orderNumber: { contains: search, mode: 'insensitive' },
+        orderNumber: { contains: search },
       };
     }
 

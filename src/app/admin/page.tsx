@@ -237,7 +237,14 @@ interface WarehouseDetail extends AdminWarehouse {
 }
 
 // ===================== NAV ITEMS =====================
-const navItems = [
+interface NavItem {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  href?: string;
+}
+
+const navItems: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'products', label: 'Products', icon: Package },
   { key: 'orders', label: 'Orders', icon: ShoppingBag },
@@ -377,9 +384,9 @@ function Sidebar({
                     : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }
                 `;
-            if ('href' in item) {
+            if ('href' in item && item.href) {
               return (
-                <Link key={item.key} href={item.href} className={navClassName}>
+                <Link key={item.key} href={item.href as string} className={navClassName}>
                   <Icon className="h-5 w-5" />
                   {item.label}
                 </Link>

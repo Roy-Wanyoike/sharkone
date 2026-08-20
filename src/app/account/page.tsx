@@ -50,11 +50,10 @@ import {
 import { toast } from 'sonner';
 import { Footer } from '@/components/ecommerce/Footer';
 import { useCartStore } from '@/store/cart-store';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 
 const queryClient = new QueryClient();
-
-const formatKES = (amount: number) =>
-  new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 }).format(amount);
 
 const KENYAN_COUNTIES = [
   'Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Uasin Gishu',
@@ -218,6 +217,7 @@ function AccountPageContent() {
   const searchParams = useSearchParams();
   const idParam = searchParams.get('id');
   const queryClientQC = useQueryClient();
+  const currencyCode = useCurrencyStore((s) => s.code);
 
   // Fetch buyer user
   const usersQuery = useQuery<{ users: BuyerUser[] }>({
@@ -418,7 +418,7 @@ function AccountPageContent() {
 
   const statCards = [
     { label: 'Total Orders', value: stats?.totalOrders?.toString() ?? '—', icon: <Package className="h-5 w-5" />, color: 'bg-amber-50 text-amber-700' },
-    { label: 'Total Spent', value: stats ? formatKES(stats.totalSpent) : '—', icon: <DollarSign className="h-5 w-5" />, color: 'bg-emerald-50 text-emerald-700' },
+    { label: 'Total Spent', value: stats ? formatCurrency(stats.totalSpent, currencyCode) : '—', icon: <DollarSign className="h-5 w-5" />, color: 'bg-emerald-50 text-emerald-700' },
     { label: 'Pending Orders', value: stats?.pendingOrders?.toString() ?? '—', icon: <Clock className="h-5 w-5" />, color: 'bg-yellow-50 text-yellow-700' },
     { label: 'Active Deliveries', value: stats?.activeDeliveries?.toString() ?? '—', icon: <Truck className="h-5 w-5" />, color: 'bg-gray-100 text-gray-700' },
   ];
@@ -555,7 +555,7 @@ function AccountPageContent() {
                           <tr key={order.id} className="hover:bg-gray-50 transition">
                             <td className="px-6 py-3 font-medium text-gray-900">{order.orderNumber}</td>
                             <td className="px-6 py-3 text-gray-600">{order.itemCount} item{order.itemCount !== 1 ? 's' : ''}</td>
-                            <td className="px-6 py-3 font-semibold text-gray-900">{formatKES(order.totalAmount)}</td>
+                            <td className="px-6 py-3 font-semibold text-gray-900">{formatCurrency(order.totalAmount, currencyCode)}</td>
                             <td className="px-6 py-3">
                               <Badge variant="secondary" className={`text-[10px] font-semibold ${ORDER_STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-700'}`}>
                                 {order.status.replace(/_/g, ' ')}
@@ -630,7 +630,7 @@ function AccountPageContent() {
                               </Badge>
                             </td>
                             <td className={`px-6 py-3 font-semibold ${tx.type === 'REFUND' ? 'text-emerald-600' : 'text-red-600'}`}>
-                              {tx.type === 'REFUND' ? '+' : '-'}{formatKES(tx.amount)}
+                              {tx.type === 'REFUND' ? '+' : '-'}{formatCurrency(tx.amount, currencyCode)}
                             </td>
                             <td className="px-6 py-3">
                               <Badge variant="secondary" className={`text-[10px] font-semibold ${tx.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : tx.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
@@ -955,7 +955,7 @@ function WishlistCard({ productId, onRemove, onAddToCart }: { productId: string;
     queryFn: () => fetch(`/api/products/${productId}`).then((r) => r.json()).then((d) => d.product),
     enabled: !!productId,
   });
-
+  const currencyCode = useCurrencyStore((s) => s.code);
   const inCart = useCartStore((s) => s.items.some((i) => i.product.id === productId));
 
   if (!productData) {
@@ -977,7 +977,7 @@ function WishlistCard({ productId, onRemove, onAddToCart }: { productId: string;
       </Link>
       <Link href={`/product/${productId}`} className="block">
         <p className="text-sm font-medium text-gray-900 truncate">{productData.name}</p>
-        <p className="text-sm font-bold text-gray-900 mt-1">{formatKES(productData.price)}</p>
+        <p className="text-sm font-bold text-gray-900 mt-1">{formatCurrency(productData.price, currencyCode)}</p>
       </Link>
       <div className="flex gap-2 mt-3">
         <Button

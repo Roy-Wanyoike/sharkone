@@ -27,6 +27,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Footer } from '@/components/ecommerce/Footer';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 
 /* ------------------------------------------------------------------ */
 /*  Hydration-safe mounted hook                                        */
@@ -454,6 +456,7 @@ function TrackingStats({ info }: { info: TrackingInfo }) {
 /*  Main Track Content (inside Suspense for useSearchParams)           */
 /* ------------------------------------------------------------------ */
 function TrackContent() {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const mounted = useMounted();
   const searchParams = useSearchParams();
   const prefillOrder = searchParams.get('order') || '';
@@ -762,7 +765,7 @@ function TrackContent() {
                                 </div>
                               </div>
                               <p className="text-sm font-semibold text-[#0F172A]">
-                                KES {item.price.toLocaleString()}
+                                {formatCurrency(item.price, currencyCode)}
                               </p>
                             </div>
                           ))}

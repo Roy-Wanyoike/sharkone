@@ -39,6 +39,8 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useCartStore } from '@/store/cart-store';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 import { Footer } from '@/components/ecommerce/Footer';
 import { CouponInput } from '@/components/ecommerce/CouponInput';
 import { Badge } from '@/components/ui/badge';
@@ -221,6 +223,7 @@ function OrderSummarySidebar({
   onCouponApply: (discount: number, code: string, isFreeShipping: boolean) => void;
   onCouponRemove: () => void;
 }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const platformFee = Math.round(subtotal * 0.02);
   const effectiveDeliveryFee = isFreeShipping ? 0 : deliveryFee;
@@ -246,7 +249,7 @@ function OrderSummarySidebar({
               <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
             </div>
             <p className="text-sm font-semibold text-[#0F172A]">
-              KES {(item.product.price * item.quantity).toLocaleString()}
+              {formatCurrency(item.product.price * item.quantity, currencyCode)}
             </p>
           </div>
         ))}
@@ -255,34 +258,34 @@ function OrderSummarySidebar({
       <div className="space-y-2 text-sm">
         <div className="flex justify-between text-gray-600">
           <span>Subtotal</span>
-          <span>KES {subtotal.toLocaleString()}</span>
+          <span>{formatCurrency(subtotal, currencyCode)}</span>
         </div>
         <div className="flex justify-between text-gray-600">
           <span>Delivery</span>
           <span className={isFreeShipping ? 'line-through text-gray-400' : ''}>
-            KES {deliveryFee.toLocaleString()}
+            {formatCurrency(deliveryFee, currencyCode)}
           </span>
         </div>
         {isFreeShipping && (
           <div className="flex justify-between text-[#F59E0B] font-medium">
             <span>Free Shipping</span>
-            <span>−KES {deliveryFee.toLocaleString()}</span>
+            <span>−{formatCurrency(deliveryFee, currencyCode)}</span>
           </div>
         )}
         <div className="flex justify-between text-gray-600">
           <span>Platform Fee (2%)</span>
-          <span>KES {platformFee.toLocaleString()}</span>
+          <span>{formatCurrency(platformFee, currencyCode)}</span>
         </div>
         {couponDiscount > 0 && (
           <div className="flex justify-between text-green-600 font-medium">
             <span>Coupon Discount ({couponCode})</span>
-            <span>−KES {couponDiscount.toLocaleString()}</span>
+            <span>−{formatCurrency(couponDiscount, currencyCode)}</span>
           </div>
         )}
         <Separator className="!my-3" />
         <div className="flex justify-between font-bold text-[#0F172A]">
           <span>Total</span>
-          <span className="text-base">KES {total.toLocaleString()}</span>
+          <span className="text-base">{formatCurrency(total, currencyCode)}</span>
         </div>
       </div>
       <div className="mt-4">
@@ -744,7 +747,7 @@ function PaymentStep({
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-sm font-medium text-[#0F172A]">SharkWallet Balance</p>
-                              <p className="text-2xl font-bold text-[#F59E0B]">KES 5,200.00</p>
+                              <p className="text-2xl font-bold text-[#F59E0B]">{formatCurrency(5200, currencyCode)}</p>
                             </div>
                             <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
                               <Wallet className="h-5 w-5 text-[#F59E0B]" />
@@ -796,6 +799,7 @@ function ReviewStep({
   onCouponApply: (discount: number, code: string, isFreeShipping: boolean) => void;
   onCouponRemove: () => void;
 }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const platformFee = Math.round(subtotal * 0.02);
   const effectiveDeliveryFee = isFreeShipping ? 0 : deliveryFee;
@@ -844,11 +848,11 @@ function ReviewStep({
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-semibold text-[#0F172A]">
-                      KES {(item.product.price * item.quantity).toLocaleString()}
+                      {formatCurrency(item.product.price * item.quantity, currencyCode)}
                     </p>
                     {item.quantity > 1 && (
                       <p className="text-xs text-gray-400">
-                        KES {item.product.price.toLocaleString()} each
+                        {formatCurrency(item.product.price, currencyCode)} each
                       </p>
                     )}
                   </div>
@@ -893,7 +897,7 @@ function ReviewStep({
                   <p className="text-gray-500 mt-1">Equity Bank · SHARKONE Commerce</p>
                 )}
                 {paymentMethod === 'wallet' && (
-                  <p className="text-gray-500 mt-1">Balance: KES 5,200.00</p>
+                  <p className="text-gray-500 mt-1">Balance: {formatCurrency(5200, currencyCode)}</p>
                 )}
               </div>
             </div>
@@ -907,34 +911,34 @@ function ReviewStep({
             <div className="space-y-3 text-sm">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
-                <span>KES {subtotal.toLocaleString()}</span>
+                <span>{formatCurrency(subtotal, currencyCode)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Delivery Fee</span>
                 <span className={isFreeShipping ? 'line-through text-gray-400' : ''}>
-                  KES {deliveryFee.toLocaleString()}
+                  {formatCurrency(deliveryFee, currencyCode)}
                 </span>
               </div>
               {isFreeShipping && (
                 <div className="flex justify-between text-[#F59E0B] font-medium">
                   <span>Free Shipping</span>
-                  <span>−KES {deliveryFee.toLocaleString()}</span>
+                  <span>−{formatCurrency(deliveryFee, currencyCode)}</span>
                 </div>
               )}
               <div className="flex justify-between text-gray-600">
                 <span>Platform Fee (2%)</span>
-                <span>KES {platformFee.toLocaleString()}</span>
+                <span>{formatCurrency(platformFee, currencyCode)}</span>
               </div>
               {couponDiscount > 0 && (
                 <div className="flex justify-between text-green-600 font-medium">
                   <span>Coupon Discount ({couponCode})</span>
-                  <span>−KES {couponDiscount.toLocaleString()}</span>
+                  <span>−{formatCurrency(couponDiscount, currencyCode)}</span>
                 </div>
               )}
               <Separator className="!my-3" />
               <div className="flex justify-between font-bold text-[#0F172A] text-lg">
                 <span>Total</span>
-                <span>KES {total.toLocaleString()}</span>
+                <span>{formatCurrency(total, currencyCode)}</span>
               </div>
             </div>
 

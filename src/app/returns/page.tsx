@@ -40,6 +40,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -96,11 +98,7 @@ interface ReturnDetail extends ReturnItem {
 
 // ─── Constants ───────────────────────────────────────────
 
-const KES = new Intl.NumberFormat('en-KE', {
-  style: 'currency',
-  currency: 'KES',
-  minimumFractionDigits: 0,
-});
+/* currency formatting handled by formatCurrency from @/lib/currency */
 
 const RETURN_REASONS = [
   'Defective',
@@ -165,6 +163,7 @@ function ReturnDetailDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const { data: returnDetail, isLoading } = useQuery<ReturnDetail>({
     queryKey: ['return-detail', returnId],
     queryFn: async () => {
@@ -211,7 +210,7 @@ function ReturnDetailDialog({
               <div className="flex-1">
                 <p className="font-semibold text-[#0F172A]">{returnDetail.productName}</p>
                 <p className="text-sm text-muted-foreground">Seller: {returnDetail.sellerName}</p>
-                <p className="text-lg font-bold text-amber-600 mt-1">{KES.format(returnDetail.refundAmount)}</p>
+                <p className="text-lg font-bold text-amber-600 mt-1">{formatCurrency(returnDetail.refundAmount, currencyCode)}</p>
               </div>
             </div>
 
@@ -277,6 +276,7 @@ function NewReturnDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const queryClient = useQueryClient();
   const [selectedOrderId, setSelectedOrderId] = useState<string>('');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
@@ -379,7 +379,7 @@ function NewReturnDialog({
                 <SelectContent className="max-h-48 overflow-y-auto">
                   {orders.map((order) => (
                     <SelectItem key={order.id} value={order.id}>
-                      {order.orderNumber} — {KES.format(order.totalAmount)}
+                      {order.orderNumber} — {formatCurrency(order.totalAmount, currencyCode)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -409,7 +409,7 @@ function NewReturnDialog({
                           className="h-6 w-6 rounded object-cover"
                         />
                         <span>{item.productName}</span>
-                        <span className="text-muted-foreground ml-auto">{KES.format(item.price * item.quantity)}</span>
+                        <span className="text-muted-foreground ml-auto">{formatCurrency(item.price * item.quantity, currencyCode)}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -454,9 +454,10 @@ function NewReturnDialog({
             >
               <p className="text-muted-foreground">Estimated Refund</p>
               <p className="text-lg font-bold text-amber-700">
-                {KES.format(
+                {formatCurrency(
                   (orderItems.find((i) => i.id === selectedItemId)?.price || 0) *
-                  (orderItems.find((i) => i.id === selectedItemId)?.quantity || 1)
+                  (orderItems.find((i) => i.id === selectedItemId)?.quantity || 1),
+                  currencyCode
                 )}
               </p>
             </motion.div>
@@ -482,6 +483,7 @@ function NewReturnDialog({
 // ─── Main Page ───────────────────────────────────────────
 
 function ReturnsContent() {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [detailReturnId, setDetailReturnId] = useState<string | null>(null);
   const [newReturnOpen, setNewReturnOpen] = useState(false);
@@ -673,7 +675,7 @@ function ReturnsContent() {
                           <div className="flex items-center justify-between pt-1">
                             <div className="flex items-center gap-3">
                               <span className="text-lg font-bold text-[#0F172A]">
-                                {KES.format(item.refundAmount)}
+                                {formatCurrency(item.refundAmount, currencyCode)}
                               </span>
                               <RefundStatusBadge status={item.refundStatus} />
                             </div>

@@ -1,0 +1,2002 @@
+     1→'use client';
+     2→
+     3→import React, { useState, useEffect, useCallback } from 'react';
+     4→import Link from 'next/link';
+     5→import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+     6→import { motion, AnimatePresence } from 'framer-motion';
+     7→import {
+     8→  LayoutDashboard,
+     9→  Package,
+    10→  ShoppingBag,
+    11→  Store,
+    12→  Users,
+    13→  DollarSign,
+    14→  TrendingUp,
+    15→  Truck,
+    16→  Plus,
+    17→  Search,
+    18→  Edit,
+    19→  Archive,
+    20→  ArrowLeft,
+    21→  ArrowUp,
+    22→  ArrowDown,
+    23→  ShieldCheck,
+    24→  Eye,
+    25→  ChevronDown,
+    26→  Loader2,
+    27→  Star,
+    28→  RefreshCw,
+    29→  Menu,
+    30→  X,
+    31→  Warehouse,
+    32→  AlertTriangle,
+    33→  MapPin,
+    34→  User,
+    35→  Phone,
+    36→  BarChart3,
+    37→  Image as ImageIcon,
+    38→  MousePointerClick,
+    39→  ExternalLink,
+    40→  Trash2,
+    41→} from 'lucide-react';
+    42→
+    43→import { Button } from '@/components/ui/button';
+    44→import { Input } from '@/components/ui/input';
+    45→import { Label } from '@/components/ui/label';
+    46→import { Textarea } from '@/components/ui/textarea';
+    47→import { Badge } from '@/components/ui/badge';
+    48→import { Switch } from '@/components/ui/switch';
+    49→import { Skeleton } from '@/components/ui/skeleton';
+    50→import { Separator } from '@/components/ui/separator';
+    51→import { Progress } from '@/components/ui/progress';
+    52→import {
+    53→  Table,
+    54→  TableBody,
+    55→  TableCell,
+    56→  TableHead,
+    57→  TableHeader,
+    58→  TableRow,
+    59→} from '@/components/ui/table';
+    60→import {
+    61→  Dialog,
+    62→  DialogContent,
+    63→  DialogDescription,
+    64→  DialogFooter,
+    65→  DialogHeader,
+    66→  DialogTitle,
+    67→} from '@/components/ui/dialog';
+    68→import {
+    69→  Select,
+    70→  SelectContent,
+    71→  SelectItem,
+    72→  SelectTrigger,
+    73→  SelectValue,
+    74→} from '@/components/ui/select';
+    75→import { toast } from 'sonner';
+    76→
+    77→// ===================== TYPES =====================
+    78→interface Stats {
+    79→  totalUsers: number;
+    80→  totalSellers: number;
+    81→  totalProducts: number;
+    82→  totalOrders: number;
+    83→  totalRevenue: number;
+    84→  activeDeliveries: number;
+    85→}
+    86→
+    87→interface AnalyticsOverview {
+    88→  totalRevenue: number;
+    89→  totalOrders: number;
+    90→  averageOrderValue: number;
+    91→  totalCustomers: number;
+    92→  totalProducts: number;
+    93→  totalSellers: number;
+    94→  thisMonthRevenue: number;
+    95→  lastMonthRevenue: number;
+    96→  revenueChangePercent: number;
+    97→  thisMonthOrders: number;
+    98→  lastMonthOrders: number;
+    99→  ordersChangePercent: number;
+   100→  topProducts: {
+   101→    productId: string;
+   102→    name: string;
+   103→    image: string;
+   104→    totalSold: number;
+   105→    revenue: number;
+   106→  }[];
+   107→  orderStatusDistribution: { status: string; count: number }[];
+   108→  paymentStatusDistribution: { status: string; count: number }[];
+   109→  dailyRevenue: { date: string; revenue: number; orders: number }[];
+   110→}
+   111→
+   112→interface AdminOrder {
+   113→  id: string;
+   114→  orderNumber: string;
+   115→  status: string;
+   116→  totalAmount: number;
+   117→  platformFee: number;
+   118→  deliveryFee: number;
+   119→  paymentStatus: string;
+   120→  paidAt: string | null;
+   121→  createdAt: string;
+   122→  buyer: { id: string; name: string; email: string };
+   123→  itemCount: number;
+   124→  delivery: { status: string; deliveryPerson: { name: string } | null } | null;
+   125→}
+   126→
+   127→interface AdminProduct {
+   128→  id: string;
+   129→  name: string;
+   130→  slug: string;
+   131→  description: string;
+   132→  price: number;
+   133→  originalPrice: number | null;
+   134→  image: string;
+   135→  images: string | null;
+   136→  stock: number;
+   137→  featured: boolean;
+   138→  status: string;
+   139→  createdAt: string;
+   140→  category: { id: string; name: string; slug: string };
+   141→  seller: { id: string; storeName: string; user: { name: string } };
+   142→}
+   143→
+   144→interface AdminSeller {
+   145→  id: string;
+   146→  storeName: string;
+   147→  storeSlug: string;
+   148→  storeDescription: string | null;
+   149→  rating: number;
+   150→  totalSales: number;
+   151→  isVerified: boolean;
+   152→  commissionRate: number;
+   153→  createdAt: string;
+   154→  user: { id: string; name: string; email: string; phone: string | null };
+   155→  wallet: { balance: number; totalEarnings: number; pendingClearance: number } | null;
+   156→  productCount: number;
+   157→}
+   158→
+   159→interface AdminUser {
+   160→  id: string;
+   161→  email: string;
+   162→  name: string;
+   163→  phone: string | null;
+   164→  role: string;
+   165→  avatar: string | null;
+   166→  createdAt: string;
+   167→  seller: { id: string; storeName: string; isVerified: boolean } | null;
+   168→}
+   169→
+   170→interface Category {
+   171→  id: string;
+   172→  name: string;
+   173→  slug: string;
+   174→}
+   175→
+   176→interface AdminWarehouse {
+   177→  id: string;
+   178→  name: string;
+   179→  code: string;
+   180→  address: string;
+   181→  city: string;
+   182→  county: string;
+   183→  latitude: number | null;
+   184→  longitude: number | null;
+   185→  status: string;
+   186→  capacity: number;
+   187→  managerName: string | null;
+   188→  managerPhone: string | null;
+   189→  createdAt: string;
+   190→  updatedAt: string;
+   191→  totalItems: number;
+   192→  totalReserved: number;
+   193→  inventoryCount: number;
+   194→  lowStockCount: number;
+   195→  capacityUsed: number;
+   196→  capacityPercentage: number;
+   197→}
+   198→
+   199→interface WarehouseStats {
+   200→  totalWarehouses: number;
+   201→  activeWarehouses: number;
+   202→  maintenanceCount: number;
+   203→  totalCapacity: number;
+   204→  totalItemsInStock: number;
+   205→  totalReserved: number;
+   206→  capacityPercentage: number;
+   207→  lowStockAlerts: number;
+   208→  inventoryValue: number;
+   209→  inventoryItemCount: number;
+   210→}
+   211→
+   212→interface InventoryItemRow {
+   213→  id: string;
+   214→  productId: string;
+   215→  warehouseId: string;
+   216→  quantity: number;
+   217→  reservedQuantity: number;
+   218→  reorderLevel: number;
+   219→  binLocation: string | null;
+   220→  lastRestocked: string | null;
+   221→  createdAt: string;
+   222→  updatedAt: string;
+   223→  product: {
+   224→    id: string;
+   225→    name: string;
+   226→    image: string;
+   227→    price: number;
+   228→    seller: {
+   229→      storeName: string;
+   230→      user: { name: string };
+   231→    };
+   232→  };
+   233→}
+   234→
+   235→interface WarehouseDetail extends AdminWarehouse {
+   236→  inventoryItems: InventoryItemRow[];
+   237→}
+   238→
+   239→// ===================== NAV ITEMS =====================
+   240→const navItems = [
+   241→  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+   242→  { key: 'products', label: 'Products', icon: Package },
+   243→  { key: 'orders', label: 'Orders', icon: ShoppingBag },
+   244→  { key: 'sellers', label: 'Sellers', icon: Store },
+   245→  { key: 'users', label: 'Users', icon: Users },
+   246→  { key: 'warehouses', label: 'Warehouses', icon: Warehouse },
+   247→  { key: 'banners', label: 'Banners', icon: ImageIcon },
+   248→  { key: 'deliveries', label: 'Deliveries', icon: Truck, href: '/admin/deliveries' },
+   249→];
+   250→
+   251→// ===================== HELPERS =====================
+   252→const statusColors: Record<string, string> = {
+   253→  PENDING: 'bg-yellow-100 text-yellow-800',
+   254→  CONFIRMED: 'bg-blue-100 text-blue-800',
+   255→  PROCESSING: 'bg-purple-100 text-purple-800',
+   256→  SHIPPED: 'bg-indigo-100 text-indigo-800',
+   257→  OUT_FOR_DELIVERY: 'bg-cyan-100 text-cyan-800',
+   258→  DELIVERED: 'bg-green-100 text-green-800',
+   259→  CANCELLED: 'bg-red-100 text-red-800',
+   260→  REFUNDED: 'bg-orange-100 text-orange-800',
+   261→  ACTIVE: 'bg-green-100 text-green-800',
+   262→  DRAFT: 'bg-gray-100 text-gray-800',
+   263→  ARCHIVED: 'bg-red-100 text-red-800',
+   264→  INACTIVE: 'bg-gray-200 text-gray-600',
+   265→  MAINTENANCE: 'bg-amber-100 text-amber-800',
+   266→  PAID: 'bg-green-100 text-green-800',
+   267→  FAILED: 'bg-red-100 text-red-800',
+   268→};
+   269→
+   270→const warehouseStatusColors: Record<string, string> = {
+   271→  ACTIVE: 'bg-green-100 text-green-800 border-green-200',
+   272→  INACTIVE: 'bg-gray-100 text-gray-600 border-gray-200',
+   273→  MAINTENANCE: 'bg-amber-100 text-amber-800 border-amber-200',
+   274→};
+   275→
+   276→const roleColors: Record<string, string> = {
+   277→  BUYER: 'bg-blue-100 text-blue-800',
+   278→  SELLER: 'bg-amber-100 text-amber-800',
+   279→  DELIVERY: 'bg-green-100 text-green-800',
+   280→  ADMIN: 'bg-slate-100 text-slate-800',
+   281→};
+   282→
+   283→function formatCurrency(amount: number): string {
+   284→  return `KES ${amount.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+   285→}
+   286→
+   287→function formatDate(dateStr: string): string {
+   288→  return new Date(dateStr).toLocaleDateString('en-KE', {
+   289→    year: 'numeric', month: 'short', day: 'numeric',
+   290→  });
+   291→}
+   292→
+   293→function getCapacityColor(pct: number): string {
+   294→  if (pct >= 90) return 'text-red-600';
+   295→  if (pct >= 70) return 'text-amber-600';
+   296→  return 'text-green-600';
+   297→}
+   298→
+   299→function getCapacityBarColor(pct: number): string {
+   300→  if (pct >= 90) return '[&>div]:bg-red-500';
+   301→  if (pct >= 70) return '[&>div]:bg-amber-500';
+   302→  return '[&>div]:bg-green-500';
+   303→}
+   304→
+   305→// ===================== LOGO SVG =====================
+   306→function AdminLogo() {
+   307→  return (
+   308→    <Link href="/" className="flex items-center gap-2">
+   309→      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+   310→        <path d="M16 4C14 4 10 8 8 12C6 16 6 22 8 26C10 28 14 28 16 28C18 28 22 28 24 26C26 22 26 16 24 12C22 8 18 4 16 4Z" fill="#F59E0B" />
+   311→        <path d="M16 4C15 4 13 6 12 8C11 10 11 14 12 16C13 17 15 17 16 17C17 17 19 17 20 16C21 14 21 10 20 8C19 6 17 4 16 4Z" fill="white" />
+   312→      </svg>
+   313→      <span className="text-lg font-bold">
+   314→        <span className="text-white">SHARK</span>
+   315→        <span className="text-amber-400">ONE</span>
+   316→      </span>
+   317→    </Link>
+   318→  );
+   319→}
+   320→
+   321→// ===================== SIDEBAR =====================
+   322→function Sidebar({
+   323→  activeTab,
+   324→  onTabChange,
+   325→  isOpen,
+   326→  onClose,
+   327→}: {
+   328→  activeTab: string;
+   329→  onTabChange: (tab: string) => void;
+   330→  isOpen: boolean;
+   331→  onClose: () => void;
+   332→}) {
+   333→  return (
+   334→    <>
+   335→      {/* Mobile overlay */}
+   336→      <AnimatePresence>
+   337→        {isOpen && (
+   338→          <motion.div
+   339→            initial={{ opacity: 0 }}
+   340→            animate={{ opacity: 1 }}
+   341→            exit={{ opacity: 0 }}
+   342→            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+   343→            onClick={onClose}
+   344→          />
+   345→        )}
+   346→      </AnimatePresence>
+   347→
+   348→      {/* Sidebar */}
+   349→      <aside
+   350→        className={`
+   351→          fixed top-0 left-0 z-50 h-full w-64 bg-slate-900 flex flex-col
+   352→          transform transition-transform duration-200 ease-in-out
+   353→          lg:translate-x-0 lg:static lg:z-auto
+   354→          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+   355→        `}
+   356→      >
+   357→        <div className="p-6 flex items-center justify-between">
+   358→          <AdminLogo />
+   359→          <Button
+   360→            variant="ghost"
+   361→            size="icon"
+   362→            className="text-white/70 hover:text-white lg:hidden"
+   363→            onClick={onClose}
+   364→          >
+   365→            <X className="h-5 w-5" />
+   366→          </Button>
+   367→        </div>
+   368→
+   369→        <nav className="flex-1 px-3 space-y-1">
+   370→          {navItems.map((item) => {
+   371→            const Icon = item.icon;
+   372→            const isActive = 'href' in item ? false : activeTab === item.key;
+   373→            const navClassName = `
+   374→                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+   375→                  ${isActive
+   376→                    ? 'bg-amber-500 text-white'
+   377→                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+   378→                  }
+   379→                `;
+   380→            if ('href' in item) {
+   381→              return (
+   382→                <Link key={item.key} href={item.href} className={navClassName}>
+   383→                  <Icon className="h-5 w-5" />
+   384→                  {item.label}
+   385→                </Link>
+   386→              );
+   387→            }
+   388→            return (
+   389→              <button
+   390→                key={item.key}
+   391→                onClick={() => {
+   392→                  onTabChange(item.key);
+   393→                  onClose();
+   394→                }}
+   395→                className={navClassName}
+   396→              >
+   397→                <Icon className="h-5 w-5" />
+   398→                {item.label}
+   399→              </button>
+   400→            );
+   401→          })}
+   402→        </nav>
+   403→
+   404→        <div className="p-4 border-t border-slate-700">
+   405→          <Link
+   406→            href="/"
+   407→            className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors px-3 py-2"
+   408→          >
+   409→            <ArrowLeft className="h-4 w-4" />
+   410→            Back to Store
+   411→          </Link>
+   412→        </div>
+   413→      </aside>
+   414→    </>
+   415→  );
+   416→}
+   417→
+   418→// ===================== STAT CARD =====================
+   419→function StatCard({
+   420→  icon: Icon,
+   421→  label,
+   422→  value,
+   423→  change,
+   424→  color,
+   425→}: {
+   426→  icon: React.ElementType;
+   427→  label: string;
+   428→  value: string;
+   429→  change?: string;
+   430→  color: string;
+   431→}) {
+   432→  return (
+   433→    <motion.div
+   434→      initial={{ opacity: 0, y: 20 }}
+   435→      animate={{ opacity: 1, y: 0 }}
+   436→      className="bg-white rounded-xl border border-gray-200 p-4 md:p-6"
+   437→    >
+   438→      <div className="flex items-center justify-between">
+   439→        <div className={`p-2.5 rounded-lg ${color}`}>
+   440→          <Icon className="h-5 w-5 text-white" />
+   441→        </div>
+   442→        {change && (
+   443→          <span className={`text-xs font-medium flex items-center gap-0.5 ${change.startsWith('+') ? 'text-green-600' : 'text-red-500'}`}>
+   444→            <TrendingUp className={`h-3 w-3 ${change.startsWith('-') ? 'rotate-180' : ''}`} />
+   445→            {change}
+   446→          </span>
+   447→        )}
+   448→      </div>
+   449→      <div className="mt-3">
+   450→        <p className="text-2xl font-bold text-slate-900">{value}</p>
+   451→        <p className="text-sm text-slate-500 mt-0.5">{label}</p>
+   452→      </div>
+   453→    </motion.div>
+   454→  );
+   455→}
+   456→
+   457→// ===================== STAT SKELETONS =====================
+   458→function StatSkeleton() {
+   459→  return (
+   460→    <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+   461→      <div className="flex items-center justify-between">
+   462→        <Skeleton className="h-10 w-10 rounded-lg" />
+   463→        <Skeleton className="h-4 w-12" />
+   464→      </div>
+   465→      <div className="mt-3">
+   466→        <Skeleton className="h-8 w-24 mb-1" />
+   467→        <Skeleton className="h-4 w-20" />
+   468→      </div>
+   469→    </div>
+   470→  );
+   471→}
+   472→
+   473→// ===================== ORDER STATUS BAR COLORS =====================
+   474→const orderStatusBarColors: Record<string, string> = {
+   475→  PENDING: 'bg-yellow-500',
+   476→  CONFIRMED: 'bg-blue-500',
+   477→  PROCESSING: 'bg-purple-500',
+   478→  SHIPPED: 'bg-indigo-500',
+   479→  OUT_FOR_DELIVERY: 'bg-cyan-500',
+   480→  DELIVERED: 'bg-green-500',
+   481→  CANCELLED: 'bg-red-500',
+   482→  REFUNDED: 'bg-orange-500',
+   483→};
+   484→
+   485→// ===================== ANALYTICS SKELETON =====================
+   486→function AnalyticsSkeleton() {
+   487→  return (
+   488→    <div className="space-y-3">
+   489→      {Array.from({ length: 5 }).map((_, i) => (
+   490→        <Skeleton key={i} className="h-8 w-full" />
+   491→      ))}
+   492→    </div>
+   493→  );
+   494→}
+   495→
+   496→// ===================== DASHBOARD TAB =====================
+   497→function DashboardTab() {
+   498→  const { data: stats, isLoading: statsLoading } = useQuery<Stats>({
+   499→    queryKey: ['admin-stats'],
+   500→    queryFn: () => fetch('/api/admin/stats').then((r) => r.json()),
+   501→  });
+   502→
+   503→  const { data: analytics, isLoading: analyticsLoading } = useQuery<AnalyticsOverview>({
+   504→    queryKey: ['admin-analytics-overview'],
+   505→    queryFn: () => fetch('/api/admin/analytics/overview').then((r) => r.json()),
+   506→  });
+   507→
+   508→  const { data: ordersData, isLoading: ordersLoading } = useQuery<{ orders: AdminOrder[] }>({
+   509→    queryKey: ['admin-orders-recent'],
+   510→    queryFn: () => fetch('/api/admin/orders?limit=10').then((r) => r.json()),
+   511→  });
+   512→
+   513→  const statCards = stats
+   514→    ? [
+   515→        { icon: DollarSign, label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), change: analytics ? `${analytics.revenueChangePercent > 0 ? '+' : ''}${analytics.revenueChangePercent}%` : undefined, color: 'bg-amber-500' },
+   516→        { icon: ShoppingBag, label: 'Total Orders', value: stats.totalOrders.toString(), change: analytics ? `${analytics.ordersChangePercent > 0 ? '+' : ''}${analytics.ordersChangePercent}%` : undefined, color: 'bg-blue-500' },
+   517→        { icon: Package, label: 'Total Products', value: stats.totalProducts.toString(), color: 'bg-green-500' },
+   518→        { icon: Store, label: 'Total Sellers', value: stats.totalSellers.toString(), color: 'bg-purple-500' },
+   519→        { icon: Users, label: 'Total Customers', value: analytics?.totalCustomers?.toString() || stats.totalUsers.toString(), color: 'bg-cyan-500' },
+   520→        { icon: Truck, label: 'Active Deliveries', value: stats.activeDeliveries.toString(), color: 'bg-orange-500' },
+   521→      ]
+   522→    : [];
+   523→
+   524→  // Revenue chart data: last 14 days
+   525→  const last14Days = analytics?.dailyRevenue?.slice(-14) || [];
+   526→  const maxRevenue = Math.max(...last14Days.map((d) => d.revenue), 1);
+   527→
+   528→  // Order status distribution
+   529→  const statusDist = analytics?.orderStatusDistribution || [];
+   530→  const totalStatusCount = statusDist.reduce((sum, s) => sum + s.count, 0) || 1;
+   531→
+   532→  return (
+   533→    <motion.div
+   534→      initial={{ opacity: 0, x: 20 }}
+   535→      animate={{ opacity: 1, x: 0 }}
+   536→      exit={{ opacity: 0, x: -20 }}
+   537→      transition={{ duration: 0.2 }}
+   538→      className="space-y-6"
+   539→    >
+   540→      {/* Stat Cards */}
+   541→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+   542→        {statsLoading
+   543→          ? Array.from({ length: 6 }).map((_, i) => <StatSkeleton key={i} />)
+   544→          : statCards.map((card) => (
+   545→              <StatCard key={card.label} {...card} />
+   546→            ))}
+   547→      </div>
+   548→
+   549→      {/* Month-over-Month Comparison Cards */}
+   550→      {analytics && !analyticsLoading && (
+   551→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   552→          {/* Revenue MoM */}
+   553→          <motion.div
+   554→            initial={{ opacity: 0, y: 10 }}
+   555→            animate={{ opacity: 1, y: 0 }}
+   556→            className="bg-white rounded-xl border border-gray-200 p-4 md:p-6"
+   557→          >
+   558→            <div className="flex items-center justify-between mb-3">
+   559→              <p className="text-sm font-medium text-slate-500">Revenue — This Month vs Last Month</p>
+   560→              <BarChart3 className="h-4 w-4 text-slate-400" />
+   561→            </div>
+   562→            <div className="flex items-end gap-4">
+   563→              <div>
+   564→                <p className="text-2xl font-bold text-slate-900">{formatCurrency(analytics.thisMonthRevenue)}</p>
+   565→                <p className="text-xs text-slate-500 mt-0.5">This month</p>
+   566→              </div>
+   567→              <div className="pb-0.5">
+   568→                <p className="text-sm text-slate-500">vs {formatCurrency(analytics.lastMonthRevenue)}</p>
+   569→                <p className="text-xs text-slate-400">Last month</p>
+   570→              </div>
+   571→              <div className={`ml-auto flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-semibold ${analytics.revenueChangePercent >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+   572→                {analytics.revenueChangePercent >= 0 ? (
+   573→                  <ArrowUp className="h-4 w-4" />
+   574→                ) : (
+   575→                  <ArrowDown className="h-4 w-4" />
+   576→                )}
+   577→                {Math.abs(analytics.revenueChangePercent)}%
+   578→              </div>
+   579→            </div>
+   580→          </motion.div>
+   581→
+   582→          {/* Orders MoM */}
+   583→          <motion.div
+   584→            initial={{ opacity: 0, y: 10 }}
+   585→            animate={{ opacity: 1, y: 0 }}
+   586→            transition={{ delay: 0.05 }}
+   587→            className="bg-white rounded-xl border border-gray-200 p-4 md:p-6"
+   588→          >
+   589→            <div className="flex items-center justify-between mb-3">
+   590→              <p className="text-sm font-medium text-slate-500">Orders — This Month vs Last Month</p>
+   591→              <ShoppingBag className="h-4 w-4 text-slate-400" />
+   592→            </div>
+   593→            <div className="flex items-end gap-4">
+   594→              <div>
+   595→                <p className="text-2xl font-bold text-slate-900">{analytics.thisMonthOrders}</p>
+   596→                <p className="text-xs text-slate-500 mt-0.5">This month</p>
+   597→              </div>
+   598→              <div className="pb-0.5">
+   599→                <p className="text-sm text-slate-500">vs {analytics.lastMonthOrders}</p>
+   600→                <p className="text-xs text-slate-400">Last month</p>
+   601→              </div>
+   602→              <div className={`ml-auto flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-semibold ${analytics.ordersChangePercent >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+   603→                {analytics.ordersChangePercent >= 0 ? (
+   604→                  <ArrowUp className="h-4 w-4" />
+   605→                ) : (
+   606→                  <ArrowDown className="h-4 w-4" />
+   607→                )}
+   608→                {Math.abs(analytics.ordersChangePercent)}%
+   609→              </div>
+   610→            </div>
+   611→          </motion.div>
+   612→        </div>
+   613→      )}
+   614→
+   615→      {/* Revenue Chart + Top Products row */}
+   616→      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+   617→        {/* Revenue Bar Chart (CSS only) */}
+   618→        <motion.div
+   619→          initial={{ opacity: 0, y: 10 }}
+   620→          animate={{ opacity: 1, y: 0 }}
+   621→          transition={{ delay: 0.1 }}
+   622→          className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-4 md:p-6"
+   623→        >
+   624→          <div className="flex items-center justify-between mb-4">
+   625→            <div>
+   626→              <h2 className="text-lg font-semibold text-slate-900">Revenue Trend</h2>
+   627→              <p className="text-sm text-slate-500">Daily revenue for the last 14 days</p>
+   628→            </div>
+   629→            {analytics && (
+   630→              <div className="text-right">
+   631→                <p className="text-sm font-semibold text-slate-900">Avg Order Value</p>
+   632→                <p className="text-lg font-bold text-amber-600">{formatCurrency(analytics.averageOrderValue)}</p>
+   633→              </div>
+   634→            )}
+   635→          </div>
+   636→          {analyticsLoading ? (
+   637→            <div className="space-y-3">
+   638→              {Array.from({ length: 7 }).map((_, i) => (
+   639→                <Skeleton key={i} className="h-6 w-full" />
+   640→              ))}
+   641→            </div>
+   642→          ) : last14Days.length === 0 ? (
+   643→            <div className="py-12 text-center text-slate-500">
+   644→              <BarChart3 className="h-10 w-10 mx-auto mb-2 text-slate-300" />
+   645→              <p>No revenue data available</p>
+   646→            </div>
+   647→          ) : (
+   648→            <div className="flex items-end gap-1.5 sm:gap-2 h-48">
+   649→              {last14Days.map((day, i) => {
+   650→                const heightPct = maxRevenue > 0 ? (day.revenue / maxRevenue) * 100 : 0;
+   651→                const dateObj = new Date(day.date + 'T00:00:00');
+   652→                const label = dateObj.toLocaleDateString('en-KE', { month: 'short', day: 'numeric' });
+   653→                const dayName = dateObj.toLocaleDateString('en-KE', { weekday: 'short' });
+   654→                return (
+   655→                  <div key={day.date} className="flex-1 flex flex-col items-center gap-1 group relative min-w-0">
+   656→                    {/* Tooltip */}
+   657→                    <div className="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-slate-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
+   658→                      <p className="font-semibold">{formatCurrency(day.revenue)}</p>
+   659→                      <p className="text-slate-400">{day.orders} orders</p>
+   660→                      <p className="text-slate-400">{dayName}, {label}</p>
+   661→                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-slate-900" />
+   662→                    </div>
+   663→                    <div
+   664→                      className="w-full rounded-t-sm bg-amber-500 hover:bg-amber-600 transition-colors duration-150 cursor-default min-h-[2px]"
+   665→                      style={{ height: `${Math.max(heightPct, 2)}%` }}
+   666→                    />
+   667→                    <span className="text-[10px] text-slate-400 truncate w-full text-center hidden sm:block">
+   668→                      {label.split(' ')[1]}
+   669→                    </span>
+   670→                  </div>
+   671→                );
+   672→              })}
+   673→            </div>
+   674→          )}
+   675→        </motion.div>
+   676→
+   677→        {/* Top Selling Products */}
+   678→        <motion.div
+   679→          initial={{ opacity: 0, y: 10 }}
+   680→          animate={{ opacity: 1, y: 0 }}
+   681→          transition={{ delay: 0.15 }}
+   682→          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6"
+   683→        >
+   684→          <h2 className="text-lg font-semibold text-slate-900 mb-1">Top Selling Products</h2>
+   685→          <p className="text-sm text-slate-500 mb-4">By units sold</p>
+   686→          {analyticsLoading ? (
+   687→            <AnalyticsSkeleton />
+   688→          ) : !analytics?.topProducts?.length ? (
+   689→            <div className="py-8 text-center text-slate-500">
+   690→              <Package className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+   691→              <p className="text-sm">No sales data yet</p>
+   692→            </div>
+   693→          ) : (
+   694→            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+   695→              {analytics.topProducts.map((product, idx) => (
+   696→                <div key={product.productId} className="flex items-center gap-3">
+   697→                  <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-amber-100 text-amber-700' : idx === 1 ? 'bg-gray-100 text-gray-600' : idx === 2 ? 'bg-orange-100 text-orange-700' : 'bg-slate-50 text-slate-500'}`}>
+   698→                    {idx + 1}
+   699→                  </span>
+   700→                  <div className="h-9 w-9 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+   701→                    <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+   702→                  </div>
+   703→                  <div className="flex-1 min-w-0">
+   704→                    <p className="text-sm font-medium text-slate-900 truncate">{product.name}</p>
+   705→                    <p className="text-xs text-slate-500">{product.totalSold} sold · {formatCurrency(product.revenue)}</p>
+   706→                  </div>
+   707→                </div>
+   708→              ))}
+   709→            </div>
+   710→          )}
+   711→        </motion.div>
+   712→      </div>
+   713→
+   714→      {/* Order Status Distribution */}
+   715→      {analytics && !analyticsLoading && statusDist.length > 0 && (
+   716→        <motion.div
+   717→          initial={{ opacity: 0, y: 10 }}
+   718→          animate={{ opacity: 1, y: 0 }}
+   719→          transition={{ delay: 0.2 }}
+   720→          className="bg-white rounded-xl border border-gray-200 p-4 md:p-6"
+   721→        >
+   722→          <h2 className="text-lg font-semibold text-slate-900 mb-1">Order Status Distribution</h2>
+   723→          <p className="text-sm text-slate-500 mb-5">Breakdown of all orders by status</p>
+   724→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+   725→            {statusDist.map((s) => {
+   726→              const pct = Math.round((s.count / totalStatusCount) * 1000) / 10;
+   727→              return (
+   728→                <div key={s.status}>
+   729→                  <div className="flex items-center justify-between mb-1">
+   730→                    <div className="flex items-center gap-2">
+   731→                      <span className={`inline-block w-2.5 h-2.5 rounded-full ${orderStatusBarColors[s.status] || 'bg-gray-400'}`} />
+   732→                      <span className="text-sm font-medium text-slate-700">{s.status.replace(/_/g, ' ')}</span>
+   733→                    </div>
+   734→                    <span className="text-sm text-slate-500">
+   735→                      {s.count} <span className="text-xs text-slate-400">({pct}%)</span>
+   736→                    </span>
+   737→                  </div>
+   738→                  <div className="w-full bg-gray-100 rounded-full h-2">
+   739→                    <div
+   740→                      className={`h-2 rounded-full transition-all duration-500 ${orderStatusBarColors[s.status] || 'bg-gray-400'}`}
+   741→                      style={{ width: `${pct}%` }}
+   742→                    />
+   743→                  </div>
+   744→                </div>
+   745→              );
+   746→            })}
+   747→          </div>
+   748→        </motion.div>
+   749→      )}
+   750→
+   751→      {/* Quick Actions */}
+   752→      <div className="flex flex-wrap gap-3">
+   753→        <Button className="bg-amber-500 hover:bg-amber-600 text-white" onClick={() => {}}>
+   754→          <Plus className="h-4 w-4 mr-2" />
+   755→          Add Product
+   756→        </Button>
+   757→        <Button variant="outline" className="border-slate-300" onClick={() => {}}>
+   758→          <Eye className="h-4 w-4 mr-2" />
+   759→          View Sellers
+   760→        </Button>
+   761→      </div>
+   762→
+   763→      {/* Recent Orders */}
+   764→      <div className="bg-white rounded-xl border border-gray-200">
+   765→        <div className="p-4 md:p-6 border-b border-gray-100">
+   766→          <h2 className="text-lg font-semibold text-slate-900">Recent Orders</h2>
+   767→          <p className="text-sm text-slate-500">Latest orders across the platform</p>
+   768→        </div>
+   769→        <div className="overflow-x-auto">
+   770→          {ordersLoading ? (
+   771→            <div className="p-6 space-y-3">
+   772→              {Array.from({ length: 5 }).map((_, i) => (
+   773→                <Skeleton key={i} className="h-12 w-full" />
+   774→              ))}
+   775→            </div>
+   776→          ) : !ordersData?.orders?.length ? (
+   777→            <div className="p-8 text-center text-slate-500">
+   778→              <ShoppingBag className="h-10 w-10 mx-auto mb-2 text-slate-300" />
+   779→              <p>No orders yet</p>
+   780→            </div>
+   781→          ) : (
+   782→            <Table>
+   783→              <TableHeader>
+   784→                <TableRow>
+   785→                  <TableHead>Order #</TableHead>
+   786→                  <TableHead>Buyer</TableHead>
+   787→                  <TableHead>Items</TableHead>
+   788→                  <TableHead>Total</TableHead>
+   789→                  <TableHead>Status</TableHead>
+   790→                  <TableHead>Payment</TableHead>
+   791→                  <TableHead>Date</TableHead>
+   792→                </TableRow>
+   793→              </TableHeader>
+   794→              <TableBody>
+   795→                {ordersData.orders.map((order) => (
+   796→                  <TableRow key={order.id}>
+   797→                    <TableCell className="font-mono text-xs">{order.orderNumber}</TableCell>
+   798→                    <TableCell className="font-medium">{order.buyer.name}</TableCell>
+   799→                    <TableCell>{order.itemCount}</TableCell>
+   800→                    <TableCell className="font-medium">{formatCurrency(order.totalAmount)}</TableCell>
+   801→                    <TableCell>
+   802→                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[order.status] || 'bg-gray-100 text-gray-800'}`}>
+   803→                        {order.status}
+   804→                      </span>
+   805→                    </TableCell>
+   806→                    <TableCell>
+   807→                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[order.paymentStatus] || 'bg-gray-100 text-gray-800'}`}>
+   808→                        {order.paymentStatus}
+   809→                      </span>
+   810→                    </TableCell>
+   811→                    <TableCell className="text-slate-500 text-sm">{formatDate(order.createdAt)}</TableCell>
+   812→                  </TableRow>
+   813→                ))}
+   814→              </TableBody>
+   815→            </Table>
+   816→          )}
+   817→        </div>
+   818→      </div>
+   819→    </motion.div>
+   820→  );
+   821→}
+   822→
+   823→// ===================== PRODUCTS TAB =====================
+   824→function ProductsTab({ onAddProduct }: { onAddProduct: () => void }) {
+   825→  const [search, setSearch] = useState('');
+   826→  const [statusFilter, setStatusFilter] = useState('ALL');
+   827→
+   828→  const { data, isLoading, refetch } = useQuery<{ products: AdminProduct[]; total: number }>({
+   829→    queryKey: ['admin-products', search, statusFilter],
+   830→    queryFn: () => fetch(`/api/admin/products?search=${search}&status=${statusFilter}`).then((r) => r.json()),
+   831→  });
+   832→
+   833→  const archiveMutation = useMutation({
+   834→    mutationFn: (id: string) => fetch(`/api/admin/products/${id}`, { method: 'DELETE' }).then((r) => r.json()),
+   835→    onSuccess: () => {
+   836→      toast.success('Product archived');
+   837→      refetch();
+   838→    },
+   839→    onError: () => toast.error('Failed to archive product'),
+   840→  });
+   841→
+   842→  return (
+   843→    <motion.div
+   844→      initial={{ opacity: 0, x: 20 }}
+   845→      animate={{ opacity: 1, x: 0 }}
+   846→      exit={{ opacity: 0, x: -20 }}
+   847→      transition={{ duration: 0.2 }}
+   848→      className="space-y-4"
+   849→    >
+   850→      {/* Header with search, filter, add button */}
+   851→      <div className="flex flex-col sm:flex-row gap-3">
+   852→        <div className="relative flex-1">
+   853→          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+   854→          <Input
+   855→            placeholder="Search products..."
+   856→            value={search}
+   857→            onChange={(e) => setSearch(e.target.value)}
+   858→            className="pl-9"
+   859→          />
+   860→        </div>
+   861→        <Select value={statusFilter} onValueChange={setStatusFilter}>
+   862→          <SelectTrigger className="w-full sm:w-40">
+   863→            <SelectValue />
+   864→          </SelectTrigger>
+   865→          <SelectContent>
+   866→            <SelectItem value="ALL">All Status</SelectItem>
+   867→            <SelectItem value="ACTIVE">Active</SelectItem>
+   868→            <SelectItem value="DRAFT">Draft</SelectItem>
+   869→            <SelectItem value="ARCHIVED">Archived</SelectItem>
+   870→          </SelectContent>
+   871→        </Select>
+   872→        <Button
+   873→          className="bg-amber-500 hover:bg-amber-600 text-white"
+   874→          onClick={onAddProduct}
+   875→        >
+   876→          <Plus className="h-4 w-4 mr-2" />
+   877→          Add Product
+   878→        </Button>
+   879→      </div>
+   880→
+   881→      {/* Table */}
+   882→      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+   883→        <div className="overflow-x-auto">
+   884→          {isLoading ? (
+   885→            <div className="p-6 space-y-3">
+   886→              {Array.from({ length: 6 }).map((_, i) => (
+   887→                <Skeleton key={i} className="h-14 w-full" />
+   888→              ))}
+   889→            </div>
+   890→          ) : !data?.products?.length ? (
+   891→            <div className="p-8 text-center text-slate-500">
+   892→              <Package className="h-10 w-10 mx-auto mb-2 text-slate-300" />
+   893→              <p>No products found</p>
+   894→            </div>
+   895→          ) : (
+   896→            <Table>
+   897→              <TableHeader>
+   898→                <TableRow>
+   899→                  <TableHead>Product</TableHead>
+   900→                  <TableHead>Seller</TableHead>
+   901→                  <TableHead>Category</TableHead>
+   902→                  <TableHead>Price</TableHead>
+   903→                  <TableHead>Stock</TableHead>
+   904→                  <TableHead>Status</TableHead>
+   905→                  <TableHead>Actions</TableHead>
+   906→                </TableRow>
+   907→              </TableHeader>
+   908→              <TableBody>
+   909→                {data.products.map((product) => (
+   910→                  <TableRow key={product.id}>
+   911→                    <TableCell>
+   912→                      <div className="flex items-center gap-3">
+   913→                        <div className="h-10 w-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+   914→                          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+   915→                        </div>
+   916→                        <span className="font-medium text-sm max-w-[200px] truncate block">{product.name}</span>
+   917→                      </div>
+   918→                    </TableCell>
+   919→                    <TableCell className="text-sm">{product.seller?.storeName}</TableCell>
+   920→                    <TableCell>
+   921→                      <Badge variant="secondary" className="text-xs">{product.category?.name}</Badge>
+   922→                    </TableCell>
+   923→                    <TableCell className="font-medium">{formatCurrency(product.price)}</TableCell>
+   924→                    <TableCell>
+   925→                      <span className={`text-sm ${product.stock < 10 ? 'text-red-600 font-medium' : 'text-slate-700'}`}>
+   926→                        {product.stock}
+   927→                      </span>
+   928→                    </TableCell>
+   929→                    <TableCell>
+   930→                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[product.status] || ''}`}>
+   931→                        {product.status}
+   932→                      </span>
+   933→                    </TableCell>
+   934→                    <TableCell>
+   935→                      <div className="flex items-center gap-1">
+   936→                        <Button
+   937→                          variant="ghost"
+   938→                          size="icon"
+   939→                          className="h-8 w-8"
+   940→                          onClick={() => onAddProduct()}
+   941→                        >
+   942→                          <Edit className="h-4 w-4" />
+   943→                        </Button>
+   944→                        <Button
+   945→                          variant="ghost"
+   946→                          size="icon"
+   947→                          className="h-8 w-8 text-red-500 hover:text-red-700"
+   948→                          onClick={() => archiveMutation.mutate(product.id)}
+   949→                          disabled={archiveMutation.isPending}
+   950→                        >
+   951→                          <Archive className="h-4 w-4" />
+   952→                        </Button>
+   953→                      </div>
+   954→                    </TableCell>
+   955→                  </TableRow>
+   956→                ))}
+   957→              </TableBody>
+   958→            </Table>
+   959→          )}
+   960→        </div>
+   961→      </div>
+   962→    </motion.div>
+   963→  );
+   964→}
+   965→
+   966→// ===================== ORDERS TAB =====================
+   967→function OrdersTab() {
+   968→  const [statusFilter, setStatusFilter] = useState('ALL');
+   969→
+   970→  const { data, isLoading, refetch } = useQuery<{ orders: AdminOrder[]; total: number }>({
+   971→    queryKey: ['admin-orders', statusFilter],
+   972→    queryFn: () => fetch(`/api/admin/orders?status=${statusFilter}`).then((r) => r.json()),
+   973→  });
+   974→
+   975→  return (
+   976→    <motion.div
+   977→      initial={{ opacity: 0, x: 20 }}
+   978→      animate={{ opacity: 1, x: 0 }}
+   979→      exit={{ opacity: 0, x: -20 }}
+   980→      transition={{ duration: 0.2 }}
+   981→      className="space-y-4"
+   982→    >
+   983→      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+   984→        <h2 className="text-lg font-semibold text-slate-900">All Orders</h2>
+   985→        <Select value={statusFilter} onValueChange={setStatusFilter}>
+   986→          <SelectTrigger className="w-full sm:w-48">
+   987→            <SelectValue />
+   988→          </SelectTrigger>
+   989→          <SelectContent>
+   990→            <SelectItem value="ALL">All Status</SelectItem>
+   991→            <SelectItem value="PENDING">Pending</SelectItem>
+   992→            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+   993→            <SelectItem value="PROCESSING">Processing</SelectItem>
+   994→            <SelectItem value="SHIPPED">Shipped</SelectItem>
+   995→            <SelectItem value="OUT_FOR_DELIVERY">Out for Delivery</SelectItem>
+   996→            <SelectItem value="DELIVERED">Delivered</SelectItem>
+   997→            <SelectItem value="CANCELLED">Cancelled</SelectItem>
+   998→          </SelectContent>
+   999→        </Select>
+  1000→      </div>
+  1001→
+  1002→      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  1003→        <div className="overflow-x-auto">
+  1004→          {isLoading ? (
+  1005→            <div className="p-6 space-y-3">
+  1006→              {Array.from({ length: 6 }).map((_, i) => (
+  1007→                <Skeleton key={i} className="h-14 w-full" />
+  1008→              ))}
+  1009→            </div>
+  1010→          ) : !data?.orders?.length ? (
+  1011→            <div className="p-8 text-center text-slate-500">
+  1012→              <ShoppingBag className="h-10 w-10 mx-auto mb-2 text-slate-300" />
+  1013→              <p>No orders found</p>
+  1014→            </div>
+  1015→          ) : (
+  1016→            <Table>
+  1017→              <TableHeader>
+  1018→                <TableRow>
+  1019→                  <TableHead>Order #</TableHead>
+  1020→                  <TableHead>Buyer</TableHead>
+  1021→                  <TableHead>Items</TableHead>
+  1022→                  <TableHead>Total</TableHead>
+  1023→                  <TableHead>Status</TableHead>
+  1024→                  <TableHead>Payment</TableHead>
+  1025→                  <TableHead>Date</TableHead>
+  1026→                </TableRow>
+  1027→              </TableHeader>
+  1028→              <TableBody>
+  1029→                {data.orders.map((order) => (
+  1030→                  <TableRow key={order.id}>
+  1031→                    <TableCell className="font-mono text-xs font-medium">{order.orderNumber}</TableCell>
+  1032→                    <TableCell>
+  1033→                      <div>
+  1034→                        <p className="font-medium text-sm">{order.buyer.name}</p>
+  1035→                        <p className="text-xs text-slate-500">{order.buyer.email}</p>
+  1036→                      </div>
+  1037→                    </TableCell>
+  1038→                    <TableCell>{order.itemCount}</TableCell>
+  1039→                    <TableCell className="font-medium">{formatCurrency(order.totalAmount)}</TableCell>
+  1040→                    <TableCell>
+  1041→                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[order.status] || 'bg-gray-100 text-gray-800'}`}>
+  1042→                        {order.status}
+  1043→                      </span>
+  1044→                    </TableCell>
+  1045→                    <TableCell>
+  1046→                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[order.paymentStatus] || 'bg-gray-100 text-gray-800'}`}>
+  1047→                        {order.paymentStatus}
+  1048→                      </span>
+  1049→                    </TableCell>
+  1050→                    <TableCell className="text-slate-500 text-sm">{formatDate(order.createdAt)}</TableCell>
+  1051→                  </TableRow>
+  1052→                ))}
+  1053→              </TableBody>
+  1054→            </Table>
+  1055→          )}
+  1056→        </div>
+  1057→      </div>
+  1058→    </motion.div>
+  1059→  );
+  1060→}
+  1061→
+  1062→// ===================== SELLERS TAB =====================
+  1063→function SellersTab() {
+  1064→  const queryClient = useQueryClient();
+  1065→
+  1066→  const { data: sellers, isLoading, refetch } = useQuery<AdminSeller[]>({
+  1067→    queryKey: ['admin-sellers'],
+  1068→    queryFn: () => fetch('/api/admin/sellers').then((r) => r.json()),
+  1069→  });
+  1070→
+  1071→  const verifyMutation = useMutation({
+  1072→    mutationFn: ({ sellerId, isVerified }: { sellerId: string; isVerified: boolean }) =>
+  1073→      fetch('/api/admin/sellers', {
+  1074→        method: 'PUT',
+  1075→        headers: { 'Content-Type': 'application/json' },
+  1076→        body: JSON.stringify({ sellerId, isVerified }),
+  1077→      }).then((r) => r.json()),
+  1078→    onSuccess: () => {
+  1079→      toast.success('Seller updated');
+  1080→      refetch();
+  1081→    },
+  1082→    onError: () => toast.error('Failed to update seller'),
+  1083→  });
+  1084→
+  1085→  return (
+  1086→    <motion.div
+  1087→      initial={{ opacity: 0, x: 20 }}
+  1088→      animate={{ opacity: 1, x: 0 }}
+  1089→      exit={{ opacity: 0, x: -20 }}
+  1090→      transition={{ duration: 0.2 }}
+  1091→      className="space-y-4"
+  1092→    >
+  1093→      <h2 className="text-lg font-semibold text-slate-900">All Sellers</h2>
+  1094→
+  1095→      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  1096→        <div className="overflow-x-auto">
+  1097→          {isLoading ? (
+  1098→            <div className="p-6 space-y-3">
+  1099→              {Array.from({ length: 4 }).map((_, i) => (
+  1100→                <Skeleton key={i} className="h-14 w-full" />
+  1101→              ))}
+  1102→            </div>
+  1103→          ) : !sellers?.length ? (
+  1104→            <div className="p-8 text-center text-slate-500">
+  1105→              <Store className="h-10 w-10 mx-auto mb-2 text-slate-300" />
+  1106→              <p>No sellers found</p>
+  1107→            </div>
+  1108→          ) : (
+  1109→            <Table>
+  1110→              <TableHeader>
+  1111→                <TableRow>
+  1112→                  <TableHead>Store Name</TableHead>
+  1113→                  <TableHead>Owner Email</TableHead>
+  1114→                  <TableHead>Products</TableHead>
+  1115→                  <TableHead>Rating</TableHead>
+  1116→                  <TableHead>Total Sales</TableHead>
+  1117→                  <TableHead>Wallet Balance</TableHead>
+  1118→                  <TableHead>Verified</TableHead>
+  1119→                </TableRow>
+  1120→              </TableHeader>
+  1121→              <TableBody>
+  1122→                {sellers.map((seller) => (
+  1123→                  <TableRow key={seller.id}>
+  1124→                    <TableCell>
+  1125→                      <div className="flex items-center gap-2">
+  1126→                        <p className="font-medium text-sm">{seller.storeName}</p>
+  1127→                        {seller.isVerified && (
+  1128→                          <ShieldCheck className="h-4 w-4 text-amber-500" />
+  1129→                        )}
+  1130→                      </div>
+  1131→                    </TableCell>
+  1132→                    <TableCell className="text-sm text-slate-600">{seller.user.email}</TableCell>
+  1133→                    <TableCell className="text-sm">{seller.productCount}</TableCell>
+  1134→                    <TableCell>
+  1135→                      <div className="flex items-center gap-1">
+  1136→                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+  1137→                        <span className="text-sm font-medium">{seller.rating.toFixed(1)}</span>
+  1138→                      </div>
+  1139→                    </TableCell>
+  1140→                    <TableCell className="text-sm font-medium">{seller.totalSales}</TableCell>
+  1141→                    <TableCell className="text-sm">{formatCurrency(seller.wallet?.balance ?? 0)}</TableCell>
+  1142→                    <TableCell>
+  1143→                      <Switch
+  1144→                        checked={seller.isVerified}
+  1145→                        onCheckedChange={(checked) =>
+  1146→                          verifyMutation.mutate({ sellerId: seller.id, isVerified: checked })
+  1147→                        }
+  1148→                        disabled={verifyMutation.isPending}
+  1149→                      />
+  1150→                    </TableCell>
+  1151→                  </TableRow>
+  1152→                ))}
+  1153→              </TableBody>
+  1154→            </Table>
+  1155→          )}
+  1156→        </div>
+  1157→      </div>
+  1158→    </motion.div>
+  1159→  );
+  1160→}
+  1161→
+  1162→// ===================== USERS TAB =====================
+  1163→function UsersTab() {
+  1164→  const [roleFilter, setRoleFilter] = useState('ALL');
+  1165→
+  1166→  const { data, isLoading } = useQuery<{ users: AdminUser[]; total: number }>({
+  1167→    queryKey: ['admin-users', roleFilter],
+  1168→    queryFn: () => fetch(`/api/admin/users?role=${roleFilter}`).then((r) => r.json()),
+  1169→  });
+  1170→
+  1171→  return (
+  1172→    <motion.div
+  1173→      initial={{ opacity: 0, x: 20 }}
+  1174→      animate={{ opacity: 1, x: 0 }}
+  1175→      exit={{ opacity: 0, x: -20 }}
+  1176→      transition={{ duration: 0.2 }}
+  1177→      className="space-y-4"
+  1178→    >
+  1179→      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+  1180→        <h2 className="text-lg font-semibold text-slate-900">All Users</h2>
+  1181→        <Select value={roleFilter} onValueChange={setRoleFilter}>
+  1182→          <SelectTrigger className="w-full sm:w-40">
+  1183→            <SelectValue />
+  1184→          </SelectTrigger>
+  1185→          <SelectContent>
+  1186→            <SelectItem value="ALL">All Roles</SelectItem>
+  1187→            <SelectItem value="BUYER">Buyer</SelectItem>
+  1188→            <SelectItem value="SELLER">Seller</SelectItem>
+  1189→            <SelectItem value="DELIVERY">Delivery</SelectItem>
+  1190→            <SelectItem value="ADMIN">Admin</SelectItem>
+  1191→          </SelectContent>
+  1192→        </Select>
+  1193→      </div>
+  1194→
+  1195→      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  1196→        <div className="overflow-x-auto">
+  1197→          {isLoading ? (
+  1198→            <div className="p-6 space-y-3">
+  1199→              {Array.from({ length: 5 }).map((_, i) => (
+  1200→                <Skeleton key={i} className="h-14 w-full" />
+  1201→              ))}
+  1202→            </div>
+  1203→          ) : !data?.users?.length ? (
+  1204→            <div className="p-8 text-center text-slate-500">
+  1205→              <Users className="h-10 w-10 mx-auto mb-2 text-slate-300" />
+  1206→              <p>No users found</p>
+  1207→            </div>
+  1208→          ) : (
+  1209→            <Table>
+  1210→              <TableHeader>
+  1211→                <TableRow>
+  1212→                  <TableHead>Name</TableHead>
+  1213→                  <TableHead>Email</TableHead>
+  1214→                  <TableHead>Role</TableHead>
+  1215→                  <TableHead>Phone</TableHead>
+  1216→                  <TableHead>Joined</TableHead>
+  1217→                </TableRow>
+  1218→              </TableHeader>
+  1219→              <TableBody>
+  1220→                {data.users.map((user) => (
+  1221→                  <TableRow key={user.id}>
+  1222→                    <TableCell>
+  1223→                      <div className="flex items-center gap-3">
+  1224→                        <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-medium text-slate-600">
+  1225→                          {user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+  1226→                        </div>
+  1227→                        <span className="font-medium text-sm">{user.name}</span>
+  1228→                      </div>
+  1229→                    </TableCell>
+  1230→                    <TableCell className="text-sm text-slate-600">{user.email}</TableCell>
+  1231→                    <TableCell>
+  1232→                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${roleColors[user.role] || 'bg-gray-100 text-gray-800'}`}>
+  1233→                        {user.role}
+  1234→                      </span>
+  1235→                    </TableCell>
+  1236→                    <TableCell className="text-sm text-slate-600">{user.phone || '—'}</TableCell>
+  1237→                    <TableCell className="text-sm text-slate-500">{formatDate(user.createdAt)}</TableCell>
+  1238→                  </TableRow>
+  1239→                ))}
+  1240→              </TableBody>
+  1241→            </Table>
+  1242→          )}
+  1243→        </div>
+  1244→      </div>
+  1245→    </motion.div>
+  1246→  );
+  1247→}
+  1248→
+  1249→// ===================== WAREHOUSES TAB =====================
+  1250→function WarehousesTab({ onAddWarehouse }: { onAddWarehouse: () => void }) {
+  1251→  const queryClient = useQueryClient();
+  1252→  const [expandedWarehouse, setExpandedWarehouse] = useState<string | null>(null);
+  1253→  const [statusFilter, setStatusFilter] = useState('ALL');
+  1254→
+  1255→  const { data: stats, isLoading: statsLoading } = useQuery<WarehouseStats>({
+  1256→    queryKey: ['warehouse-stats'],
+  1257→    queryFn: () => fetch('/api/admin/warehouses/stats').then((r) => r.json()),
+  1258→  });
+  1259→
+  1260→  const { data, isLoading, refetch } = useQuery<{ warehouses: AdminWarehouse[] }>({
+  1261→    queryKey: ['admin-warehouses', statusFilter],
+  1262→    queryFn: () => fetch(`/api/admin/warehouses?status=${statusFilter}`).then((r) => r.json()),
+  1263→  });
+  1264→
+  1265→  const { data: warehouseDetail, isLoading: detailLoading } = useQuery<WarehouseDetail>({
+  1266→    queryKey: ['warehouse-detail', expandedWarehouse],
+  1267→    queryFn: () => fetch(`/api/admin/warehouses/${expandedWarehouse}`).then((r) => r.json()),
+  1268→    enabled: !!expandedWarehouse,
+  1269→  });
+  1270→
+  1271→  const deactivateMutation = useMutation({
+  1272→    mutationFn: (id: string) => fetch(`/api/admin/warehouses/${id}`, { method: 'DELETE' }).then((r) => r.json()),
+  1273→    onSuccess: () => {
+  1274→      toast.success('Warehouse deactivated');
+  1275→      queryClient.invalidateQueries({ queryKey: ['admin-warehouses'] });
+  1276→      queryClient.invalidateQueries({ queryKey: ['warehouse-stats'] });
+  1277→      refetch();
+  1278→    },
+  1279→    onError: () => toast.error('Failed to deactivate warehouse'),
+  1280→  });
+  1281→
+  1282→  const handleToggleExpand = (id: string) => {
+  1283→    setExpandedWarehouse(expandedWarehouse === id ? null : id);
+  1284→  };
+  1285→
+  1286→  return (
+  1287→    <motion.div
+  1288→      initial={{ opacity: 0, x: 20 }}
+  1289→      animate={{ opacity: 1, x: 0 }}
+  1290→      exit={{ opacity: 0, x: -20 }}
+  1291→      transition={{ duration: 0.2 }}
+  1292→      className="space-y-6"
+  1293→    >
+  1294→      {/* Stats Summary */}
+  1295→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  1296→        {statsLoading ? (
+  1297→          Array.from({ length: 4 }).map((_, i) => <StatSkeleton key={i} />)
+  1298→        ) : stats ? (
+  1299→          <>
+  1300→            <StatCard
+  1301→              icon={Warehouse}
+  1302→              label="Total Warehouses"
+  1303→              value={stats.totalWarehouses.toString()}
+  1304→              color="bg-slate-800"
+  1305→            />
+  1306→            <StatCard
+  1307→              icon={Package}
+  1308→              label="Items in Stock"
+  1309→              value={stats.totalItemsInStock.toLocaleString()}
+  1310→              color="bg-green-500"
+  1311→            />
+  1312→            <StatCard
+  1313→              icon={AlertTriangle}
+  1314→              label="Low Stock Alerts"
+  1315→              value={stats.lowStockAlerts.toString()}
+  1316→              color="bg-red-500"
+  1317→            />
+  1318→            <StatCard
+  1319→              icon={DollarSign}
+  1320→              label="Inventory Value"
+  1321→              value={formatCurrency(stats.inventoryValue)}
+  1322→              color="bg-amber-500"
+  1323→            />
+  1324→          </>
+  1325→        ) : null}
+  1326→      </div>
+  1327→
+  1328→      {/* Header with filter and add button */}
+  1329→      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+  1330→        <h2 className="text-lg font-semibold text-slate-900">All Warehouses</h2>
+  1331→        <div className="flex gap-3">
+  1332→          <Select value={statusFilter} onValueChange={setStatusFilter}>
+  1333→            <SelectTrigger className="w-full sm:w-40">
+  1334→              <SelectValue />
+  1335→            </SelectTrigger>
+  1336→            <SelectContent>
+  1337→              <SelectItem value="ALL">All Status</SelectItem>
+  1338→              <SelectItem value="ACTIVE">Active</SelectItem>
+  1339→              <SelectItem value="INACTIVE">Inactive</SelectItem>
+  1340→              <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+  1341→            </SelectContent>
+  1342→          </Select>
+  1343→          <Button
+  1344→            className="bg-amber-500 hover:bg-amber-600 text-white"
+  1345→            onClick={onAddWarehouse}
+  1346→          >
+  1347→            <Plus className="h-4 w-4 mr-2" />
+  1348→            Create Warehouse
+  1349→          </Button>
+  1350→        </div>
+  1351→      </div>
+  1352→
+  1353→      {/* Warehouse Cards */}
+  1354→      {isLoading ? (
+  1355→        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  1356→          {Array.from({ length: 3 }).map((_, i) => (
+  1357→            <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+  1358→              <Skeleton className="h-6 w-40" />
+  1359→              <Skeleton className="h-4 w-24" />
+  1360→              <Skeleton className="h-3 w-full" />
+  1361→              <Skeleton className="h-3 w-32" />
+  1362→            </div>
+  1363→          ))}
+  1364→        </div>
+  1365→      ) : !data?.warehouses?.length ? (
+  1366→        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-slate-500">
+  1367→          <Warehouse className="h-10 w-10 mx-auto mb-2 text-slate-300" />
+  1368→          <p>No warehouses found</p>
+  1369→        </div>
+  1370→      ) : (
+  1371→        <div className="space-y-4">
+  1372→          {data.warehouses.map((warehouse) => {
+  1373→            const isExpanded = expandedWarehouse === warehouse.id;
+  1374→            return (
+  1375→              <div key={warehouse.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  1376→                {/* Warehouse Card Header */}
+  1377→                <button
+  1378→                  onClick={() => handleToggleExpand(warehouse.id)}
+  1379→                  className="w-full text-left p-4 md:p-6 hover:bg-gray-50/50 transition-colors"
+  1380→                >
+  1381→                  <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+  1382→                    <div className="flex-1 min-w-0">
+  1383→                      <div className="flex items-center gap-3 mb-1">
+  1384→                        <h3 className="font-semibold text-slate-900 text-base">{warehouse.name}</h3>
+  1385→                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${warehouseStatusColors[warehouse.status] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+  1386→                          {warehouse.status}
+  1387→                        </span>
+  1388→                      </div>
+  1389→                      <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+  1390→                        <span className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded">{warehouse.code}</span>
+  1391→                        <span className="flex items-center gap-1">
+  1392→                          <MapPin className="h-3.5 w-3.5" />
+  1393→                          {warehouse.city}, {warehouse.county}
+  1394→                        </span>
+  1395→                        {warehouse.managerName && (
+  1396→                          <span className="flex items-center gap-1">
+  1397→                            <User className="h-3.5 w-3.5" />
+  1398→                            {warehouse.managerName}
+  1399→                          </span>
+  1400→                        )}
+  1401→                      </div>
+  1402→                    </div>
+  1403→
+  1404→                    <div className="flex items-center gap-4 md:gap-6">
+  1405→                      {/* Capacity Bar */}
+  1406→                      <div className="flex-1 md:w-48">
+  1407→                        <div className="flex items-center justify-between mb-1">
+  1408→                          <span className="text-xs text-slate-500">Capacity</span>
+  1409→                          <span className={`text-xs font-medium ${getCapacityColor(warehouse.capacityPercentage)}`}>
+  1410→                            {warehouse.capacityPercentage}%
+  1411→                          </span>
+  1412→                        </div>
+  1413→                        <Progress value={Math.min(warehouse.capacityPercentage, 100)} className={`h-2 ${getCapacityBarColor(warehouse.capacityPercentage)}`} />
+  1414→                        <p className="text-xs text-slate-400 mt-1">
+  1415→                          {warehouse.totalItems.toLocaleString()} / {warehouse.capacity.toLocaleString()} units
+  1416→                        </p>
+  1417→                      </div>
+  1418→
+  1419→                      <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+  1420→                    </div>
+  1421→                  </div>
+  1422→                </button>
+  1423→
+  1424→                {/* Expanded: Inventory Items Table */}
+  1425→                <AnimatePresence>
+  1426→                  {isExpanded && (
+  1427→                    <motion.div
+  1428→                      initial={{ height: 0, opacity: 0 }}
+  1429→                      animate={{ height: 'auto', opacity: 1 }}
+  1430→                      exit={{ height: 0, opacity: 0 }}
+  1431→                      transition={{ duration: 0.2 }}
+  1432→                    >
+  1433→                      <div className="border-t border-gray-100">
+  1434→                        <div className="p-4 md:p-6">
+  1435→                          {/* Warehouse Info Grid */}
+  1436→                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  1437→                            <div>
+  1438→                              <p className="text-xs text-slate-500">Address</p>
+  1439→                              <p className="text-sm font-medium text-slate-700 mt-0.5">{warehouse.address}</p>
+  1440→                            </div>
+  1441→                            <div>
+  1442→                              <p className="text-xs text-slate-500">Manager</p>
+  1443→                              <p className="text-sm font-medium text-slate-700 mt-0.5">{warehouse.managerName || '—'}</p>
+  1444→                            </div>
+  1445→                            <div>
+  1446→                              <p className="text-xs text-slate-500">Phone</p>
+  1447→                              <p className="text-sm font-medium text-slate-700 mt-0.5">{warehouse.managerPhone || '—'}</p>
+  1448→                            </div>
+  1449→                            <div>
+  1450→                              <p className="text-xs text-slate-500">Low Stock Items</p>
+  1451→                              <p className="text-sm font-medium text-slate-700 mt-0.5">{warehouse.lowStockCount}</p>
+  1452→                            </div>
+  1453→                          </div>
+  1454→
+  1455→                          {/* Inventory Items */}
+  1456→                          <h4 className="font-medium text-sm text-slate-900 mb-3">Inventory Items</h4>
+  1457→                          {detailLoading ? (
+  1458→                            <div className="space-y-2">
+  1459→                              {Array.from({ length: 3 }).map((_, i) => (
+  1460→                                <Skeleton key={i} className="h-12 w-full" />
+  1461→                              ))}
+  1462→                            </div>
+  1463→                          ) : !warehouseDetail?.inventoryItems?.length ? (
+  1464→                            <p className="text-sm text-slate-500 py-4 text-center">No inventory items in this warehouse</p>
+  1465→                          ) : (
+  1466→                            <div className="overflow-x-auto rounded-lg border border-gray-100">
+  1467→                              <Table>
+  1468→                                <TableHeader>
+  1469→                                  <TableRow>
+  1470→                                    <TableHead>Product</TableHead>
+  1471→                                    <TableHead>Seller</TableHead>
+  1472→                                    <TableHead>Quantity</TableHead>
+  1473→                                    <TableHead>Reserved</TableHead>
+  1474→                                    <TableHead>Bin Location</TableHead>
+  1475→                                    <TableHead>Status</TableHead>
+  1476→                                  </TableRow>
+  1477→                                </TableHeader>
+  1478→                                <TableBody>
+  1479→                                  {warehouseDetail.inventoryItems.map((item) => {
+  1480→                                    const isLow = item.quantity <= item.reorderLevel;
+  1481→                                    return (
+  1482→                                      <TableRow key={item.id}>
+  1483→                                        <TableCell>
+  1484→                                          <div className="flex items-center gap-2">
+  1485→                                            <div className="h-8 w-8 rounded bg-gray-100 overflow-hidden flex-shrink-0">
+  1486→                                              <img src={item.product.image} alt={item.product.name} className="h-full w-full object-cover" />
+  1487→                                            </div>
+  1488→                                            <span className="text-sm font-medium max-w-[180px] truncate block">{item.product.name}</span>
+  1489→                                          </div>
+  1490→                                        </TableCell>
+  1491→                                        <TableCell className="text-sm text-slate-600">{item.product.seller.storeName}</TableCell>
+  1492→                                        <TableCell>
+  1493→                                          <span className={`text-sm font-medium ${isLow ? 'text-red-600' : 'text-slate-700'}`}>
+  1494→                                            {item.quantity}
+  1495→                                          </span>
+  1496→                                        </TableCell>
+  1497→                                        <TableCell className="text-sm text-slate-500">{item.reservedQuantity}</TableCell>
+  1498→                                        <TableCell className="text-sm font-mono text-slate-600">{item.binLocation || '—'}</TableCell>
+  1499→                                        <TableCell>
+  1500→                                          {isLow ? (
+  1501→                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+  1502→                                              <AlertTriangle className="h-3 w-3" />
+  1503→                                              Low Stock
+  1504→                                            </span>
+  1505→                                          ) : (
+  1506→                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+  1507→                                              In Stock
+  1508→                                            </span>
+  1509→                                          )}
+  1510→                                        </TableCell>
+  1511→                                      </TableRow>
+  1512→                                    );
+  1513→                                  })}
+  1514→                                </TableBody>
+  1515→                              </Table>
+  1516→                            </div>
+  1517→                          )}
+  1518→
+  1519→                          {/* Actions */}
+  1520→                          <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
+  1521→                            <Button
+  1522→                              variant="outline"
+  1523→                              size="sm"
+  1524→                              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+  1525→                              onClick={() => deactivateMutation.mutate(warehouse.id)}
+  1526→                              disabled={deactivateMutation.isPending || warehouse.status === 'INACTIVE'}
+  1527→                            >
+  1528→                              {deactivateMutation.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+  1529→                              Deactivate
+  1530→                            </Button>
+  1531→                          </div>
+  1532→                        </div>
+  1533→                      </div>
+  1534→                    </motion.div>
+  1535→                  )}
+  1536→                </AnimatePresence>
+  1537→              </div>
+  1538→            );
+  1539→          })}
+  1540→        </div>
+  1541→      )}
+  1542→    </motion.div>
+  1543→  );
+  1544→}
+  1545→
+  1546→// ===================== PRODUCT DIALOG =====================
+  1547→function ProductDialog({
+  1548→  open,
+  1549→  onOpenChange,
+  1550→}: {
+  1551→  open: boolean;
+  1552→  onOpenChange: (open: boolean) => void;
+  1553→}) {
+  1554→  const queryClient = useQueryClient();
+  1555→  const [form, setForm] = useState({
+  1556→    name: '', description: '', price: '', originalPrice: '', image: '', images: '',
+  1557→    categoryId: '', sellerId: '', stock: '100', featured: false, status: 'ACTIVE',
+  1558→  });
+  1559→  const [submitting, setSubmitting] = useState(false);
+  1560→
+  1561→  const { data: categories } = useQuery<Category[]>({
+  1562→    queryKey: ['categories'],
+  1563→    queryFn: () => fetch('/api/categories').then((r) => r.json()),
+  1564→  });
+  1565→
+  1566→  const { data: sellers } = useQuery<AdminSeller[]>({
+  1567→    queryKey: ['admin-sellers-dialog'],
+  1568→    queryFn: () => fetch('/api/admin/sellers').then((r) => r.json()),
+  1569→  });
+  1570→
+  1571→  const updateField = useCallback((key: string, value: string | boolean) => {
+  1572→    setForm((prev) => ({ ...prev, [key]: value }));
+  1573→  }, []);
+  1574→
+  1575→  const handleSubmit = async () => {
+  1576→    if (!form.name || !form.description || !form.price || !form.image || !form.categoryId || !form.sellerId) {
+  1577→      toast.error('Please fill all required fields');
+  1578→      return;
+  1579→    }
+  1580→
+  1581→    setSubmitting(true);
+  1582→    try {
+  1583→      const res = await fetch('/api/admin/products', {
+  1584→        method: 'POST',
+  1585→        headers: { 'Content-Type': 'application/json' },
+  1586→        body: JSON.stringify(form),
+  1587→      });
+  1588→      if (res.ok) {
+  1589→        toast.success('Product created successfully');
+  1590→        queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+  1591→        onOpenChange(false);
+  1592→        setForm({
+  1593→          name: '', description: '', price: '', originalPrice: '', image: '', images: '',
+  1594→          categoryId: '', sellerId: '', stock: '100', featured: false, status: 'ACTIVE',
+  1595→        });
+  1596→      } else {
+  1597→        const err = await res.json();
+  1598→        toast.error(err.error || 'Failed to create product');
+  1599→      }
+  1600→    } catch {
+  1601→      toast.error('Failed to create product');
+  1602→    } finally {
+  1603→      setSubmitting(false);
+  1604→    }
+  1605→  };
+  1606→
+  1607→  return (
+  1608→    <Dialog open={open} onOpenChange={onOpenChange}>
+  1609→      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+  1610→        <DialogHeader>
+  1611→          <DialogTitle>Add New Product</DialogTitle>
+  1612→          <DialogDescription>Fill in the product details below</DialogDescription>
+  1613→        </DialogHeader>
+  1614→
+  1615→        <div className="grid gap-4 py-2">
+  1616→          <div className="grid gap-4 sm:grid-cols-2">
+  1617→            <div className="space-y-2">
+  1618→              <Label>Product Name *</Label>
+  1619→              <Input
+  1620→                value={form.name}
+  1621→                onChange={(e) => updateField('name', e.target.value)}
+  1622→                placeholder="Product name"
+  1623→              />
+  1624→            </div>
+  1625→            <div className="space-y-2">
+  1626→              <Label>Price (KES) *</Label>
+  1627→              <Input
+  1628→                type="number"
+  1629→                value={form.price}
+  1630→                onChange={(e) => updateField('price', e.target.value)}
+  1631→                placeholder="0"
+  1632→              />
+  1633→            </div>
+  1634→          </div>
+  1635→
+  1636→          <div className="grid gap-4 sm:grid-cols-2">
+  1637→            <div className="space-y-2">
+  1638→              <Label>Original Price (KES)</Label>
+  1639→              <Input
+  1640→                type="number"
+  1641→                value={form.originalPrice}
+  1642→                onChange={(e) => updateField('originalPrice', e.target.value)}
+  1643→                placeholder="Optional"
+  1644→              />
+  1645→            </div>
+  1646→            <div className="space-y-2">
+  1647→              <Label>Stock *</Label>
+  1648→              <Input
+  1649→                type="number"
+  1650→                value={form.stock}
+  1651→                onChange={(e) => updateField('stock', e.target.value)}
+  1652→                placeholder="100"
+  1653→              />
+  1654→            </div>
+  1655→          </div>
+  1656→
+  1657→          <div className="grid gap-4 sm:grid-cols-2">
+  1658→            <div className="space-y-2">
+  1659→              <Label>Category *</Label>
+  1660→              <Select value={form.categoryId} onValueChange={(v) => updateField('categoryId', v)}>
+  1661→                <SelectTrigger className="w-full">
+  1662→                  <SelectValue placeholder="Select category" />
+  1663→                </SelectTrigger>
+  1664→                <SelectContent>
+  1665→                  {categories?.map((cat) => (
+  1666→                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+  1667→                  ))}
+  1668→                </SelectContent>
+  1669→              </Select>
+  1670→            </div>
+  1671→            <div className="space-y-2">
+  1672→              <Label>Seller *</Label>
+  1673→              <Select value={form.sellerId} onValueChange={(v) => updateField('sellerId', v)}>
+  1674→                <SelectTrigger className="w-full">
+  1675→                  <SelectValue placeholder="Select seller" />
+  1676→                </SelectTrigger>
+  1677→                <SelectContent>
+  1678→                  {sellers?.map((s) => (
+  1679→                    <SelectItem key={s.id} value={s.id}>{s.storeName}</SelectItem>
+  1680→                  ))}
+  1681→                </SelectContent>
+  1682→              </Select>
+  1683→            </div>
+  1684→          </div>
+  1685→
+  1686→          <div className="grid gap-4 sm:grid-cols-2">
+  1687→            <div className="space-y-2">
+  1688→              <Label>Status</Label>
+  1689→              <Select value={form.status} onValueChange={(v) => updateField('status', v)}>
+  1690→                <SelectTrigger className="w-full">
+  1691→                  <SelectValue />
+  1692→                </SelectTrigger>
+  1693→                <SelectContent>
+  1694→                  <SelectItem value="ACTIVE">Active</SelectItem>
+  1695→                  <SelectItem value="DRAFT">Draft</SelectItem>
+  1696→                </SelectContent>
+  1697→              </Select>
+  1698→            </div>
+  1699→            <div className="space-y-2">
+  1700→              <Label>Image URL *</Label>
+  1701→              <Input
+  1702→                value={form.image}
+  1703→                onChange={(e) => updateField('image', e.target.value)}
+  1704→                placeholder="https://..."
+  1705→              />
+  1706→            </div>
+  1707→          </div>
+  1708→
+  1709→          <div className="space-y-2">
+  1710→            <Label>Additional Image URLs (comma-separated)</Label>
+  1711→            <Input
+  1712→              value={form.images}
+  1713→              onChange={(e) => updateField('images', e.target.value)}
+  1714→              placeholder="https://..., https://..."
+  1715→            />
+  1716→          </div>
+  1717→
+  1718→          <div className="space-y-2">
+  1719→            <Label>Description *</Label>
+  1720→            <Textarea
+  1721→              value={form.description}
+  1722→              onChange={(e) => updateField('description', e.target.value)}
+  1723→              placeholder="Product description"
+  1724→              rows={3}
+  1725→            />
+  1726→          </div>
+  1727→
+  1728→          <div className="flex items-center gap-2">
+  1729→            <Switch
+  1730→              checked={form.featured}
+  1731→              onCheckedChange={(checked) => updateField('featured', checked)}
+  1732→            />
+  1733→            <Label>Featured Product</Label>
+  1734→          </div>
+  1735→        </div>
+  1736→
+  1737→        <DialogFooter>
+  1738→          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-slate-300">
+  1739→            Cancel
+  1740→          </Button>
+  1741→          <Button
+  1742→            className="bg-amber-500 hover:bg-amber-600 text-white"
+  1743→            onClick={handleSubmit}
+  1744→            disabled={submitting}
+  1745→          >
+  1746→            {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+  1747→            Create Product
+  1748→          </Button>
+  1749→        </DialogFooter>
+  1750→      </DialogContent>
+  1751→    </Dialog>
+  1752→  );
+  1753→}
+  1754→
+  1755→// ===================== CREATE WAREHOUSE DIALOG =====================
+  1756→function CreateWarehouseDialog({
+  1757→  open,
+  1758→  onOpenChange,
+  1759→}: {
+  1760→  open: boolean;
+  1761→  onOpenChange: (open: boolean) => void;
+  1762→}) {
+  1763→  const queryClient = useQueryClient();
+  1764→  const [form, setForm] = useState({
+  1765→    name: '',
+  1766→    code: '',
+  1767→    address: '',
+  1768→    city: '',
+  1769→    county: '',
+  1770→    latitude: '',
+  1771→    longitude: '',
+  1772→    capacity: '1000',
+  1773→    managerName: '',
+  1774→    managerPhone: '',
+  1775→    status: 'ACTIVE',
+  1776→  });
+  1777→  const [submitting, setSubmitting] = useState(false);
+  1778→
+  1779→  const updateField = useCallback((key: string, value: string) => {
+  1780→    setForm((prev) => ({ ...prev, [key]: value }));
+  1781→  }, []);
+  1782→
+  1783→  const handleSubmit = async () => {
+  1784→    if (!form.name || !form.code || !form.address || !form.city || !form.county) {
+  1785→      toast.error('Please fill all required fields (name, code, address, city, county)');
+  1786→      return;
+  1787→    }
+  1788→
+  1789→    setSubmitting(true);
+  1790→    try {
+  1791→      const res = await fetch('/api/admin/warehouses', {
+  1792→        method: 'POST',
+  1793→        headers: { 'Content-Type': 'application/json' },
+  1794→        body: JSON.stringify(form),
+  1795→      });
+  1796→      if (res.ok) {
+  1797→        toast.success('Warehouse created successfully');
+  1798→        queryClient.invalidateQueries({ queryKey: ['admin-warehouses'] });
+  1799→        queryClient.invalidateQueries({ queryKey: ['warehouse-stats'] });
+  1800→        onOpenChange(false);
+  1801→        setForm({
+  1802→          name: '', code: '', address: '', city: '', county: '',
+  1803→          latitude: '', longitude: '', capacity: '1000',
+  1804→          managerName: '', managerPhone: '', status: 'ACTIVE',
+  1805→        });
+  1806→      } else {
+  1807→        const err = await res.json();
+  1808→        toast.error(err.error || 'Failed to create warehouse');
+  1809→      }
+  1810→    } catch {
+  1811→      toast.error('Failed to create warehouse');
+  1812→    } finally {
+  1813→      setSubmitting(false);
+  1814→    }
+  1815→  };
+  1816→
+  1817→  return (
+  1818→    <Dialog open={open} onOpenChange={onOpenChange}>
+  1819→      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+  1820→        <DialogHeader>
+  1821→          <DialogTitle>Create New Warehouse</DialogTitle>
+  1822→          <DialogDescription>Set up a new warehouse location for inventory management</DialogDescription>
+  1823→        </DialogHeader>
+  1824→
+  1825→        <div className="grid gap-4 py-2">
+  1826→          <div className="grid gap-4 sm:grid-cols-2">
+  1827→            <div className="space-y-2">
+  1828→              <Label>Warehouse Name *</Label>
+  1829→              <Input
+  1830→                value={form.name}
+  1831→                onChange={(e) => updateField('name', e.target.value)}
+  1832→                placeholder="e.g. Warehouse D - Kisumu"
+  1833→              />
+  1834→            </div>
+  1835→            <div className="space-y-2">
+  1836→              <Label>Warehouse Code *</Label>
+  1837→              <Input
+  1838→                value={form.code}
+  1839→                onChange={(e) => updateField('code', e.target.value)}
+  1840→                placeholder="e.g. WH-KSM-1"
+  1841→              />
+  1842→            </div>
+  1843→          </div>
+  1844→
+  1845→          <div className="space-y-2">
+  1846→            <Label>Address *</Label>
+  1847→            <Input
+  1848→              value={form.address}
+  1849→              onChange={(e) => updateField('address', e.target.value)}
+  1850→              placeholder="Full street address"
+  1851→            />
+  1852→          </div>
+  1853→
+  1854→          <div className="grid gap-4 sm:grid-cols-2">
+  1855→            <div className="space-y-2">
+  1856→              <Label>City *</Label>
+  1857→              <Input
+  1858→                value={form.city}
+  1859→                onChange={(e) => updateField('city', e.target.value)}
+  1860→                placeholder="e.g. Nairobi"
+  1861→              />
+  1862→            </div>
+  1863→            <div className="space-y-2">
+  1864→              <Label>County *</Label>
+  1865→              <Input
+  1866→                value={form.county}
+  1867→                onChange={(e) => updateField('county', e.target.value)}
+  1868→                placeholder="e.g. Nairobi"
+  1869→              />
+  1870→            </div>
+  1871→          </div>
+  1872→
+  1873→          <div className="grid gap-4 sm:grid-cols-2">
+  1874→            <div className="space-y-2">
+  1875→              <Label>Latitude</Label>
+  1876→              <Input
+  1877→                type="number"
+  1878→                step="any"
+  1879→                value={form.latitude}
+  1880→                onChange={(e) => updateField('latitude', e.target.value)}
+  1881→                placeholder="-1.2921"
+  1882→              />
+  1883→            </div>
+  1884→            <div className="space-y-2">
+  1885→              <Label>Longitude</Label>
+  1886→              <Input
+  1887→                type="number"
+  1888→                step="any"
+  1889→                value={form.longitude}
+  1890→                onChange={(e) => updateField('longitude', e.target.value)}
+  1891→                placeholder="36.8219"
+  1892→              />
+  1893→            </div>
+  1894→          </div>
+  1895→
+  1896→          <div className="grid gap-4 sm:grid-cols-3">
+  1897→            <div className="space-y-2">
+  1898→              <Label>Capacity (units)</Label>
+  1899→              <Input
+  1900→                type="number"
+  1901→                value={form.capacity}
+  1902→                onChange={(e) => updateField('capacity', e.target.value)}
+  1903→                placeholder="1000"
+  1904→              />
+  1905→            </div>
+  1906→            <div className="space-y-2">
+  1907→              <Label>Manager Name</Label>
+  1908→              <Input
+  1909→                value={form.managerName}
+  1910→                onChange={(e) => updateField('managerName', e.target.value)}
+  1911→                placeholder="Full name"
+  1912→              />
+  1913→            </div>
+  1914→            <div className="space-y-2">
+  1915→              <Label>Manager Phone</Label>
+  1916→              <Input
+  1917→                value={form.managerPhone}
+  1918→                onChange={(e) => updateField('managerPhone', e.target.value)}
+  1919→                placeholder="+2547..."
+  1920→              />
+  1921→            </div>
+  1922→          </div>
+  1923→
+  1924→          <div className="space-y-2">
+  1925→            <Label>Status</Label>
+  1926→            <Select value={form.status} onValueChange={(v) => updateField('status', v)}>
+  1927→              <SelectTrigger className="w-full">
+  1928→                <SelectValue />
+  1929→              </SelectTrigger>
+  1930→              <SelectContent>
+  1931→                <SelectItem value="ACTIVE">Active</SelectItem>
+  1932→                <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+  1933→                <SelectItem value="INACTIVE">Inactive</SelectItem>
+  1934→              </SelectContent>
+  1935→            </Select>
+  1936→          </div>
+  1937→        </div>
+  1938→
+  1939→        <DialogFooter>
+  1940→          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-slate-300">
+  1941→            Cancel
+  1942→          </Button>
+  1943→          <Button
+  1944→            className="bg-amber-500 hover:bg-amber-600 text-white"
+  1945→            onClick={handleSubmit}
+  1946→            disabled={submitting}
+  1947→          >
+  1948→            {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+  1949→            Create Warehouse
+  1950→          </Button>
+  1951→        </DialogFooter>
+  1952→      </DialogContent>
+  1953→    </Dialog>
+  1954→  );
+  1955→}
+  1956→
+  1957→// ===================== BANNERS TAB =====================
+  1958→interface AdminBanner {
+  1959→  id: string;
+  1960→  title: string;
+  1961→  image: string;
+  1962→  link: string | null;
+  1963→  position: string;
+  1964→  order: number;
+  1965→  active: boolean;
+  1966→  clicksCount: number;
+  1967→  createdAt: string;
+  1968→  updatedAt: string;
+  1969→}
+  1970→
+  1971→const bannerPositionColors: Record<string, string> = {
+  1972→  HERO: 'bg-amber-100 text-amber-800',
+  1973→  SIDEBAR: 'bg-purple-100 text-purple-800',
+  1974→  FOOTER: 'bg-slate-100 text-slate-800',
+  1975→  POPUP: 'bg-green-100 text-green-800',
+  1976→};
+  1977→
+  1978→function BannersTab({ onAddBanner, onEditBanner }: { onAddBanner: () => void; onEditBanner: (b: AdminBanner) => void }) {
+  1979→  const queryClient = useQueryClient();
+  1980→  const [positionFilter, setPositionFilter] = useState('ALL');
+  1981→
+  1982→  const { data: banners, isLoading, refetch } = useQuery<AdminBanner[]>({
+  1983→    queryKey: ['admin-banners', positionFilter],
+  1984→    queryFn: () => {
+  1985→      const params = new URLSearchParams();
+  1986→      if (positionFilter !== 'ALL') params.set('position', positionFilter);
+  1987→      return fetch(`/api/admin/banners?${params}`).then((r) => r.json());
+  1988→    },
+  1989→  });
+  1990→
+  1991→  const toggleMutation = useMutation({
+  1992→    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+  1993→      fetch(`/api/admin/banners/${id}`, {
+  1994→        method: 'PUT',
+  1995→        headers: { 'Content-Type': 'application/json' },
+  1996→        body: JSON.stringify({ active }),
+  1997→      }).then((r) => r.json()),
+  1998→    onSuccess: () => {
+  1999→      toast.success('Banner updated');
+  2000→      refetch();
+
+[showing lines 1-2000 of 2515; use offset=2001 with limit to continue reading]

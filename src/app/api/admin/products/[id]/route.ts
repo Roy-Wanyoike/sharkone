@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { audit } from '@/lib/audit';
 
 export async function GET(
   request: Request,
@@ -63,6 +64,10 @@ export async function PUT(
       },
     });
 
+    if (body.status === 'ARCHIVED' || existing.status !== body.status) {
+      audit({ action: 'UPDATE_PRODUCT', resource: 'product', resourceId: id, details: `Status: ${existing.status} → ${body.status}`, req: request });
+    }
+
     return NextResponse.json(product);
   } catch (error) {
     console.error('Error updating product:', error);
@@ -86,6 +91,8 @@ export async function DELETE(
       where: { id },
       data: { status: 'ARCHIVED' },
     });
+
+    audit({ action: 'UPDATE_PRODUCT', resource: 'product', resourceId: id, details: `Product archived: ${existing.name}`, req: request });
 
     return NextResponse.json({ message: 'Product archived' });
   } catch (error) {

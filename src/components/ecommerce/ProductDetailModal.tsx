@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Star, StarHalf, Heart, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart-store';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
 
@@ -36,6 +38,7 @@ export function ProductDetailModal({
   const toggleWishlist = useCartStore((s) => s.toggleWishlist);
   const isInWishlist = useCartStore((s) => s.isInWishlist);
   const wishlisted = isInWishlist(product.id);
+  const currencyCode = useCurrencyStore(s => s.code);
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
@@ -46,7 +49,7 @@ export function ProductDetailModal({
     }
     toast.success(`${quantity}x ${product.name} added to cart`, {
       icon: <ShoppingBag className="h-4 w-4" />,
-      description: `Total: $${(product.price * quantity).toFixed(2)}`,
+      description: `Total: ${formatCurrency(product.price * quantity, currencyCode)}`,
       action: { label: 'View Cart', onClick: () => useCartStore.getState().openCart() },
     });
     onClose();
@@ -118,11 +121,11 @@ export function ProductDetailModal({
 
                 <div className="flex items-baseline gap-3 mt-6">
                   <span className="text-3xl font-bold text-gray-900">
-                    ${product.price.toFixed(2)}
+                    {formatCurrency(product.price, currencyCode)}
                   </span>
                   {product.originalPrice && (
                     <span className="text-lg text-gray-400 line-through">
-                      ${product.originalPrice.toFixed(2)}
+                      {formatCurrency(product.originalPrice, currencyCode)}
                     </span>
                   )}
                 </div>

@@ -7,9 +7,13 @@ export async function GET() {
     const todayStart = startOfDay(new Date());
     const todayEnd = endOfDay(new Date());
 
-    const [active, completedToday, failed] = await Promise.all([
+    const [total, active, inTransit, completedToday, failed] = await Promise.all([
+      db.delivery.count(),
       db.delivery.count({
         where: { status: { in: ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'NEAR_LOCATION'] } },
+      }),
+      db.delivery.count({
+        where: { status: 'IN_TRANSIT' },
       }),
       db.delivery.count({
         where: {
@@ -22,18 +26,11 @@ export async function GET() {
       }),
     ]);
 
-    // Count orders that are PROCESSING or SHIPPED but don't have a delivery record
-    const pendingOrders = await db.order.count({
-      where: {
-        status: { in: ['PROCESSING', 'SHIPPED'] },
-        delivery: null,
-      },
-    });
-
     return NextResponse.json({
+      total,
       active,
+      inTransit,
       completedToday,
-      pendingAssignment: pendingOrders,
       failed,
     });
   } catch (error) {

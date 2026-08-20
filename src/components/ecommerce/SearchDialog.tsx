@@ -5,14 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Loader2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import type { Product } from '@/types';
-
-function formatKES(amount: number): string {
-  return new Intl.NumberFormat('en-KE', {
-    style: 'currency',
-    currency: 'KES',
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 
 export function SearchDialog({
   open,
@@ -25,6 +19,7 @@ export function SearchDialog({
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const currencyCode = useCurrencyStore(s => s.code);
 
   // Focus input when dialog opens
   useEffect(() => {
@@ -135,7 +130,7 @@ export function SearchDialog({
                       {product.name}
                     </h3>
                     <p className="text-sm font-semibold text-amber-700 mt-0.5">
-                      {formatKES(product.price)}
+                      {formatCurrency(product.price, currencyCode)}
                     </p>
                   </div>
                 </Link>

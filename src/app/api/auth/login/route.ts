@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { audit } from '@/lib/audit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -106,6 +107,8 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    audit({ userId: primaryUser.id, role: primaryUser.role, action: 'LOGIN', resource: 'auth', details: `Login: ${primaryUser.email}`, req: request });
 
     return NextResponse.json({
       user: {

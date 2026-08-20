@@ -40,6 +40,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useCartStore } from '@/store/cart-store';
 import { useRecentlyViewedStore } from '@/store/recently-viewed-store';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 import { Footer } from '@/components/ecommerce/Footer';
 import type { Product } from '@/types';
 
@@ -503,6 +505,7 @@ function ReviewSection({ productId }: { productId: string }) {
 /*  Related Product Card                                               */
 /* ------------------------------------------------------------------ */
 function RelatedProductCard({ product }: { product: Product }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -532,11 +535,11 @@ function RelatedProductCard({ product }: { product: Product }) {
           </div>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-lg font-bold text-[#0F172A]">
-              ${product.price.toFixed(2)}
+              {formatCurrency(product.price, currencyCode)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
               <span className="text-sm text-gray-400 line-through">
-                ${product.originalPrice.toFixed(2)}
+                {formatCurrency(product.originalPrice, currencyCode)}
               </span>
             )}
           </div>
@@ -568,6 +571,7 @@ export default function ProductDetailPage({
   const addItem = useCartStore((s) => s.addItem);
   const toggleWishlist = useCartStore((s) => s.toggleWishlist);
   const isInWishlist = useCartStore((s) => s.isInWishlist);
+  const currencyCode = useCurrencyStore((s) => s.code);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['product', id],
@@ -698,12 +702,12 @@ export default function ProductDetailPage({
               {/* Price */}
               <div className="flex items-end gap-3">
                 <span className="text-3xl font-bold text-[#0F172A]">
-                  ${product.price.toFixed(2)}
+                  {formatCurrency(product.price, currencyCode)}
                 </span>
                 {product.originalPrice && product.originalPrice > product.price && (
                   <>
                     <span className="text-lg text-gray-400 line-through">
-                      ${product.originalPrice.toFixed(2)}
+                      {formatCurrency(product.originalPrice, currencyCode)}
                     </span>
                     <Badge variant="destructive" className="text-xs font-semibold">
                       {discountPercent}% OFF

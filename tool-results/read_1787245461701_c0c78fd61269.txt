@@ -1,0 +1,731 @@
+     1→'use client';
+     2→
+     3→import { Suspense, useState } from 'react';
+     4→import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+     5→import { motion, AnimatePresence } from 'framer-motion';
+     6→import { format } from 'date-fns';
+     7→import {
+     8→  ArrowLeft,
+     9→  Plus,
+    10→  Eye,
+    11→  Loader2,
+    12→  RotateCcw,
+    13→  CheckCircle2,
+    14→  XCircle,
+    15→  Clock,
+    16→  Truck,
+    17→  AlertTriangle,
+    18→} from 'lucide-react';
+    19→import { toast } from 'sonner';
+    20→
+    21→import { Button } from '@/components/ui/button';
+    22→import { Badge } from '@/components/ui/badge';
+    23→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+    24→import { Input } from '@/components/ui/input';
+    25→import {
+    26→  Dialog,
+    27→  DialogContent,
+    28→  DialogHeader,
+    29→  DialogTitle,
+    30→  DialogTrigger,
+    31→} from '@/components/ui/dialog';
+    32→import {
+    33→  Select,
+    34→  SelectContent,
+    35→  SelectItem,
+    36→  SelectTrigger,
+    37→  SelectValue,
+    38→} from '@/components/ui/select';
+    39→import { Textarea } from '@/components/ui/textarea';
+    40→import { Label } from '@/components/ui/label';
+    41→import { Skeleton } from '@/components/ui/skeleton';
+    42→import { Separator } from '@/components/ui/separator';
+    43→
+    44→// ─── Types ───────────────────────────────────────────────
+    45→
+    46→interface ReturnItem {
+    47→  id: string;
+    48→  returnNumber: string;
+    49→  orderId: string;
+    50→  orderNumber: string;
+    51→  orderItemId: string;
+    52→  productName: string;
+    53→  productImage: string;
+    54→  buyerName: string;
+    55→  sellerName: string;
+    56→  reason: string;
+    57→  description: string | null;
+    58→  status: string;
+    59→  refundAmount: number;
+    60→  refundStatus: string;
+    61→  resolvedAt: string | null;
+    62→  adminNotes: string | null;
+    63→  createdAt: string;
+    64→  updatedAt: string;
+    65→}
+    66→
+    67→interface BuyerOrderItem {
+    68→  id: string;
+    69→  quantity: number;
+    70→  price: number;
+    71→  productName: string;
+    72→  productImage: string;
+    73→  productSlug: string;
+    74→  sellerName: string;
+    75→  sellerUserId: string;
+    76→}
+    77→
+    78→interface BuyerOrder {
+    79→  id: string;
+    80→  orderNumber: string;
+    81→  status: string;
+    82→  totalAmount: number;
+    83→  orderItems: BuyerOrderItem[];
+    84→}
+    85→
+    86→interface ReturnDetail extends ReturnItem {
+    87→  buyerEmail: string;
+    88→  buyerPhone: string | null;
+    89→  order: {
+    90→    orderNumber: string;
+    91→    totalAmount: number;
+    92→    status: string;
+    93→    shippingAddress: string;
+    94→  };
+    95→}
+    96→
+    97→// ─── Constants ───────────────────────────────────────────
+    98→
+    99→const KES = new Intl.NumberFormat('en-KE', {
+   100→  style: 'currency',
+   101→  currency: 'KES',
+   102→  minimumFractionDigits: 0,
+   103→});
+   104→
+   105→const RETURN_REASONS = [
+   106→  'Defective',
+   107→  'Wrong Item',
+   108→  'Not as Described',
+   109→  'Changed Mind',
+   110→  'Other',
+   111→];
+   112→
+   113→const STATUS_CONFIG: Record<
+   114→  string,
+   115→  { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string; icon: React.ElementType }
+   116→> = {
+   117→  PENDING: { label: 'Pending', variant: 'outline', className: 'border-amber-400 text-amber-700 bg-amber-50', icon: Clock },
+   118→  APPROVED: { label: 'Approved', variant: 'default', className: 'bg-sky-100 text-sky-800 hover:bg-sky-100', icon: CheckCircle2 },
+   119→  REJECTED: { label: 'Rejected', variant: 'destructive', className: 'bg-red-100 text-red-800 hover:bg-red-100', icon: XCircle },
+   120→  PICKUP_SCHEDULED: { label: 'Pickup Scheduled', variant: 'outline', className: 'border-violet-400 text-violet-700 bg-violet-50', icon: Truck },
+   121→  PICKED_UP: { label: 'Picked Up', variant: 'outline', className: 'border-violet-400 text-violet-700 bg-violet-50', icon: Truck },
+   122→  INSPECTING: { label: 'Inspecting', variant: 'outline', className: 'border-orange-400 text-orange-700 bg-orange-50', icon: Eye },
+   123→  COMPLETED: { label: 'Completed', variant: 'default', className: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100', icon: CheckCircle2 },
+   124→  CANCELLED: { label: 'Cancelled', variant: 'secondary', className: 'bg-gray-100 text-gray-600 hover:bg-gray-100', icon: XCircle },
+   125→};
+   126→
+   127→const REFUND_STATUS_CONFIG: Record<
+   128→  string,
+   129→  { label: string; className: string }
+   130→> = {
+   131→  PENDING: { label: 'Pending', className: 'bg-gray-100 text-gray-600' },
+   132→  PROCESSING: { label: 'Processing', className: 'bg-sky-100 text-sky-700' },
+   133→  COMPLETED: { label: 'Completed', className: 'bg-emerald-100 text-emerald-700' },
+   134→  FAILED: { label: 'Failed', className: 'bg-red-100 text-red-700' },
+   135→};
+   136→
+   137→// ─── Sub-components ──────────────────────────────────────
+   138→
+   139→function StatusBadge({ status }: { status: string }) {
+   140→  const config = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
+   141→  const Icon = config.icon;
+   142→  return (
+   143→    <Badge variant={config.variant} className={`gap-1.5 text-xs font-medium ${config.className}`}>
+   144→      <Icon className="h-3 w-3" />
+   145→      {config.label}
+   146→    </Badge>
+   147→  );
+   148→}
+   149→
+   150→function RefundStatusBadge({ status }: { status: string }) {
+   151→  const config = REFUND_STATUS_CONFIG[status] || REFUND_STATUS_CONFIG.PENDING;
+   152→  return (
+   153→    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.className}`}>
+   154→      {config.label}
+   155→    </span>
+   156→  );
+   157→}
+   158→
+   159→function ReturnDetailDialog({
+   160→  returnId,
+   161→  open,
+   162→  onOpenChange,
+   163→}: {
+   164→  returnId: string | null;
+   165→  open: boolean;
+   166→  onOpenChange: (open: boolean) => void;
+   167→}) {
+   168→  const { data: returnDetail, isLoading } = useQuery<ReturnDetail>({
+   169→    queryKey: ['return-detail', returnId],
+   170→    queryFn: async () => {
+   171→      const res = await fetch(`/api/returns/${returnId}`);
+   172→      if (!res.ok) throw new Error('Failed to fetch return details');
+   173→      return res.json();
+   174→    },
+   175→    enabled: !!returnId && open,
+   176→  });
+   177→
+   178→  return (
+   179→    <Dialog open={open} onOpenChange={onOpenChange}>
+   180→      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+   181→        <DialogHeader>
+   182→          <DialogTitle className="text-[#0F172A]">Return Details</DialogTitle>
+   183→        </DialogHeader>
+   184→        {isLoading ? (
+   185→          <div className="space-y-4 p-2">
+   186→            <Skeleton className="h-5 w-32" />
+   187→            <Skeleton className="h-4 w-full" />
+   188→            <Skeleton className="h-4 w-3/4" />
+   189→            <Skeleton className="h-20 w-full" />
+   190→          </div>
+   191→        ) : returnDetail ? (
+   192→          <div className="space-y-5">
+   193→            {/* Header */}
+   194→            <div className="flex items-center justify-between">
+   195→              <div>
+   196→                <p className="text-sm font-mono font-semibold text-[#0F172A]">{returnDetail.returnNumber}</p>
+   197→                <p className="text-xs text-muted-foreground">Order: {returnDetail.orderNumber}</p>
+   198→              </div>
+   199→              <StatusBadge status={returnDetail.status} />
+   200→            </div>
+   201→
+   202→            <Separator />
+   203→
+   204→            {/* Product Info */}
+   205→            <div className="flex gap-4">
+   206→              <img
+   207→                src={returnDetail.productImage}
+   208→                alt={returnDetail.productName}
+   209→                className="h-20 w-20 rounded-lg object-cover border"
+   210→              />
+   211→              <div className="flex-1">
+   212→                <p className="font-semibold text-[#0F172A]">{returnDetail.productName}</p>
+   213→                <p className="text-sm text-muted-foreground">Seller: {returnDetail.sellerName}</p>
+   214→                <p className="text-lg font-bold text-amber-600 mt-1">{KES.format(returnDetail.refundAmount)}</p>
+   215→              </div>
+   216→            </div>
+   217→
+   218→            <Separator />
+   219→
+   220→            {/* Return Info */}
+   221→            <div className="grid grid-cols-2 gap-4 text-sm">
+   222→              <div>
+   223→                <p className="text-muted-foreground">Reason</p>
+   224→                <p className="font-medium text-[#0F172A]">{returnDetail.reason}</p>
+   225→              </div>
+   226→              <div>
+   227→                <p className="text-muted-foreground">Refund Status</p>
+   228→                <RefundStatusBadge status={returnDetail.refundStatus} />
+   229→              </div>
+   230→              <div>
+   231→                <p className="text-muted-foreground">Requested On</p>
+   232→                <p className="font-medium text-[#0F172A]">{format(new Date(returnDetail.createdAt), 'dd MMM yyyy')}</p>
+   233→              </div>
+   234→              {returnDetail.resolvedAt && (
+   235→                <div>
+   236→                  <p className="text-muted-foreground">Resolved On</p>
+   237→                  <p className="font-medium text-[#0F172A]">{format(new Date(returnDetail.resolvedAt), 'dd MMM yyyy')}</p>
+   238→                </div>
+   239→              )}
+   240→            </div>
+   241→
+   242→            {returnDetail.description && (
+   243→              <div>
+   244→                <p className="text-sm text-muted-foreground mb-1">Description</p>
+   245→                <div className="rounded-lg bg-muted/50 p-3 text-sm text-[#0F172A]">
+   246→                  {returnDetail.description}
+   247→                </div>
+   248→              </div>
+   249→            )}
+   250→
+   251→            {returnDetail.adminNotes && (
+   252→              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+   253→                <p className="text-xs font-semibold text-amber-800 flex items-center gap-1 mb-1">
+   254→                  <AlertTriangle className="h-3 w-3" /> Admin Notes
+   255→                </p>
+   256→                <p className="text-sm text-amber-900">{returnDetail.adminNotes}</p>
+   257→              </div>
+   258→            )}
+   259→
+   260→            {/* Order Info */}
+   261→            <div className="rounded-lg bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
+   262→              <p>Shipping: {returnDetail.order?.shippingAddress}</p>
+   263→            </div>
+   264→          </div>
+   265→        ) : null}
+   266→      </DialogContent>
+   267→    </Dialog>
+   268→  );
+   269→}
+   270→
+   271→function NewReturnDialog({
+   272→  buyerId,
+   273→  open,
+   274→  onOpenChange,
+   275→}: {
+   276→  buyerId: string;
+   277→  open: boolean;
+   278→  onOpenChange: (open: boolean) => void;
+   279→}) {
+   280→  const queryClient = useQueryClient();
+   281→  const [selectedOrderId, setSelectedOrderId] = useState<string>('');
+   282→  const [selectedItemId, setSelectedItemId] = useState<string>('');
+   283→  const [reason, setReason] = useState<string>('');
+   284→  const [description, setDescription] = useState<string>('');
+   285→
+   286→  const { data: orders = [], isLoading: ordersLoading } = useQuery<BuyerOrder[]>({
+   287→    queryKey: ['buyer-delivered-orders', buyerId],
+   288→    queryFn: async () => {
+   289→      const res = await fetch(`/api/buyer/${buyerId}/orders?status=DELIVERED`);
+   290→      const json = await res.json();
+   291→      return json.orders || [];
+   292→    },
+   293→    enabled: open,
+   294→  });
+   295→
+   296→  const selectedOrder = orders.find((o) => o.id === selectedOrderId);
+   297→  const orderItems = selectedOrder?.orderItems || [];
+   298→
+   299→  const createReturn = useMutation({
+   300→    mutationFn: async (data: {
+   301→      orderId: string;
+   302→      orderItemId: string;
+   303→      reason: string;
+   304→      description: string;
+   305→      buyerId: string;
+   306→      sellerId: string;
+   307→    }) => {
+   308→      const res = await fetch('/api/returns', {
+   309→        method: 'POST',
+   310→        headers: { 'Content-Type': 'application/json' },
+   311→        body: JSON.stringify(data),
+   312→      });
+   313→      if (!res.ok) {
+   314→        const err = await res.json();
+   315→        throw new Error(err.error || 'Failed to create return request');
+   316→      }
+   317→      return res.json();
+   318→    },
+   319→    onSuccess: () => {
+   320→      queryClient.invalidateQueries({ queryKey: ['returns', buyerId] });
+   321→      toast.success('Return request submitted successfully!');
+   322→      setSelectedOrderId('');
+   323→      setSelectedItemId('');
+   324→      setReason('');
+   325→      setDescription('');
+   326→      onOpenChange(false);
+   327→    },
+   328→    onError: (error) => {
+   329→      toast.error(error.message);
+   330→    },
+   331→  });
+   332→
+   333→  const handleSubmit = () => {
+   334→    if (!selectedOrderId || !selectedItemId || !reason) {
+   335→      toast.error('Please fill in all required fields');
+   336→      return;
+   337→    }
+   338→    const item = orderItems.find((i) => i.id === selectedItemId);
+   339→    if (!item || !item.sellerUserId) return;
+   340→
+   341→    createReturn.mutate({
+   342→      orderId: selectedOrderId,
+   343→      orderItemId: selectedItemId,
+   344→      reason,
+   345→      description,
+   346→      buyerId,
+   347→      sellerId: item.sellerUserId,
+   348→    });
+   349→  };
+   350→
+   351→  const canSubmit = selectedOrderId && selectedItemId && reason && !createReturn.isPending;
+   352→
+   353→  return (
+   354→    <Dialog open={open} onOpenChange={onOpenChange}>
+   355→      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+   356→        <DialogHeader>
+   357→          <DialogTitle className="text-[#0F172A] flex items-center gap-2">
+   358→            <RotateCcw className="h-5 w-5 text-amber-500" />
+   359→            Request a Return
+   360→          </DialogTitle>
+   361→        </DialogHeader>
+   362→
+   363→        <div className="space-y-4 mt-2">
+   364→          {/* Order Selection */}
+   365→          <div className="space-y-2">
+   366→            <Label>Select Order</Label>
+   367→            {ordersLoading ? (
+   368→              <Skeleton className="h-10 w-full" />
+   369→            ) : orders.length === 0 ? (
+   370→              <p className="text-sm text-muted-foreground py-2">No delivered orders available for return.</p>
+   371→            ) : (
+   372→              <Select value={selectedOrderId} onValueChange={(val) => {
+   373→                setSelectedOrderId(val);
+   374→                setSelectedItemId('');
+   375→              }}>
+   376→                <SelectTrigger className="w-full">
+   377→                  <SelectValue placeholder="Choose an order" />
+   378→                </SelectTrigger>
+   379→                <SelectContent className="max-h-48 overflow-y-auto">
+   380→                  {orders.map((order) => (
+   381→                    <SelectItem key={order.id} value={order.id}>
+   382→                      {order.orderNumber} — {KES.format(order.totalAmount)}
+   383→                    </SelectItem>
+   384→                  ))}
+   385→                </SelectContent>
+   386→              </Select>
+   387→            )}
+   388→          </div>
+   389→
+   390→          {/* Item Selection */}
+   391→          {selectedOrder && (
+   392→            <motion.div
+   393→              initial={{ opacity: 0, height: 0 }}
+   394→              animate={{ opacity: 1, height: 'auto' }}
+   395→              className="space-y-2"
+   396→            >
+   397→              <Label>Select Item</Label>
+   398→              <Select value={selectedItemId} onValueChange={setSelectedItemId}>
+   399→                <SelectTrigger className="w-full">
+   400→                  <SelectValue placeholder="Choose an item" />
+   401→                </SelectTrigger>
+   402→                <SelectContent className="max-h-48 overflow-y-auto">
+   403→                  {orderItems.map((item) => (
+   404→                    <SelectItem key={item.id} value={item.id}>
+   405→                      <div className="flex items-center gap-2">
+   406→                        <img
+   407→                          src={item.productImage}
+   408→                          alt={item.productName}
+   409→                          className="h-6 w-6 rounded object-cover"
+   410→                        />
+   411→                        <span>{item.productName}</span>
+   412→                        <span className="text-muted-foreground ml-auto">{KES.format(item.price * item.quantity)}</span>
+   413→                      </div>
+   414→                    </SelectItem>
+   415→                  ))}
+   416→                </SelectContent>
+   417→              </Select>
+   418→            </motion.div>
+   419→          )}
+   420→
+   421→          {/* Reason */}
+   422→          <div className="space-y-2">
+   423→            <Label>Reason for Return *</Label>
+   424→            <Select value={reason} onValueChange={setReason}>
+   425→              <SelectTrigger className="w-full">
+   426→                <SelectValue placeholder="Select a reason" />
+   427→              </SelectTrigger>
+   428→              <SelectContent>
+   429→                {RETURN_REASONS.map((r) => (
+   430→                  <SelectItem key={r} value={r}>{r}</SelectItem>
+   431→                ))}
+   432→              </SelectContent>
+   433→            </Select>
+   434→          </div>
+   435→
+   436→          {/* Description */}
+   437→          <div className="space-y-2">
+   438→            <Label htmlFor="return-desc">Description (Optional)</Label>
+   439→            <Textarea
+   440→              id="return-desc"
+   441→              placeholder="Provide more details about the issue..."
+   442→              value={description}
+   443→              onChange={(e) => setDescription(e.target.value)}
+   444→              rows={3}
+   445→            />
+   446→          </div>
+   447→
+   448→          {/* Refund Preview */}
+   449→          {selectedItemId && (
+   450→            <motion.div
+   451→              initial={{ opacity: 0, y: 5 }}
+   452→              animate={{ opacity: 1, y: 0 }}
+   453→              className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm"
+   454→            >
+   455→              <p className="text-muted-foreground">Estimated Refund</p>
+   456→              <p className="text-lg font-bold text-amber-700">
+   457→                {KES.format(
+   458→                  (orderItems.find((i) => i.id === selectedItemId)?.price || 0) *
+   459→                  (orderItems.find((i) => i.id === selectedItemId)?.quantity || 1)
+   460→                )}
+   461→              </p>
+   462→            </motion.div>
+   463→          )}
+   464→
+   465→          {/* Submit */}
+   466→          <Button
+   467→            onClick={handleSubmit}
+   468→            disabled={!canSubmit}
+   469→            className="w-full bg-[#0F172A] hover:bg-slate-800 text-white"
+   470→          >
+   471→            {createReturn.isPending ? (
+   472→              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+   473→            ) : null}
+   474→            Submit Return Request
+   475→          </Button>
+   476→        </div>
+   477→      </DialogContent>
+   478→    </Dialog>
+   479→  );
+   480→}
+   481→
+   482→// ─── Main Page ───────────────────────────────────────────
+   483→
+   484→function ReturnsContent() {
+   485→  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+   486→  const [detailReturnId, setDetailReturnId] = useState<string | null>(null);
+   487→  const [newReturnOpen, setNewReturnOpen] = useState(false);
+   488→
+   489→  // Find the first buyer user for demo
+   490→  const { data: buyerUser } = useQuery<{ id: string }>({
+   491→    queryKey: ['first-buyer'],
+   492→    queryFn: async () => {
+   493→      // Use the returns API with a known buyer - we'll fetch all and pick the first buyerId
+   494→      const res = await fetch('/api/returns?limit=1');
+   495→      const json = await res.json();
+   496→      if (json.returns?.length > 0) {
+   497→        return { id: json.returns[0].buyerId };
+   498→      }
+   499→      // Fallback: fetch from orders
+   500→      const orderRes = await fetch('/api/orders');
+   501→      // If no orders either, create a fallback
+   502→      return { id: 'unknown' };
+   503→    },
+   504→  });
+   505→
+   506→  const buyerId = buyerUser?.id || '';
+   507→
+   508→  const { data, isLoading } = useQuery<{
+   509→    returns: ReturnItem[];
+   510→    total: number;
+   511→    page: number;
+   512→    totalPages: number;
+   513→  }>({
+   514→    queryKey: ['returns', buyerId, statusFilter],
+   515→    queryFn: async () => {
+   516→      const params = new URLSearchParams({ buyerId, limit: '50' });
+   517→      if (statusFilter !== 'ALL') params.set('status', statusFilter);
+   518→      const res = await fetch(`/api/returns?${params}`);
+   519→      if (!res.ok) throw new Error('Failed to fetch returns');
+   520→      return res.json();
+   521→    },
+   522→    enabled: !!buyerId,
+   523→  });
+   524→
+   525→  const returns = data?.returns || [];
+   526→  const total = data?.total || 0;
+   527→
+   528→  return (
+   529→    <div className="min-h-screen flex flex-col bg-white">
+   530→      {/* Header */}
+   531→      <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+   532→        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+   533→          <div className="flex items-center gap-3">
+   534→            <a
+   535→              href="/"
+   536→              className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+   537→            >
+   538→              <ArrowLeft className="h-4 w-4 text-[#0F172A]" />
+   539→            </a>
+   540→            <div>
+   541→              <h1 className="text-lg sm:text-xl font-bold text-[#0F172A]">My Returns</h1>
+   542→              <p className="text-xs text-muted-foreground hidden sm:block">Manage your return and refund requests</p>
+   543→            </div>
+   544→          </div>
+   545→          <Dialog open={newReturnOpen} onOpenChange={setNewReturnOpen}>
+   546→            <DialogTrigger asChild>
+   547→              <Button className="bg-amber-500 hover:bg-amber-600 text-white gap-2">
+   548→                <Plus className="h-4 w-4" />
+   549→                <span className="hidden sm:inline">Request a Return</span>
+   550→                <span className="sm:hidden">New</span>
+   551→              </Button>
+   552→            </DialogTrigger>
+   553→            {buyerId && buyerId !== 'unknown' && (
+   554→              <NewReturnDialog buyerId={buyerId} open={newReturnOpen} onOpenChange={setNewReturnOpen} />
+   555→            )}
+   556→          </Dialog>
+   557→        </div>
+   558→      </header>
+   559→
+   560→      {/* Main Content */}
+   561→      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
+   562→        {/* Filters */}
+   563→        <div className="flex flex-wrap items-center gap-3">
+   564→          <span className="text-sm font-medium text-muted-foreground">Filter:</span>
+   565→          <div className="flex flex-wrap gap-2">
+   566→            {['ALL', 'PENDING', 'APPROVED', 'COMPLETED', 'REJECTED'].map((s) => (
+   567→              <Button
+   568→                key={s}
+   569→                variant={statusFilter === s ? 'default' : 'outline'}
+   570→                size="sm"
+   571→                onClick={() => setStatusFilter(s)}
+   572→                className={
+   573→                  statusFilter === s
+   574→                    ? 'bg-[#0F172A] hover:bg-slate-800 text-white'
+   575→                    : 'text-[#0F172A] hover:bg-slate-100'
+   576→                }
+   577→              >
+   578→                {s === 'ALL' ? `All (${total})` : s}
+   579→              </Button>
+   580→            ))}
+   581→          </div>
+   582→        </div>
+   583→
+   584→        {/* Loading State */}
+   585→        {isLoading && (
+   586→          <div className="space-y-4">
+   587→            {Array.from({ length: 3 }).map((_, i) => (
+   588→              <Card key={i} className="p-4">
+   589→                <div className="flex gap-4">
+   590→                  <Skeleton className="h-16 w-16 rounded-lg" />
+   591→                  <div className="flex-1 space-y-2">
+   592→                    <Skeleton className="h-4 w-3/4" />
+   593→                    <Skeleton className="h-3 w-1/2" />
+   594→                    <Skeleton className="h-3 w-1/3" />
+   595→                  </div>
+   596→                </div>
+   597→              </Card>
+   598→            ))}
+   599→          </div>
+   600→        )}
+   601→
+   602→        {/* Empty State */}
+   603→        {!isLoading && returns.length === 0 && (
+   604→          <motion.div
+   605→            initial={{ opacity: 0, y: 20 }}
+   606→            animate={{ opacity: 1, y: 0 }}
+   607→            className="flex flex-col items-center justify-center py-16 text-center"
+   608→          >
+   609→            <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
+   610→              <RotateCcw className="h-10 w-10 text-muted-foreground" />
+   611→            </div>
+   612→            <h3 className="text-lg font-semibold text-[#0F172A] mb-1">No returns found</h3>
+   613→            <p className="text-sm text-muted-foreground max-w-sm mb-6">
+   614→              {statusFilter !== 'ALL'
+   615→                ? `You don't have any ${statusFilter.toLowerCase()} returns.`
+   616→                : "You haven't made any return requests yet. If you've received a defective or wrong item, you can request a return."}
+   617→            </p>
+   618→            {statusFilter === 'ALL' && (
+   619→              <Button
+   620→                onClick={() => setNewReturnOpen(true)}
+   621→                className="bg-amber-500 hover:bg-amber-600 text-white gap-2"
+   622→              >
+   623→                <Plus className="h-4 w-4" />
+   624→                Request a Return
+   625→              </Button>
+   626→            )}
+   627→          </motion.div>
+   628→        )}
+   629→
+   630→        {/* Returns List */}
+   631→        {!isLoading && returns.length > 0 && (
+   632→          <div className="space-y-3">
+   633→            <AnimatePresence mode="popLayout">
+   634→              {returns.map((item, index) => (
+   635→                <motion.div
+   636→                  key={item.id}
+   637→                  layout
+   638→                  initial={{ opacity: 0, y: 10 }}
+   639→                  animate={{ opacity: 1, y: 0 }}
+   640→                  exit={{ opacity: 0, x: -20 }}
+   641→                  transition={{ duration: 0.2, delay: index * 0.05 }}
+   642→                >
+   643→                  <Card className="overflow-hidden hover:shadow-md transition-shadow">
+   644→                    <CardContent className="p-4 sm:p-6">
+   645→                      <div className="flex flex-col sm:flex-row gap-4">
+   646→                        {/* Product Image */}
+   647→                        <img
+   648→                          src={item.productImage}
+   649→                          alt={item.productName}
+   650→                          className="h-20 w-20 sm:h-24 sm:w-24 rounded-lg object-cover border flex-shrink-0"
+   651→                        />
+   652→
+   653→                        {/* Info */}
+   654→                        <div className="flex-1 min-w-0 space-y-2">
+   655→                          <div className="flex items-start justify-between gap-2">
+   656→                            <div>
+   657→                              <p className="text-sm font-mono font-semibold text-amber-600">
+   658→                                {item.returnNumber}
+   659→                              </p>
+   660→                              <h3 className="font-semibold text-[#0F172A] truncate">
+   661→                                {item.productName}
+   662→                              </h3>
+   663→                            </div>
+   664→                            <StatusBadge status={item.status} />
+   665→                          </div>
+   666→
+   667→                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+   668→                            <span>Order: {item.orderNumber}</span>
+   669→                            <span>Reason: {item.reason}</span>
+   670→                            <span>{format(new Date(item.createdAt), 'dd MMM yyyy')}</span>
+   671→                          </div>
+   672→
+   673→                          <div className="flex items-center justify-between pt-1">
+   674→                            <div className="flex items-center gap-3">
+   675→                              <span className="text-lg font-bold text-[#0F172A]">
+   676→                                {KES.format(item.refundAmount)}
+   677→                              </span>
+   678→                              <RefundStatusBadge status={item.refundStatus} />
+   679→                            </div>
+   680→                            <Button
+   681→                              variant="ghost"
+   682→                              size="sm"
+   683→                              className="text-[#0F172A] hover:bg-slate-100 gap-1.5"
+   684→                              onClick={() => setDetailReturnId(item.id)}
+   685→                            >
+   686→                              <Eye className="h-3.5 w-3.5" />
+   687→                              View Details
+   688→                            </Button>
+   689→                          </div>
+   690→                        </div>
+   691→                      </div>
+   692→                    </CardContent>
+   693→                  </Card>
+   694→                </motion.div>
+   695→              ))}
+   696→            </AnimatePresence>
+   697→
+   698→            {/* Summary Footer */}
+   699→            <div className="text-center text-sm text-muted-foreground pt-4">
+   700→              Showing {returns.length} of {total} return{total !== 1 ? 's' : ''}
+   701→            </div>
+   702→          </div>
+   703→        )}
+   704→      </main>
+   705→
+   706→      {/* Detail Dialog */}
+   707→      <ReturnDetailDialog
+   708→        returnId={detailReturnId}
+   709→        open={!!detailReturnId}
+   710→        onOpenChange={(open) => {
+   711→          if (!open) setDetailReturnId(null);
+   712→        }}
+   713→      />
+   714→    </div>
+   715→  );
+   716→}
+   717→
+   718→export default function ReturnsPage() {
+   719→  return (
+   720→    <Suspense
+   721→      fallback={
+   722→        <div className="min-h-screen flex items-center justify-center bg-white">
+   723→          <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+   724→        </div>
+   725→      }
+   726→    >
+   727→      <ReturnsContent />
+   728→    </Suspense>
+   729→  );
+   730→}
+   731→

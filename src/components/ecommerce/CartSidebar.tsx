@@ -5,11 +5,14 @@ import { X, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart-store';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 import { Separator } from '@/components/ui/separator';
 
 export function CartSidebar() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, clearCart, totalPrice } =
     useCartStore();
+  const currencyCode = useCurrencyStore(s => s.code);
 
   return (
     <AnimatePresence>
@@ -79,7 +82,7 @@ export function CartSidebar() {
                           {item.product.name}
                         </h3>
                         <p className="text-sm font-semibold text-gray-900 mt-1">
-                          ${item.product.price.toFixed(2)}
+                          {formatCurrency(item.product.price, currencyCode)}
                         </p>
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center border border-gray-300 rounded-md bg-white">
@@ -122,7 +125,7 @@ export function CartSidebar() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="text-xl font-bold text-gray-900">
-                    ${totalPrice().toFixed(2)}
+                    {formatCurrency(totalPrice(), currencyCode)}
                   </span>
                 </div>
                 <Separator />

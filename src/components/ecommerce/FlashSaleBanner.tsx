@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { Zap, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 
 interface FlashSaleProduct {
   id: string;
@@ -66,6 +68,7 @@ function CountdownTimer({ endTime }: { endTime: string }) {
 }
 
 function FlashSaleCard({ sale, index }: { sale: FlashSaleProduct; index: number }) {
+  const currencyCode = useCurrencyStore(s => s.code);
   const remaining = sale.totalStock - sale.soldCount;
   const stockPercent = Math.round((sale.soldCount / sale.totalStock) * 100);
 
@@ -111,10 +114,10 @@ function FlashSaleCard({ sale, index }: { sale: FlashSaleProduct; index: number 
           {/* Prices */}
           <div className="flex items-baseline gap-2">
             <span className="text-lg font-bold text-[#F59E0B]">
-              ${sale.salePrice.toFixed(2)}
+              {formatCurrency(sale.salePrice, currencyCode)}
             </span>
             <span className="text-xs text-gray-400 line-through">
-              ${sale.originalPrice.toFixed(2)}
+              {formatCurrency(sale.originalPrice, currencyCode)}
             </span>
           </div>
 

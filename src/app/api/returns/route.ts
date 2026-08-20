@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { ReturnStatus, RefundStatus } from '@prisma/client';
+import { audit } from '@/lib/audit';
 
 function generateReturnNumber(): string {
   const digits = Math.floor(100000 + Math.random() * 900000).toString();
@@ -153,6 +154,8 @@ export async function POST(request: Request) {
         seller: { select: { name: true } },
       },
     });
+
+    audit({ userId: buyerId, action: 'CREATE_RETURN', resource: 'return', resourceId: returnRequest.id, details: `Return ${returnRequest.returnNumber}, amount: ${refundAmount}`, req: request });
 
     return NextResponse.json({
       id: returnRequest.id,

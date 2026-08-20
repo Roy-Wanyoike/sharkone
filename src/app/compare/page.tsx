@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCompareStore } from '@/store/compare-store';
 import { useCartStore } from '@/store/cart-store';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 import { Footer } from '@/components/ecommerce/Footer';
 import type { Product } from '@/types';
 
@@ -97,8 +99,7 @@ function SimpleNavbar() {
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
-const kes = (amount: number) =>
-  new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 }).format(amount);
+/* currency formatting handled by formatCurrency from @/lib/currency */
 
 function StarRating({ rating }: { rating: number }) {
   const full = Math.floor(rating);
@@ -130,6 +131,7 @@ export default function ComparePage() {
   const removeProduct = useCompareStore((s) => s.removeProduct);
   const clearComparison = useCompareStore((s) => s.clearComparison);
   const addItem = useCartStore((s) => s.addItem);
+  const currencyCode = useCurrencyStore((s) => s.code);
 
   /* Fetch all products in the comparison list */
   const queries = useQuery({
@@ -360,7 +362,7 @@ export default function ComparePage() {
                                   : 'text-[#0F172A]'
                               }`}
                             >
-                              {kes(p.price)}
+                              {formatCurrency(p.price, currencyCode)}
                               {p.price === lowestPrice && products.length > 1 && (
                                 <span className="ml-1.5 text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
                                   Lowest
@@ -369,7 +371,7 @@ export default function ComparePage() {
                             </span>
                             {p.originalPrice && (
                               <span className="text-xs text-gray-400 line-through">
-                                {kes(p.originalPrice)}
+                                {formatCurrency(p.originalPrice, currencyCode)}
                               </span>
                             )}
                           </div>
@@ -438,7 +440,7 @@ export default function ComparePage() {
                           addItem(p);
                           toast.success(`${p.name} added to cart`, {
                             icon: <ShoppingBag className="h-4 w-4" />,
-                            description: kes(p.price),
+                            description: formatCurrency(p.price, currencyCode),
                             action: { label: 'View Cart', onClick: () => useCartStore.getState().openCart() },
                           });
                         }}

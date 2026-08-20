@@ -4,12 +4,11 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Star, StarHalf } from 'lucide-react';
 import { useRecentlyViewedStore } from '@/store/recently-viewed-store';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
 import type { Product } from '@/types';
-
-const formatKES = (amount: number) =>
-  new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 }).format(amount);
 
 function MiniStarRating({ rating }: { rating: number }) {
   const fullStars = Math.floor(rating);
@@ -26,6 +25,7 @@ function MiniStarRating({ rating }: { rating: number }) {
 }
 
 function MiniProductCard({ productId }: { productId: string }) {
+  const currencyCode = useCurrencyStore(s => s.code);
   const { data, isLoading } = useQuery({
     queryKey: ['product-mini', productId],
     queryFn: async () => {
@@ -79,9 +79,9 @@ function MiniProductCard({ productId }: { productId: string }) {
           <MiniStarRating rating={data.rating} />
         </div>
         <div className="flex items-baseline gap-1.5 mt-1">
-          <span className="text-sm font-semibold text-[#0F172A]">{formatKES(data.price)}</span>
+          <span className="text-sm font-semibold text-[#0F172A]">{formatCurrency(data.price, currencyCode)}</span>
           {data.originalPrice && (
-            <span className="text-xs text-gray-400 line-through">{formatKES(data.originalPrice)}</span>
+            <span className="text-xs text-gray-400 line-through">{formatCurrency(data.originalPrice, currencyCode)}</span>
           )}
         </div>
       </motion.div>

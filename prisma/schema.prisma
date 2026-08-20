@@ -136,17 +136,21 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  companyId String? @unique
+
   // Relations
+  company       Company? @relation("CompanyAccount")
   seller        Seller?
   orders        Order[]
   deliveries    Delivery[]
   transactions  Transaction[]
   notifications Notification[]
   reviews       Review[]
-  buyerReturns  ReturnRequest[]  @relation("BuyerReturns")
-  sellerReturns ReturnRequest[]  @relation("SellerReturns")
-  usedCoupons   UsedCoupon[]  @relation("UsedCoupons")
+  buyerReturns  ReturnRequest[] @relation("BuyerReturns")
+  sellerReturns ReturnRequest[] @relation("SellerReturns")
+  usedCoupons   UsedCoupon[] @relation("UsedCoupons")
   addresses     Address[]    @relation("UserAddresses")
+  auditLogs     AuditLog[]
 }
 
 model Seller {
@@ -221,6 +225,8 @@ model Order {
   platformFee     Float         @default(0)
   sellerEarnings  Float         @default(0)
   deliveryFee     Float         @default(0)
+  companyId       String?
+  poNumber        String?
   shippingAddress String
   paymentStatus   PaymentStatus @default(PENDING)
   paidAt          DateTime?
@@ -229,6 +235,7 @@ model Order {
 
   // Relations
   buyer      User          @relation(fields: [buyerId], references: [id])
+  company    Company?      @relation(fields: [companyId], references: [id])
   orderItems OrderItem[]
   delivery   Delivery?
   transactions Transaction[]
@@ -577,4 +584,55 @@ model DeliveryWaypoint {
   delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
 
   @@index([deliveryId, timestamp])
+}
+
+// ============================================================
+// Audit Logging
+// ============================================================
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  role      String?
+  action    String
+  resource  String
+  resourceId String?
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+}
+
+// ============================================================
+// Phase: B2B Commerce - Company Accounts
+// ============================================================
+
+model Company {
+  id            String   @id @default(uuid())
+  name          String
+  registrationNo String?
+  email         String
+  phone         String?
+  county        String
+  city          String?
+  address       String?
+  logo          String?
+  creditLimit   Float    @default(0)
+  creditUsed    Float    @default(0)
+  paymentTerms  String   @default("NET_30")
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user   User     @relation("CompanyAccount", fields: [id], references: [id])
+  orders Order[]
+
+  @@index([name])
 }

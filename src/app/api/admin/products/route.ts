@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { ProductStatus } from '@prisma/client';
+import { audit } from '@/lib/audit';
 
 function generateSlug(name: string): string {
   return name
@@ -113,6 +114,8 @@ export async function POST(request: Request) {
         seller: { include: { user: { select: { name: true } } } },
       },
     });
+
+    audit({ action: 'CREATE_PRODUCT', resource: 'product', resourceId: product.id, details: `Product: ${product.name}`, req: request });
 
     return NextResponse.json(product, { status: 201 });
   } catch (error) {

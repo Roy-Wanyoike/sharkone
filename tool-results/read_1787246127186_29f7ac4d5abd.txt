@@ -1,0 +1,1022 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo, Suspense } from 'react';
+     4→import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+     5→import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+     6→import Link from 'next/link';
+     7→import { useSearchParams } from 'next/navigation';
+     8→import { format } from 'date-fns';
+     9→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    10→import { Badge } from '@/components/ui/badge';
+    11→import { Button } from '@/components/ui/button';
+    12→import { Input } from '@/components/ui/input';
+    13→import { Label } from '@/components/ui/label';
+    14→import { Checkbox } from '@/components/ui/checkbox';
+    15→import { Skeleton } from '@/components/ui/skeleton';
+    16→import {
+    17→  Dialog,
+    18→  DialogContent,
+    19→  DialogHeader,
+    20→  DialogTitle,
+    21→  DialogFooter,
+    22→} from '@/components/ui/dialog';
+    23→import {
+    24→  Select,
+    25→  SelectContent,
+    26→  SelectItem,
+    27→  SelectTrigger,
+    28→  SelectValue,
+    29→} from '@/components/ui/select';
+    30→import {
+    31→  Bell,
+    32→  ShoppingCart,
+    33→  Package,
+    34→  DollarSign,
+    35→  Clock,
+    36→  Truck,
+    37→  Settings,
+    38→  Heart,
+    39→  Trash2,
+    40→  Plus,
+    41→  Eye,
+    42→  AlertCircle,
+    43→  Pencil,
+    44→  MapPin,
+    45→  Repeat,
+    46→  Star,
+    47→  Phone,
+    48→  User,
+    49→} from 'lucide-react';
+    50→import { toast } from 'sonner';
+    51→import { Footer } from '@/components/ecommerce/Footer';
+    52→import { useCartStore } from '@/store/cart-store';
+    53→import { useCurrencyStore } from '@/store/currency-store';
+    54→import { formatCurrency } from '@/lib/currency';
+    55→
+    56→const queryClient = new QueryClient();
+    57→
+    58→const KENYAN_COUNTIES = [
+    59→  'Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Uasin Gishu',
+    60→  'Kiambu', 'Machakos', 'Kakamega', 'Meru', 'Embu',
+    61→  'Nyeri', "Murang'a", 'Kisii', 'Nyamira', 'Bungoma',
+    62→  'Trans Nzoia', 'Nandi', 'Baringo', 'Laikipia', 'Narok',
+    63→  'Kajiado', 'Makueni', 'Kitui', 'Tharaka Nithi',
+    64→  'Homa Bay', 'Migori', 'Siaya', 'Busia', 'Vihiga',
+    65→  'West Pokot', 'Samburu', 'Turkana', 'Marsabit', 'Isiolo',
+    66→  'Garissa', 'Wajir', 'Mandera', 'Lamu', 'Tana River',
+    67→  'Taita Taveta', 'Kilifi', 'Kwale', 'Other',
+    68→];
+    69→
+    70→/* ------------------------------------------------------------------ */
+    71→/*  Types                                                              */
+    72→/* ------------------------------------------------------------------ */
+    73→
+    74→interface BuyerStats {
+    75→  totalOrders: number;
+    76→  totalSpent: number;
+    77→  pendingOrders: number;
+    78→  activeDeliveries: number;
+    79→}
+    80→
+    81→interface OrderItemData {
+    82→  id: string;
+    83→  quantity: number;
+    84→  price: number;
+    85→  productName: string;
+    86→  productImage: string;
+    87→  productSlug: string;
+    88→  sellerName: string;
+    89→  productId: string;
+    90→}
+    91→
+    92→interface BuyerOrder {
+    93→  id: string;
+    94→  orderNumber: string;
+    95→  status: string;
+    96→  totalAmount: number;
+    97→  deliveryFee: number;
+    98→  platformFee: number;
+    99→  shippingAddress: string;
+   100→  paymentStatus: string;
+   101→  createdAt: string;
+   102→  itemCount: number;
+   103→  orderItems: OrderItemData[];
+   104→  deliveryStatus: string | null;
+   105→}
+   106→
+   107→interface BuyerTransaction {
+   108→  id: string;
+   109→  type: string;
+   110→  amount: number;
+   111→  status: string;
+   112→  description: string | null;
+   113→  orderId: string | null;
+   114→  createdAt: string;
+   115→}
+   116→
+   117→interface BuyerUser {
+   118→  id: string;
+   119→  name: string;
+   120→  email: string;
+   121→  phone: string | null;
+   122→  role: string;
+   123→  createdAt: string;
+   124→}
+   125→
+   126→interface Address {
+   127→  id: string;
+   128→  userId: string;
+   129→  label: string;
+   130→  fullName: string;
+   131→  phone: string;
+   132→  county: string;
+   133→  city: string | null;
+   134→  addressLine: string;
+   135→  isDefault: boolean;
+   136→  createdAt: string;
+   137→  updatedAt: string;
+   138→}
+   139→
+   140→interface AddressFormData {
+   141→  label: string;
+   142→  fullName: string;
+   143→  phone: string;
+   144→  county: string;
+   145→  city: string;
+   146→  addressLine: string;
+   147→  isDefault: boolean;
+   148→}
+   149→
+   150→/* ------------------------------------------------------------------ */
+   151→/*  Status Colors                                                     */
+   152→/* ------------------------------------------------------------------ */
+   153→
+   154→const ORDER_STATUS_COLORS: Record<string, string> = {
+   155→  PENDING: 'bg-yellow-100 text-yellow-700',
+   156→  CONFIRMED: 'bg-blue-100 text-blue-700',
+   157→  PROCESSING: 'bg-indigo-100 text-indigo-700',
+   158→  SHIPPED: 'bg-purple-100 text-purple-700',
+   159→  OUT_FOR_DELIVERY: 'bg-amber-100 text-amber-700',
+   160→  DELIVERED: 'bg-emerald-100 text-emerald-700',
+   161→  CANCELLED: 'bg-red-100 text-red-700',
+   162→  REFUNDED: 'bg-gray-100 text-gray-700',
+   163→};
+   164→
+   165→const PAYMENT_STATUS_COLORS: Record<string, string> = {
+   166→  PAID: 'bg-emerald-100 text-emerald-700',
+   167→  PENDING: 'bg-yellow-100 text-yellow-700',
+   168→  FAILED: 'bg-red-100 text-red-700',
+   169→  REFUNDED: 'bg-gray-100 text-gray-700',
+   170→};
+   171→
+   172→const LABEL_COLORS: Record<string, string> = {
+   173→  Home: 'bg-emerald-100 text-emerald-700',
+   174→  Office: 'bg-blue-100 text-blue-700',
+   175→  Other: 'bg-gray-100 text-gray-700',
+   176→};
+   177→
+   178→/* ------------------------------------------------------------------ */
+   179→/*  Skeletons                                                          */
+   180→/* ------------------------------------------------------------------ */
+   181→
+   182→function StatCardSkeleton() {
+   183→  return (
+   184→    <div className="bg-white border border-gray-200 rounded-xl p-5">
+   185→      <Skeleton className="h-8 w-8 rounded-lg mb-3" />
+   186→      <Skeleton className="h-7 w-20 mb-1" />
+   187→      <Skeleton className="h-3 w-24" />
+   188→    </div>
+   189→  );
+   190→}
+   191→
+   192→function TableSkeleton() {
+   193→  return (
+   194→    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden p-6 space-y-4">
+   195→      {Array.from({ length: 5 }).map((_, i) => (
+   196→        <Skeleton key={i} className="h-12 w-full" />
+   197→      ))}
+   198→    </div>
+   199→  );
+   200→}
+   201→
+   202→const emptyAddressForm: AddressFormData = {
+   203→  label: 'Home',
+   204→  fullName: '',
+   205→  phone: '',
+   206→  county: '',
+   207→  city: '',
+   208→  addressLine: '',
+   209→  isDefault: false,
+   210→};
+   211→
+   212→/* ------------------------------------------------------------------ */
+   213→/*  Main Page Component                                                */
+   214→/* ------------------------------------------------------------------ */
+   215→
+   216→function AccountPageContent() {
+   217→  const searchParams = useSearchParams();
+   218→  const idParam = searchParams.get('id');
+   219→  const queryClientQC = useQueryClient();
+   220→
+   221→  // Fetch buyer user
+   222→  const usersQuery = useQuery<{ users: BuyerUser[] }>({
+   223→    queryKey: ['buyer-users'],
+   224→    queryFn: () => fetch('/api/admin/users?role=BUYER').then((r) => r.json()),
+   225→  });
+   226→
+   227→  const buyerId = useMemo(() => {
+   228→    if (idParam) return idParam;
+   229→    if (usersQuery.data && usersQuery.data.users.length > 0) return usersQuery.data.users[0].id;
+   230→    return null;
+   231→  }, [idParam, usersQuery.data]);
+   232→
+   233→  const buyer = useMemo(() => {
+   234→    if (!buyerId || !usersQuery.data) return null;
+   235→    return usersQuery.data.users.find((u) => u.id === buyerId) ?? null;
+   236→  }, [buyerId, usersQuery.data]);
+   237→
+   238→  const [settingsName, setSettingsName] = useState('');
+   239→  const [settingsEmail, setSettingsEmail] = useState('');
+   240→  const [settingsPhone, setSettingsPhone] = useState('');
+   241→
+   242→  // Pre-fill settings when buyer loads
+   243→  if (buyer && !settingsName && !settingsEmail) {
+   244→    setSettingsName(buyer.name);
+   245→    setSettingsEmail(buyer.email);
+   246→    setSettingsPhone(buyer.phone || '');
+   247→  }
+   248→
+   249→  // Stats
+   250→  const statsQuery = useQuery<BuyerStats>({
+   251→    queryKey: ['buyer-stats', buyerId],
+   252→    queryFn: () => fetch(`/api/buyer/${buyerId}/stats`).then((r) => r.json()),
+   253→    enabled: !!buyerId,
+   254→  });
+   255→
+   256→  // Orders
+   257→  const ordersQuery = useQuery<{ orders: BuyerOrder[] }>({
+   258→    queryKey: ['buyer-orders', buyerId],
+   259→    queryFn: () => fetch(`/api/buyer/${buyerId}/orders`).then((r) => r.json()),
+   260→    enabled: !!buyerId,
+   261→  });
+   262→
+   263→  // Transactions
+   264→  const transactionsQuery = useQuery<{ transactions: BuyerTransaction[] }>({
+   265→    queryKey: ['buyer-transactions', buyerId],
+   266→    queryFn: () => fetch(`/api/buyer/${buyerId}/transactions`).then((r) => r.json()),
+   267→    enabled: !!buyerId,
+   268→  });
+   269→
+   270→  // Addresses
+   271→  const addressesQuery = useQuery<{ addresses: Address[] }>({
+   272→    queryKey: ['addresses', buyerId],
+   273→    queryFn: () => fetch(`/api/addresses?userId=${buyerId}`).then((r) => r.json()),
+   274→    enabled: !!buyerId,
+   275→  });
+   276→
+   277→  // Address mutations
+   278→  const createAddressMutation = useMutation({
+   279→    mutationFn: (data: AddressFormData) =>
+   280→      fetch('/api/addresses', {
+   281→        method: 'POST',
+   282→        headers: { 'Content-Type': 'application/json' },
+   283→        body: JSON.stringify({ ...data, userId: buyerId }),
+   284→      }).then((r) => r.json()),
+   285→    onSuccess: () => {
+   286→      queryClientQC.invalidateQueries({ queryKey: ['addresses'] });
+   287→      toast.success('Address added successfully!');
+   288→      setAddressDialogOpen(false);
+   289→      setEditingAddress(null);
+   290→      setAddressForm(emptyAddressForm);
+   291→    },
+   292→    onError: () => toast.error('Failed to add address'),
+   293→  });
+   294→
+   295→  const updateAddressMutation = useMutation({
+   296→    mutationFn: ({ id, data }: { id: string; data: Partial<AddressFormData> }) =>
+   297→      fetch(`/api/addresses/${id}`, {
+   298→        method: 'PUT',
+   299→        headers: { 'Content-Type': 'application/json' },
+   300→        body: JSON.stringify(data),
+   301→      }).then((r) => r.json()),
+   302→    onSuccess: () => {
+   303→      queryClientQC.invalidateQueries({ queryKey: ['addresses'] });
+   304→      toast.success('Address updated successfully!');
+   305→      setAddressDialogOpen(false);
+   306→      setEditingAddress(null);
+   307→      setAddressForm(emptyAddressForm);
+   308→    },
+   309→    onError: () => toast.error('Failed to update address'),
+   310→  });
+   311→
+   312→  const deleteAddressMutation = useMutation({
+   313→    mutationFn: (id: string) =>
+   314→      fetch(`/api/addresses/${id}`, { method: 'DELETE' }).then((r) => r.json()),
+   315→    onSuccess: () => {
+   316→      queryClientQC.invalidateQueries({ queryKey: ['addresses'] });
+   317→      toast.success('Address deleted successfully!');
+   318→    },
+   319→    onError: () => toast.error('Failed to delete address'),
+   320→  });
+   321→
+   322→  const setDefaultMutation = useMutation({
+   323→    mutationFn: (id: string) =>
+   324→      fetch(`/api/addresses/${id}`, {
+   325→        method: 'PUT',
+   326→        headers: { 'Content-Type': 'application/json' },
+   327→        body: JSON.stringify({ isDefault: true }),
+   328→      }).then((r) => r.json()),
+   329→    onSuccess: () => {
+   330→      queryClientQC.invalidateQueries({ queryKey: ['addresses'] });
+   331→      toast.success('Default address updated!');
+   332→    },
+   333→    onError: () => toast.error('Failed to set default address'),
+   334→  });
+   335→
+   336→  // Address dialog state
+   337→  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+   338→  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+   339→  const [addressForm, setAddressForm] = useState<AddressFormData>(emptyAddressForm);
+   340→
+   341→  const openNewAddressDialog = () => {
+   342→    setEditingAddress(null);
+   343→    setAddressForm({ ...emptyAddressForm, fullName: buyer?.name || '', phone: buyer?.phone || '' });
+   344→    setAddressDialogOpen(true);
+   345→  };
+   346→
+   347→  const openEditAddressDialog = (addr: Address) => {
+   348→    setEditingAddress(addr);
+   349→    setAddressForm({
+   350→      label: addr.label,
+   351→      fullName: addr.fullName,
+   352→      phone: addr.phone,
+   353→      county: addr.county,
+   354→      city: addr.city || '',
+   355→      addressLine: addr.addressLine,
+   356→      isDefault: addr.isDefault,
+   357→    });
+   358→    setAddressDialogOpen(true);
+   359→  };
+   360→
+   361→  const handleAddressSubmit = () => {
+   362→    if (!addressForm.fullName || !addressForm.phone || !addressForm.county || !addressForm.addressLine) {
+   363→      toast.error('Please fill in all required fields');
+   364→      return;
+   365→    }
+   366→    if (editingAddress) {
+   367→      updateAddressMutation.mutate({ id: editingAddress.id, data: addressForm });
+   368→    } else {
+   369→      createAddressMutation.mutate(addressForm);
+   370→    }
+   371→  };
+   372→
+   373→  // Wishlist from cart store
+   374→  const { wishlist, toggleWishlist, addItem, openCart } = useCartStore();
+   375→
+   376→  const orders = ordersQuery.data?.orders || [];
+   377→  const transactions = transactionsQuery.data?.transactions || [];
+   378→  const addresses = addressesQuery.data?.addresses || [];
+   379→  const stats = statsQuery.data;
+   380→
+   381→  // Reorder handler
+   382→  const handleReorder = async (order: BuyerOrder) => {
+   383→    try {
+   384→      // Fetch the order details to get product IDs
+   385→      const orderRes = await fetch(`/api/orders/${order.id}`);
+   386→      const orderData = await orderRes.json();
+   387→      const orderItems = orderData.order?.orderItems || [];
+   388→
+   389→      for (const item of orderItems) {
+   390→        // Fetch the full product
+   391→        const productRes = await fetch(`/api/products/${item.productId}`);
+   392→        const productData = await productRes.json();
+   393→        if (productData.product) {
+   394→          // Add the product to cart, with the original quantity
+   395→          const product = productData.product;
+   396→          for (let i = 0; i < item.quantity; i++) {
+   397→            addItem(product);
+   398→          }
+   399→        }
+   400→      }
+   401→
+   402→      toast.success('Items added to cart');
+   403→      openCart();
+   404→    } catch {
+   405→      toast.error('Failed to reorder items');
+   406→    }
+   407→  };
+   408→
+   409→  const initials = buyer?.name
+   410→    ? buyer.name
+   411→        .split(' ')
+   412→        .map((w) => w[0])
+   413→        .join('')
+   414→        .toUpperCase()
+   415→        .slice(0, 2)
+   416→    : '?';
+   417→
+   418→  const statCards = [
+   419→    { label: 'Total Orders', value: stats?.totalOrders?.toString() ?? '—', icon: <Package className="h-5 w-5" />, color: 'bg-amber-50 text-amber-700' },
+   420→    { label: 'Total Spent', value: stats ? formatCurrency(stats.totalSpent) : '—', icon: <DollarSign className="h-5 w-5" />, color: 'bg-emerald-50 text-emerald-700' },
+   421→    { label: 'Pending Orders', value: stats?.pendingOrders?.toString() ?? '—', icon: <Clock className="h-5 w-5" />, color: 'bg-yellow-50 text-yellow-700' },
+   422→    { label: 'Active Deliveries', value: stats?.activeDeliveries?.toString() ?? '—', icon: <Truck className="h-5 w-5" />, color: 'bg-gray-100 text-gray-700' },
+   423→  ];
+   424→
+   425→  return (
+   426→    <div className="min-h-screen flex flex-col bg-gray-50">
+   427→      {/* Header */}
+   428→      <header className="bg-[#0F172A] text-white sticky top-0 z-50">
+   429→        <div className="px-4 md:px-16 lg:px-32 py-4 flex items-center justify-between">
+   430→          <div className="flex items-center gap-2.5">
+   431→            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+   432→              <path d="M16 4C14 4 10 8 8 12C6 16 6 22 8 26C10 28 14 28 16 28C18 28 22 28 24 26C26 22 26 16 24 12C22 8 18 4 16 4Z" fill="#F59E0B" />
+   433→              <path d="M16 4C15 4 13 6 12 8C11 10 11 14 12 16C13 17 15 17 16 17C17 17 19 17 20 16C21 14 21 10 20 8C19 6 17 4 16 4Z" fill="white" />
+   434→            </svg>
+   435→            <Link href="/" className="text-xl font-bold tracking-tight">
+   436→              <span className="text-white">SHARK</span>
+   437→              <span className="text-amber-400">ONE</span>
+   438→            </Link>
+   439→            <span className="text-gray-400 mx-3 hidden sm:inline">|</span>
+   440→            <span className="text-sm text-gray-300 hidden sm:inline">My Account</span>
+   441→          </div>
+   442→          <div className="flex items-center gap-3">
+   443→            <button className="p-2 hover:bg-white/10 rounded-lg transition" aria-label="Notifications">
+   444→              <Bell className="h-5 w-5 text-gray-300" />
+   445→            </button>
+   446→            <Link href="/" className="p-2 hover:bg-white/10 rounded-lg transition relative" aria-label="Cart">
+   447→              <ShoppingCart className="h-5 w-5 text-gray-300" />
+   448→            </Link>
+   449→          </div>
+   450→        </div>
+   451→      </header>
+   452→
+   453→      {/* Main Content */}
+   454→      <main className="flex-1">
+   455→        <div className="px-4 md:px-16 lg:px-32 py-8">
+   456→          {/* Profile Card */}
+   457→          <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
+   458→            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+   459→              <div className="h-16 w-16 rounded-full bg-[#0F172A] flex items-center justify-center text-lg font-bold text-amber-400 shrink-0">
+   460→                {usersQuery.isLoading ? <Skeleton className="h-6 w-6 rounded-full" /> : initials}
+   461→              </div>
+   462→              <div className="flex-1 min-w-0">
+   463→                <h2 className="text-xl font-bold text-gray-900">
+   464→                  {usersQuery.isLoading ? <Skeleton className="h-6 w-40" /> : buyer?.name ?? 'Buyer'}
+   465→                </h2>
+   466→                <p className="text-sm text-gray-500 truncate">
+   467→                  {usersQuery.isLoading ? <Skeleton className="h-4 w-56 mt-1" /> : buyer?.email ?? ''}
+   468→                </p>
+   469→                {buyer?.createdAt && (
+   470→                  <p className="text-xs text-gray-400 mt-1">
+   471→                    Member since {format(new Date(buyer.createdAt), 'MMM yyyy')}
+   472→                  </p>
+   473→                )}
+   474→              </div>
+   475→              <Button variant="outline" className="border-gray-200 hover:bg-gray-50 rounded-lg gap-2">
+   476→                <Pencil className="h-4 w-4" />
+   477→                Edit Profile
+   478→              </Button>
+   479→            </div>
+   480→          </div>
+   481→
+   482→          {/* Stats Row */}
+   483→          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+   484→            {statsQuery.isLoading
+   485→              ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
+   486→              : statCards.map((stat, i) => (
+   487→                  <div
+   488→                    key={stat.label}
+   489→                    className="bg-white border border-gray-200 rounded-xl p-5"
+   490→                  >
+   491→                    <div className={`p-2 rounded-lg w-fit ${stat.color} mb-3`}>{stat.icon}</div>
+   492→                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+   493→                    <p className="text-xs text-gray-500 mt-1">{stat.label}</p>
+   494→                  </div>
+   495→                ))}
+   496→          </div>
+   497→
+   498→          {/* Tabs */}
+   499→          <Tabs defaultValue="orders" className="w-full">
+   500→            <TabsList className="bg-white border border-gray-200 rounded-xl p-1 mb-6 h-auto">
+   501→              <TabsTrigger value="orders" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
+   502→                <Package className="h-4 w-4" />
+   503→                Orders
+   504→              </TabsTrigger>
+   505→              <TabsTrigger value="transactions" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
+   506→                <DollarSign className="h-4 w-4" />
+   507→                Transactions
+   508→              </TabsTrigger>
+   509→              <TabsTrigger value="wishlist" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
+   510→                <Heart className="h-4 w-4" />
+   511→                Wishlist
+   512→              </TabsTrigger>
+   513→              <TabsTrigger value="addresses" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
+   514→                <MapPin className="h-4 w-4" />
+   515→                Addresses
+   516→              </TabsTrigger>
+   517→              <TabsTrigger value="settings" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
+   518→                <Settings className="h-4 w-4" />
+   519→                Settings
+   520→              </TabsTrigger>
+   521→            </TabsList>
+   522→
+   523→            {/* Orders Tab */}
+   524→            <TabsContent value="orders">
+   525→              {ordersQuery.isLoading ? (
+   526→                <TableSkeleton />
+   527→              ) : orders.length === 0 ? (
+   528→                <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+   529→                  <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+   530→                  <p className="text-gray-500 text-sm">No orders yet</p>
+   531→                  <Link href="/">
+   532→                    <Button className="mt-4 bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg">
+   533→                      Start Shopping
+   534→                    </Button>
+   535→                  </Link>
+   536→                </div>
+   537→              ) : (
+   538→                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+   539→                  <div className="overflow-x-auto max-h-96 overflow-y-auto">
+   540→                    <table className="w-full text-sm">
+   541→                      <thead className="sticky top-0 bg-white">
+   542→                        <tr className="border-b border-gray-100 text-left text-xs text-gray-500 uppercase tracking-wider">
+   543→                          <th className="px-6 py-3">Order #</th>
+   544→                          <th className="px-6 py-3">Items</th>
+   545→                          <th className="px-6 py-3">Total</th>
+   546→                          <th className="px-6 py-3">Status</th>
+   547→                          <th className="px-6 py-3">Payment</th>
+   548→                          <th className="px-6 py-3">Date</th>
+   549→                          <th className="px-6 py-3">Actions</th>
+   550→                        </tr>
+   551→                      </thead>
+   552→                      <tbody className="divide-y divide-gray-50">
+   553→                        {orders.map((order) => (
+   554→                          <tr key={order.id} className="hover:bg-gray-50 transition">
+   555→                            <td className="px-6 py-3 font-medium text-gray-900">{order.orderNumber}</td>
+   556→                            <td className="px-6 py-3 text-gray-600">{order.itemCount} item{order.itemCount !== 1 ? 's' : ''}</td>
+   557→                            <td className="px-6 py-3 font-semibold text-gray-900">{formatCurrency(order.totalAmount)}</td>
+   558→                            <td className="px-6 py-3">
+   559→                              <Badge variant="secondary" className={`text-[10px] font-semibold ${ORDER_STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-700'}`}>
+   560→                                {order.status.replace(/_/g, ' ')}
+   561→                              </Badge>
+   562→                            </td>
+   563→                            <td className="px-6 py-3">
+   564→                              <Badge variant="secondary" className={`text-[10px] font-semibold ${PAYMENT_STATUS_COLORS[order.paymentStatus] || 'bg-gray-100 text-gray-700'}`}>
+   565→                                {order.paymentStatus}
+   566→                              </Badge>
+   567→                            </td>
+   568→                            <td className="px-6 py-3 text-gray-500">{format(new Date(order.createdAt), 'MMM dd, yyyy')}</td>
+   569→                            <td className="px-6 py-3">
+   570→                              <div className="flex items-center gap-1">
+   571→                                <Link href={`/track`}>
+   572→                                  <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 gap-1">
+   573→                                    <Eye className="h-4 w-4" />
+   574→                                    View
+   575→                                  </Button>
+   576→                                </Link>
+   577→                                {order.status === 'DELIVERED' && (
+   578→                                  <Button
+   579→                                    variant="ghost"
+   580→                                    size="sm"
+   581→                                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 gap-1"
+   582→                                    onClick={() => handleReorder(order)}
+   583→                                  >
+   584→                                    <Repeat className="h-4 w-4" />
+   585→                                    Reorder
+   586→                                  </Button>
+   587→                                )}
+   588→                              </div>
+   589→                            </td>
+   590→                          </tr>
+   591→                        ))}
+   592→                      </tbody>
+   593→                    </table>
+   594→                  </div>
+   595→                </div>
+   596→              )}
+   597→            </TabsContent>
+   598→
+   599→            {/* Transactions Tab */}
+   600→            <TabsContent value="transactions">
+   601→              {transactionsQuery.isLoading ? (
+   602→                <TableSkeleton />
+   603→              ) : transactions.length === 0 ? (
+   604→                <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+   605→                  <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+   606→                  <p className="text-gray-500 text-sm">No transactions yet</p>
+   607→                </div>
+   608→              ) : (
+   609→                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+   610→                  <div className="overflow-x-auto max-h-96 overflow-y-auto">
+   611→                    <table className="w-full text-sm">
+   612→                      <thead className="sticky top-0 bg-white">
+   613→                        <tr className="border-b border-gray-100 text-left text-xs text-gray-500 uppercase tracking-wider">
+   614→                          <th className="px-6 py-3">Date</th>
+   615→                          <th className="px-6 py-3">Description</th>
+   616→                          <th className="px-6 py-3">Type</th>
+   617→                          <th className="px-6 py-3">Amount</th>
+   618→                          <th className="px-6 py-3">Status</th>
+   619→                        </tr>
+   620→                      </thead>
+   621→                      <tbody className="divide-y divide-gray-50">
+   622→                        {transactions.map((tx) => (
+   623→                          <tr key={tx.id} className="hover:bg-gray-50 transition">
+   624→                            <td className="px-6 py-3 text-gray-500">{format(new Date(tx.createdAt), 'MMM dd, yyyy')}</td>
+   625→                            <td className="px-6 py-3 text-gray-700">{tx.description || '—'}</td>
+   626→                            <td className="px-6 py-3">
+   627→                              <Badge variant="secondary" className={`text-[10px] font-semibold ${tx.type === 'REFUND' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+   628→                                {tx.type === 'REFUND' ? 'Refund' : 'Purchase'}
+   629→                              </Badge>
+   630→                            </td>
+   631→                            <td className={`px-6 py-3 font-semibold ${tx.type === 'REFUND' ? 'text-emerald-600' : 'text-red-600'}`}>
+   632→                              {tx.type === 'REFUND' ? '+' : '-'}{formatCurrency(tx.amount)}
+   633→                            </td>
+   634→                            <td className="px-6 py-3">
+   635→                              <Badge variant="secondary" className={`text-[10px] font-semibold ${tx.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : tx.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+   636→                                {tx.status}
+   637→                              </Badge>
+   638→                            </td>
+   639→                          </tr>
+   640→                        ))}
+   641→                      </tbody>
+   642→                    </table>
+   643→                  </div>
+   644→                </div>
+   645→              )}
+   646→            </TabsContent>
+   647→
+   648→            {/* Wishlist Tab */}
+   649→            <TabsContent value="wishlist">
+   650→              {wishlist.length === 0 ? (
+   651→                <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+   652→                  <Heart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+   653→                  <p className="text-gray-500 text-sm">Your wishlist is empty</p>
+   654→                  <Link href="/">
+   655→                    <Button className="mt-4 bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg">
+   656→                      Browse Products
+   657→                    </Button>
+   658→                  </Link>
+   659→                </div>
+   660→              ) : (
+   661→                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+   662→                  {wishlist.map((productId) => (
+   663→                    <WishlistCard
+   664→                      key={productId}
+   665→                      productId={productId}
+   666→                      onRemove={() => toggleWishlist(productId)}
+   667→                      onAddToCart={(product) => addItem(product)}
+   668→                    />
+   669→                  ))}
+   670→                </div>
+   671→              )}
+   672→            </TabsContent>
+   673→
+   674→            {/* Addresses Tab */}
+   675→            <TabsContent value="addresses">
+   676→              <div className="space-y-4">
+   677→                <div className="flex items-center justify-between">
+   678→                  <div>
+   679→                    <h3 className="font-semibold text-gray-900">Saved Addresses</h3>
+   680→                    <p className="text-sm text-gray-500">Manage your delivery addresses</p>
+   681→                  </div>
+   682→                  <Button
+   683→                    onClick={openNewAddressDialog}
+   684→                    className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg gap-2"
+   685→                  >
+   686→                    <Plus className="h-4 w-4" />
+   687→                    Add New Address
+   688→                  </Button>
+   689→                </div>
+   690→
+   691→                {addressesQuery.isLoading ? (
+   692→                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   693→                    {Array.from({ length: 3 }).map((_, i) => (
+   694→                      <div key={i} className="bg-white border border-gray-200 rounded-xl p-6">
+   695→                        <Skeleton className="h-5 w-20 mb-4" />
+   696→                        <Skeleton className="h-4 w-40 mb-2" />
+   697→                        <Skeleton className="h-4 w-32 mb-2" />
+   698→                        <Skeleton className="h-4 w-full" />
+   699→                      </div>
+   700→                    ))}
+   701→                  </div>
+   702→                ) : addresses.length === 0 ? (
+   703→                  <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+   704→                    <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+   705→                    <p className="text-gray-500 text-sm">No saved addresses yet</p>
+   706→                    <Button
+   707→                      onClick={openNewAddressDialog}
+   708→                      className="mt-4 bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg gap-2"
+   709→                    >
+   710→                      <Plus className="h-4 w-4" />
+   711→                      Add Your First Address
+   712→                    </Button>
+   713→                  </div>
+   714→                ) : (
+   715→                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   716→                    {addresses.map((addr) => (
+   717→                      <div
+   718→                        key={addr.id}
+   719→                        className={`bg-white border rounded-xl p-5 transition-all hover:shadow-sm ${
+   720→                          addr.isDefault ? 'border-[#F59E0B] ring-1 ring-amber-200' : 'border-gray-200'
+   721→                        }`}
+   722→                      >
+   723→                        <div className="flex items-start justify-between mb-3">
+   724→                          <div className="flex items-center gap-2">
+   725→                            <Badge
+   726→                              variant="secondary"
+   727→                              className={`text-[10px] font-semibold ${LABEL_COLORS[addr.label] || 'bg-gray-100 text-gray-700'}`}
+   728→                            >
+   729→                              {addr.label === 'Other' ? 'Other' : addr.label}
+   730→                            </Badge>
+   731→                            {addr.isDefault && (
+   732→                              <Badge className="bg-[#F59E0B] text-[#0F172A] text-[10px] font-semibold gap-1">
+   733→                                <Star className="h-3 w-3" />
+   734→                                Default
+   735→                              </Badge>
+   736→                            )}
+   737→                          </div>
+   738→                        </div>
+   739→
+   740→                        <div className="space-y-1.5 mb-4">
+   741→                          <div className="flex items-center gap-2 text-sm text-gray-900 font-medium">
+   742→                            <User className="h-3.5 w-3.5 text-gray-400" />
+   743→                            {addr.fullName}
+   744→                          </div>
+   745→                          <div className="flex items-center gap-2 text-sm text-gray-600">
+   746→                            <Phone className="h-3.5 w-3.5 text-gray-400" />
+   747→                            {addr.phone}
+   748→                          </div>
+   749→                          <div className="flex items-start gap-2 text-sm text-gray-600">
+   750→                            <MapPin className="h-3.5 w-3.5 text-gray-400 mt-0.5 shrink-0" />
+   751→                            <span>
+   752→                              {addr.addressLine}
+   753→                              {addr.city && `, ${addr.city}`}
+   754→                              {`, ${addr.county}`}
+   755→                            </span>
+   756→                          </div>
+   757→                        </div>
+   758→
+   759→                        <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+   760→                          <Button
+   761→                            variant="outline"
+   762→                            size="sm"
+   763→                            className="flex-1 border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg text-xs gap-1"
+   764→                            onClick={() => openEditAddressDialog(addr)}
+   765→                          >
+   766→                            <Pencil className="h-3 w-3" />
+   767→                            Edit
+   768→                          </Button>
+   769→                          {!addr.isDefault && (
+   770→                            <Button
+   771→                              variant="outline"
+   772→                              size="sm"
+   773→                              className="flex-1 border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg text-xs gap-1"
+   774→                              onClick={() => setDefaultMutation.mutate(addr.id)}
+   775→                            >
+   776→                              <Star className="h-3 w-3" />
+   777→                              Set Default
+   778→                            </Button>
+   779→                          )}
+   780→                          <Button
+   781→                            variant="outline"
+   782→                            size="sm"
+   783→                            className="border-red-200 hover:bg-red-50 text-red-600 rounded-lg text-xs gap-1"
+   784→                            onClick={() => deleteAddressMutation.mutate(addr.id)}
+   785→                          >
+   786→                            <Trash2 className="h-3 w-3" />
+   787→                          </Button>
+   788→                        </div>
+   789→                      </div>
+   790→                    ))}
+   791→                  </div>
+   792→                )}
+   793→              </div>
+   794→            </TabsContent>
+   795→
+   796→            {/* Settings Tab */}
+   797→            <TabsContent value="settings">
+   798→              <div className="bg-white border border-gray-200 rounded-xl p-6 max-w-xl">
+   799→                <h3 className="font-semibold text-gray-900 mb-6">Account Settings</h3>
+   800→                <div className="space-y-4">
+   801→                  <div className="grid gap-2">
+   802→                    <Label htmlFor="settings-name">Full Name</Label>
+   803→                    <Input
+   804→                      id="settings-name"
+   805→                      value={settingsName}
+   806→                      onChange={(e) => setSettingsName(e.target.value)}
+   807→                    />
+   808→                  </div>
+   809→                  <div className="grid gap-2">
+   810→                    <Label htmlFor="settings-email">Email Address</Label>
+   811→                    <Input
+   812→                      id="settings-email"
+   813→                      type="email"
+   814→                      value={settingsEmail}
+   815→                      onChange={(e) => setSettingsEmail(e.target.value)}
+   816→                    />
+   817→                  </div>
+   818→                  <div className="grid gap-2">
+   819→                    <Label htmlFor="settings-phone">Phone Number</Label>
+   820→                    <Input
+   821→                      id="settings-phone"
+   822→                      type="tel"
+   823→                      value={settingsPhone}
+   824→                      onChange={(e) => setSettingsPhone(e.target.value)}
+   825→                    />
+   826→                  </div>
+   827→                  <Button
+   828→                    className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg mt-2"
+   829→                    onClick={() => toast.success('Settings saved successfully!')}
+   830→                  >
+   831→                    Save Changes
+   832→                  </Button>
+   833→                </div>
+   834→              </div>
+   835→            </TabsContent>
+   836→          </Tabs>
+   837→        </div>
+   838→      </main>
+   839→
+   840→      {/* Address Dialog */}
+   841→      <Dialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen}>
+   842→        <DialogContent className="sm:max-w-md">
+   843→          <DialogHeader>
+   844→            <DialogTitle>{editingAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>
+   845→          </DialogHeader>
+   846→          <div className="space-y-4 py-2">
+   847→            <div className="grid gap-2">
+   848→              <Label>Label</Label>
+   849→              <Select value={addressForm.label} onValueChange={(v) => setAddressForm((f) => ({ ...f, label: v }))}>
+   850→                <SelectTrigger>
+   851→                  <SelectValue placeholder="Select label" />
+   852→                </SelectTrigger>
+   853→                <SelectContent>
+   854→                  <SelectItem value="Home">Home</SelectItem>
+   855→                  <SelectItem value="Office">Office</SelectItem>
+   856→                  <SelectItem value="Other">Other</SelectItem>
+   857→                </SelectContent>
+   858→              </Select>
+   859→            </div>
+   860→
+   861→            <div className="grid gap-2">
+   862→              <Label>Full Name *</Label>
+   863→              <Input
+   864→                placeholder="John Doe"
+   865→                value={addressForm.fullName}
+   866→                onChange={(e) => setAddressForm((f) => ({ ...f, fullName: e.target.value }))}
+   867→              />
+   868→            </div>
+   869→
+   870→            <div className="grid gap-2">
+   871→              <Label>Phone *</Label>
+   872→              <Input
+   873→                placeholder="+254 712 345 678"
+   874→                value={addressForm.phone}
+   875→                onChange={(e) => setAddressForm((f) => ({ ...f, phone: e.target.value }))}
+   876→              />
+   877→            </div>
+   878→
+   879→            <div className="grid gap-2">
+   880→              <Label>County *</Label>
+   881→              <Select value={addressForm.county} onValueChange={(v) => setAddressForm((f) => ({ ...f, county: v }))}>
+   882→                <SelectTrigger>
+   883→                  <SelectValue placeholder="Select county" />
+   884→                </SelectTrigger>
+   885→                <SelectContent className="max-h-64">
+   886→                  {KENYAN_COUNTIES.map((c) => (
+   887→                    <SelectItem key={c} value={c}>{c}</SelectItem>
+   888→                  ))}
+   889→                </SelectContent>
+   890→              </Select>
+   891→            </div>
+   892→
+   893→            <div className="grid gap-2">
+   894→              <Label>City</Label>
+   895→              <Input
+   896→                placeholder="e.g. Kilimani"
+   897→                value={addressForm.city}
+   898→                onChange={(e) => setAddressForm((f) => ({ ...f, city: e.target.value }))}
+   899→              />
+   900→            </div>
+   901→
+   902→            <div className="grid gap-2">
+   903→              <Label>Address Line *</Label>
+   904→              <Input
+   905→                placeholder="Street address, estate, building"
+   906→                value={addressForm.addressLine}
+   907→                onChange={(e) => setAddressForm((f) => ({ ...f, addressLine: e.target.value }))}
+   908→              />
+   909→            </div>
+   910→
+   911→            <div className="flex items-center gap-2">
+   912→              <Checkbox
+   913→                id="is-default"
+   914→                checked={addressForm.isDefault}
+   915→                onCheckedChange={(checked) => setAddressForm((f) => ({ ...f, isDefault: !!checked }))}
+   916→              />
+   917→              <Label htmlFor="is-default" className="text-sm font-normal cursor-pointer">
+   918→                Set as default address
+   919→              </Label>
+   920→            </div>
+   921→          </div>
+   922→          <DialogFooter>
+   923→            <Button variant="outline" onClick={() => setAddressDialogOpen(false)} className="rounded-lg">
+   924→              Cancel
+   925→            </Button>
+   926→            <Button
+   927→              onClick={handleAddressSubmit}
+   928→              disabled={createAddressMutation.isPending || updateAddressMutation.isPending}
+   929→              className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg"
+   930→            >
+   931→              {createAddressMutation.isPending || updateAddressMutation.isPending
+   932→                ? 'Saving...'
+   933→                : editingAddress
+   934→                  ? 'Update Address'
+   935→                  : 'Add Address'}
+   936→            </Button>
+   937→          </DialogFooter>
+   938→        </DialogContent>
+   939→      </Dialog>
+   940→
+   941→      {/* Footer */}
+   942→      <Footer />
+   943→    </div>
+   944→  );
+   945→}
+   946→
+   947→/* ------------------------------------------------------------------ */
+   948→/*  Wishlist Card                                                     */
+   949→/* ------------------------------------------------------------------ */
+   950→
+   951→function WishlistCard({ productId, onRemove, onAddToCart }: { productId: string; onRemove: () => void; onAddToCart: (product: import('@/types').Product) => void }) {
+   952→  const { data: productData } = useQuery<import('@/types').Product>({
+   953→    queryKey: ['product', productId],
+   954→    queryFn: () => fetch(`/api/products/${productId}`).then((r) => r.json()).then((d) => d.product),
+   955→    enabled: !!productId,
+   956→  });
+   957→
+   958→  const inCart = useCartStore((s) => s.items.some((i) => i.product.id === productId));
+   959→
+   960→  if (!productData) {
+   961→    return (
+   962→      <div className="bg-white border border-gray-200 rounded-xl p-4">
+   963→        <Skeleton className="h-40 w-full rounded-lg mb-3" />
+   964→        <Skeleton className="h-4 w-3/4" />
+   965→        <Skeleton className="h-4 w-1/2 mt-2" />
+   966→      </div>
+   967→    );
+   968→  }
+   969→
+   970→  return (
+   971→    <div className="bg-white border border-gray-200 rounded-xl p-4">
+   972→      <Link href={`/product/${productId}`}>
+   973→        <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-gray-100">
+   974→          <img src={productData.image} alt={productData.name} className="w-full h-full object-cover" />
+   975→        </div>
+   976→      </Link>
+   977→      <Link href={`/product/${productId}`} className="block">
+   978→        <p className="text-sm font-medium text-gray-900 truncate">{productData.name}</p>
+   979→        <p className="text-sm font-bold text-gray-900 mt-1">{formatCurrency(productData.price)}</p>
+   980→      </Link>
+   981→      <div className="flex gap-2 mt-3">
+   982→        <Button
+   983→          variant="outline"
+   984→          size="sm"
+   985→          className="flex-1 border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg text-xs gap-1"
+   986→          onClick={onRemove}
+   987→        >
+   988→          <Trash2 className="h-3 w-3" />
+   989→          Remove
+   990→        </Button>
+   991→        <Button
+   992→          size="sm"
+   993→          className="flex-1 bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg text-xs gap-1"
+   994→          onClick={() => onAddToCart(productData)}
+   995→          disabled={inCart}
+   996→        >
+   997→          <Plus className="h-3 w-3" />
+   998→          {inCart ? 'In Cart' : 'Add to Cart'}
+   999→        </Button>
+  1000→      </div>
+  1001→    </div>
+  1002→  );
+  1003→}
+  1004→
+  1005→/* ------------------------------------------------------------------ */
+  1006→/*  Page Export                                                        */
+  1007→/* ------------------------------------------------------------------ */
+  1008→
+  1009→export default function AccountPage() {
+  1010→  return (
+  1011→    <QueryClientProvider client={queryClient}>
+  1012→      <Suspense fallback={
+  1013→        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+  1014→          <div className="animate-spin h-8 w-8 border-4 border-amber-500 border-t-transparent rounded-full" />
+  1015→        </div>
+  1016→      }>
+  1017→        <AccountPageContent />
+  1018→      </Suspense>
+  1019→    </QueryClientProvider>
+  1020→  );
+  1021→}
+  1022→

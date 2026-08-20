@@ -17,11 +17,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCartStore } from '@/store/cart-store';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 import { Footer } from '@/components/ecommerce/Footer';
 import type { Product } from '@/types';
-
-const formatKES = (amount: number) =>
-  new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 }).format(amount);
 
 /* ------------------------------------------------------------------ */
 /*  Simple Navbar                                                      */
@@ -91,6 +90,7 @@ function StarRating({ rating }: { rating: number }) {
 function WishlistCard({ productId, index }: { productId: string; index: number }) {
   const addItem = useCartStore((s) => s.addItem);
   const toggleWishlist = useCartStore((s) => s.toggleWishlist);
+  const currencyCode = useCurrencyStore((s) => s.code);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['product', productId],
@@ -109,7 +109,7 @@ function WishlistCard({ productId, index }: { productId: string; index: number }
     toggleWishlist(productId);
     toast.success(`${data.name} moved to cart`, {
       icon: <ShoppingBag className="h-4 w-4" />,
-      description: formatKES(data.price),
+      description: formatCurrency(data.price, currencyCode),
       action: { label: 'View Cart', onClick: () => useCartStore.getState().openCart() },
     });
   };
@@ -194,9 +194,9 @@ function WishlistCard({ productId, index }: { productId: string; index: number }
 
         {/* Price */}
         <div className="flex items-baseline gap-2 mt-0.5">
-          <span className="text-base font-bold text-[#0F172A]">{formatKES(data.price)}</span>
+          <span className="text-base font-bold text-[#0F172A]">{formatCurrency(data.price, currencyCode)}</span>
           {data.originalPrice && (
-            <span className="text-sm text-gray-400 line-through">{formatKES(data.originalPrice)}</span>
+            <span className="text-sm text-gray-400 line-through">{formatCurrency(data.originalPrice, currencyCode)}</span>
           )}
         </div>
 

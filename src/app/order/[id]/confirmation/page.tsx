@@ -20,6 +20,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Footer } from '@/components/ecommerce/Footer';
+import { useCurrencyStore } from '@/store/currency-store';
+import { formatCurrency } from '@/lib/currency';
 
 /* ------------------------------------------------------------------ */
 /*  Simple Navbar                                                      */
@@ -95,6 +97,7 @@ function SuccessAnimation() {
 /* ------------------------------------------------------------------ */
 function OrderConfirmationContent() {
   const { id } = useParams<{ id: string }>();
+  const currencyCode = useCurrencyStore((s) => s.code);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['order', id],
@@ -243,11 +246,11 @@ function OrderConfirmationContent() {
                       {item.product.name}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Qty: {item.quantity} × ${item.price.toFixed(2)}
+                      Qty: {item.quantity} × {formatCurrency(item.price, currencyCode)}
                     </p>
                   </div>
                   <span className="text-sm font-semibold text-[#0F172A] shrink-0">
-                    ${(item.price * item.quantity).toFixed(2)}
+                    {formatCurrency(item.price * item.quantity, currencyCode)}
                   </span>
                 </div>
               ))}
@@ -256,15 +259,15 @@ function OrderConfirmationContent() {
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
-                <span>${(order.totalAmount - order.deliveryFee).toFixed(2)}</span>
+                <span>{formatCurrency(order.totalAmount - order.deliveryFee, currencyCode)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Delivery Fee</span>
-                <span>${order.deliveryFee.toFixed(2)}</span>
+                <span>{formatCurrency(order.deliveryFee, currencyCode)}</span>
               </div>
               <div className="flex justify-between font-bold text-[#0F172A] text-base pt-1">
                 <span>Total</span>
-                <span>${order.totalAmount.toFixed(2)}</span>
+                <span>{formatCurrency(order.totalAmount, currencyCode)}</span>
               </div>
             </div>
           </CardContent>
