@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { StockTransferStatus } from '@prisma/client';
 
 type TransferAction = 'approve' | 'complete' | 'cancel';
@@ -21,7 +21,7 @@ export async function PUT(
     }
 
     // Fetch transfer with related data
-    const transfer = await db.stockTransfer.findUnique({
+    const transfer = await prisma.stockTransfer.findUnique({
       where: { id },
       include: {
         product: { select: { id: true, name: true } },
@@ -47,7 +47,7 @@ export async function PUT(
       }
 
       // Re-check stock at approval time
-      const sourceInventory = await db.inventoryItem.findUnique({
+      const sourceInventory = await prisma.inventoryItem.findUnique({
         where: {
           productId_warehouseId: {
             productId: transfer.productId,
@@ -71,7 +71,7 @@ export async function PUT(
         );
       }
 
-      const updated = await db.stockTransfer.update({
+      const updated = await prisma.stockTransfer.update({
         where: { id },
         data: {
           status: StockTransferStatus.APPROVED,
@@ -99,7 +99,7 @@ export async function PUT(
       }
 
       // Use a transaction to atomically move stock
-      await db.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx) => {
         // Deduct from source warehouse
         const sourceInv = await tx.inventoryItem.findUnique({
           where: {
@@ -155,7 +155,7 @@ export async function PUT(
         });
       });
 
-      const completed = await db.stockTransfer.findUnique({
+      const completed = await prisma.stockTransfer.findUnique({
         where: { id },
         include: {
           product: { select: { id: true, name: true, slug: true, image: true } },
@@ -178,7 +178,7 @@ export async function PUT(
         );
       }
 
-      const cancelled = await db.stockTransfer.update({
+      const cancelled = await prisma.stockTransfer.update({
         where: { id },
         data: { status: StockTransferStatus.CANCELLED },
         include: {

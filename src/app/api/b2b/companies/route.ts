@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
-    const companies = await db.company.findMany({
+    const companies = await prisma.company.findMany({
       include: {
         user: {
           select: { id: true, name: true, email: true, phone: true, avatar: true },
@@ -63,19 +63,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if company email already exists
-    const existingCompany = await db.company.findFirst({ where: { email } });
+    const existingCompany = await prisma.company.findFirst({ where: { email } });
     if (existingCompany) {
       return NextResponse.json({ error: 'Company email already registered' }, { status: 409 });
     }
 
     // Check if contact email (user email) already exists
-    const existingUser = await db.user.findUnique({ where: { email: contactEmail } });
+    const existingUser = await prisma.user.findUnique({ where: { email: contactEmail } });
     if (existingUser) {
       return NextResponse.json({ error: 'Contact email already registered' }, { status: 409 });
     }
 
     // Create the user first (with BUYER role)
-    const user = await db.user.create({
+    const user = await prisma.user.create({
       data: {
         name: contactName,
         email: contactEmail,
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create the company with the same id as the user
-    const company = await db.company.create({
+    const company = await prisma.company.create({
       data: {
         id: user.id,
         name: companyName,
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Link the user to the company
-    await db.user.update({
+    await prisma.user.update({
       where: { id: user.id },
       data: { companyId: company.id },
     });

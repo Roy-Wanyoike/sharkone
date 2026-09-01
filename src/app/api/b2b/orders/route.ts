@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
     // Fetch all orders that belong to a company
-    const b2bOrders = await db.order.findMany({
+    const b2bOrders = await prisma.order.findMany({
       where: { companyId: { not: null } },
       include: {
         company: {
@@ -53,12 +53,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify company exists
-    const company = await db.company.findUnique({ where: { id: companyId } });
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
     if (!company) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
-    const order = await db.order.create({
+    const order = await prisma.order.create({
       data: {
         orderNumber,
         buyerId,
@@ -75,13 +75,13 @@ export async function POST(request: NextRequest) {
 
     // Create order items
     for (const item of items) {
-      const product = await db.product.findUnique({ where: { id: item.productId } });
+      const product = await prisma.product.findUnique({ where: { id: item.productId } });
       const sellerId = product?.sellerId || '';
-      const seller = sellerId ? await db.seller.findUnique({ where: { id: sellerId } }) : null;
+      const seller = sellerId ? await prisma.seller.findUnique({ where: { id: sellerId } }) : null;
       const commissionRate = seller?.commissionRate || 0.1;
       const sellerEarnings = Math.round(item.price * item.quantity * (1 - commissionRate) * 100) / 100;
 
-      await db.orderItem.create({
+      await prisma.orderItem.create({
         data: {
           orderId: order.id,
           productId: item.productId,
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     // Update company credit used
     const newCreditUsed = company.creditUsed + totalAmount;
-    await db.company.update({
+    await prisma.company.update({
       where: { id: companyId },
       data: { creditUsed: newCreditUsed },
     });

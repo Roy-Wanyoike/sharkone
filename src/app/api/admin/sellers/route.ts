@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
-    const sellers = await db.seller.findMany({
+    const sellers = await prisma.seller.findMany({
       include: {
         user: { select: { id: true, name: true, email: true, phone: true } },
         wallet: { select: { balance: true, totalEarnings: true, pendingClearance: true } },
@@ -50,7 +50,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    const existing = await db.seller.findUnique({ where: { id: sellerId } });
+    const existing = await prisma.seller.findUnique({ where: { id: sellerId } });
     if (!existing) {
       return NextResponse.json(
         { error: 'Seller not found' },
@@ -62,7 +62,7 @@ export async function PUT(request: Request) {
     if (isVerified !== undefined) data.isVerified = isVerified;
     if (commissionRate !== undefined) data.commissionRate = parseFloat(commissionRate);
 
-    const seller = await db.seller.update({
+    const seller = await prisma.seller.update({
       where: { id: sellerId },
       data,
       include: {

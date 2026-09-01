@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     }
 
     // Find the inventory item
-    const item = await db.inventoryItem.findUnique({
+    const item = await prisma.inventoryItem.findUnique({
       where: { id: inventoryItemId },
       include: {
         product: { select: { name: true } },
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       updateData.lastRestocked = new Date();
     }
 
-    const updated = await db.inventoryItem.update({
+    const updated = await prisma.inventoryItem.update({
       where: { id: inventoryItemId },
       data: updateData,
       include: {

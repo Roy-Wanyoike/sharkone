@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 /**
  * Haversine distance in km between two lat/lng points.
@@ -31,14 +31,14 @@ export async function GET(
     let delivery;
     if (orderNumber) {
       // Lookup by order number
-      const order = await db.order.findUnique({
+      const order = await prisma.order.findUnique({
         where: { orderNumber },
         select: { id: true },
       });
       if (!order) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 });
       }
-      delivery = await db.delivery.findUnique({
+      delivery = await prisma.delivery.findUnique({
         where: { orderId: order.id },
         include: {
           order: {
@@ -60,7 +60,7 @@ export async function GET(
       });
     } else {
       // Lookup by delivery ID
-      delivery = await db.delivery.findUnique({
+      delivery = await prisma.delivery.findUnique({
         where: { id },
         include: {
           order: {

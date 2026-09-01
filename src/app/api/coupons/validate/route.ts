@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
+import { formatCurrency } from '@/lib/currency';
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const coupon = await db.coupon.findUnique({
+    const coupon = await prisma.coupon.findUnique({
       where: { code: code.trim().toUpperCase() },
     });
 
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     // Per-user limit
     if (userId) {
-      const usedCount = await db.usedCoupon.count({
+      const usedCount = await prisma.usedCoupon.count({
         where: { couponId: coupon.id, userId },
       });
       if (usedCount >= coupon.perUserLimit) {
@@ -74,14 +75,9 @@ export async function POST(req: NextRequest) {
 
     // Minimum order value
     if (coupon.minOrderValue !== null && orderTotal < coupon.minOrderValue) {
-      const fmt = new Intl.NumberFormat('en-KE', {
-        style: 'currency',
-        currency: 'KES',
-        minimumFractionDigits: 0,
-      }).format(coupon.minOrderValue);
       return NextResponse.json({
         valid: false,
-        error: `Minimum order value of ${fmt} required`,
+        error: `Minimum order value of ${formatCurrency(coupon.minOrderValue)} required`,
       });
     }
 

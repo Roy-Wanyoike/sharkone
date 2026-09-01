@@ -17,6 +17,8 @@ import {
   Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatCurrency } from '@/lib/currency';
+import { useCurrencyStore } from '@/store/currency-store';
 import { Footer } from '@/components/ecommerce/Footer';
 
 /* ------------------------------------------------------------------ */
@@ -197,6 +199,7 @@ const PRICING_FEATURES = [
 /* ------------------------------------------------------------------ */
 
 export default function SellPage() {
+  const currencyCode = useCurrencyStore((s) => s.code);
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <SimpleNavbar />
@@ -350,7 +353,7 @@ export default function SellPage() {
               <p className="text-gray-400 text-sm mb-6">No monthly fees, no setup costs</p>
 
               <div className="mb-8">
-                <span className="text-4xl font-bold text-[#0F172A]">KES 0</span>
+                <span className="text-4xl font-bold text-[#0F172A]">{formatCurrency(0, currencyCode)}</span>
                 <span className="text-gray-400 text-sm"> /month</span>
               </div>
 

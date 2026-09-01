@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { ReturnStatus } from '@prisma/client';
 
 export async function GET(request: Request) {
@@ -15,9 +15,9 @@ export async function GET(request: Request) {
       where.status = status as ReturnStatus;
     }
 
-    const total = await db.returnRequest.count({ where });
+    const total = await prisma.returnRequest.count({ where });
 
-    const returns = await db.returnRequest.findMany({
+    const returns = await prisma.returnRequest.findMany({
       where,
       include: {
         order: {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { audit } from '@/lib/audit';
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const product = await db.product.findUnique({
+    const product = await prisma.product.findUnique({
       where: { id },
       include: {
         category: true,
@@ -36,12 +36,12 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const existing = await db.product.findUnique({ where: { id } });
+    const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    const product = await db.product.update({
+    const product = await prisma.product.update({
       where: { id },
       data: {
         ...(body.name !== undefined && { name: body.name }),
@@ -82,12 +82,12 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const existing = await db.product.findUnique({ where: { id } });
+    const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    await db.product.update({
+    await prisma.product.update({
       where: { id },
       data: { status: 'ARCHIVED' },
     });

@@ -94,6 +94,7 @@ export function ProductDetailModal({
                   src={product.image}
                   alt={product.name}
                   className="w-full h-full object-contain"
+                  decoding="async"
                 />
               </div>
 

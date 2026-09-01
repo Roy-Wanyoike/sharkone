@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/currency';
+import { useCurrencyStore } from '@/store/currency-store';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -97,8 +99,7 @@ interface DeliveryItem {
   };
 }
 
-const formatKES = (amount: number) =>
-  new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 }).format(amount);
+/* currency formatting handled by formatCurrency from @/lib/currency */
 
 /* ------------------------------------------------------------------ */
 /*  Status Stepper                                                    */
@@ -181,6 +182,7 @@ function DeliveryCardSkeleton() {
 
 export function DeliveryDashboard({ deliveryPersonId: propDeliveryPersonId }: DeliveryDashboardProps) {
   const queryClient = useQueryClient();
+  const currencyCode = useCurrencyStore((s) => s.code);
   const [confirmDialog, setConfirmDialog] = useState<DeliveryItem | null>(null);
   const [otpInput, setOtpInput] = useState('');
 
@@ -278,7 +280,7 @@ export function DeliveryDashboard({ deliveryPersonId: propDeliveryPersonId }: De
   const deliveryStats = [
     { label: 'Active Deliveries', value: stats?.activeDeliveries?.toString() ?? '—', icon: <Truck className="h-5 w-5" />, color: 'bg-amber-50 text-amber-700' },
     { label: 'Completed Today', value: stats?.completedToday?.toString() ?? '—', icon: <CheckCircle2 className="h-5 w-5" />, color: 'bg-emerald-50 text-emerald-700' },
-    { label: 'Total Earnings', value: stats ? formatKES(stats.totalEarnings) : '—', icon: <DollarSign className="h-5 w-5" />, color: 'bg-gray-100 text-gray-700' },
+    { label: 'Total Earnings', value: stats ? formatCurrency(stats.totalEarnings, currencyCode) : '—', icon: <DollarSign className="h-5 w-5" />, color: 'bg-gray-100 text-gray-700' },
     { label: 'Rating', value: stats?.rating?.toFixed(1) ?? '—', icon: <Star className="h-5 w-5" />, color: 'bg-amber-50 text-amber-700' },
   ];
 
@@ -466,7 +468,7 @@ export function DeliveryDashboard({ deliveryPersonId: propDeliveryPersonId }: De
                         </Badge>
                       </td>
                       <td className={`px-6 py-3 font-semibold ${item.status === 'FAILED' ? 'text-gray-400' : 'text-emerald-600'}`}>
-                        {item.status === 'FAILED' ? formatKES(0) : formatKES(item.order.deliveryFee)}
+                        {item.status === 'FAILED' ? formatCurrency(0, currencyCode) : formatCurrency(item.order.deliveryFee, currencyCode)}
                       </td>
                       <td className="px-6 py-3 text-gray-500">
                         {item.deliveredAt ? format(new Date(item.deliveredAt), 'MMM dd, yyyy') : format(new Date(item.createdAt), 'MMM dd, yyyy')}

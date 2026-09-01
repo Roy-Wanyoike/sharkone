@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 interface AuditParams {
   userId?: string;
@@ -27,7 +27,7 @@ export async function audit({
   const userAgent = req?.headers.get('user-agent') || null;
 
   try {
-    await db.auditLog.create({
+    await prisma.auditLog.create({
       data: {
         userId: userId || null,
         role: role || null,

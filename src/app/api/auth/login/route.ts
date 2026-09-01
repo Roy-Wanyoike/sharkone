@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { audit } from '@/lib/audit';
+import { verifyPassword, hashPassword } from '@/lib/password';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,15 +14,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find the primary user by email
-    const primaryUser = await db.user.findUnique({
+    const primaryUser = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
       include: {
         seller: { select: { id: true, storeName: true, storeSlug: true } },
       },
     });
 
-    // Demo mode: accept any password for existing users
     if (!primaryUser) {
       return NextResponse.json(
         { error: 'No account found with this email' },
@@ -29,7 +28,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build the list of available accounts/roles for this user
+    // --- Password verification ---
+    if (primaryUser.password) {
+      // User has a stored hash — verify it
+      const valid = await verifyPassword(password, primaryUser.password);
+      if (!valid) {
+        return NextResponse.json(
+          { error: 'Invalid email or password' },
+          { status: 401 }
+        );
+      }
+    } else {
+      // Legacy user without password hash — auto-migrate
+      const hashed = await hashPassword(password);
+      await prisma.user.update({
+        where: { id: primaryUser.id },
+        data: { password: hashed },
+      });
+    }
+
+    // Set cookie with user ID
+    const response = NextResponse.json({
+      user: {
+        id: primaryUser.id,
+        name: primaryUser.name,
+        email: primaryUser.email,
+        avatar: primaryUser.avatar,
+      },
+      requiresRoleSelection: false, // will be updated below if needed
+    });
+
+    response.cookies.set('sharkone-token', primaryUser.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
+    // --- Role / accounts logic (unchanged from before) ---
     const accounts: Array<{
       role: string;
       userId: string;
@@ -39,7 +76,10 @@ export async function POST(request: NextRequest) {
       storeName?: string;
     }> = [];
 
-    const roleConfig: Record<string, { label: string; description: string; redirectPath: string }> = {
+    const roleConfig: Record<
+      string,
+      { label: string; description: string; redirectPath: string }
+    > = {
       BUYER: {
         label: 'Buyer',
         description: 'Shop products, track orders, manage payments',
@@ -62,7 +102,6 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    // Add the user's primary role
     const primaryConfig = roleConfig[primaryUser.role];
     if (primaryConfig) {
       accounts.push({
@@ -75,8 +114,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Demo: certain emails simulate multi-role access
-    // In production, this comes from a linked-accounts/join table
     const multiRoleEmails: Record<string, string[]> = {
       'roy@sharkone.com': ['BUYER', 'SELLER', 'DELIVERY', 'ADMIN'],
       'admin@sharkone.com': ['ADMIN', 'BUYER', 'SELLER'],
@@ -89,8 +126,7 @@ export async function POST(request: NextRequest) {
         const config = roleConfig[role];
         if (!config) continue;
 
-        // Find a real user with this role for the userId
-        const roleUser = await db.user.findFirst({
+        const roleUser = await prisma.user.findFirst({
           where: { role: role as 'BUYER' | 'SELLER' | 'DELIVERY' | 'ADMIN' },
           include: { seller: { select: { id: true, storeName: true, storeSlug: true } } },
         });
@@ -108,9 +144,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    audit({ userId: primaryUser.id, role: primaryUser.role, action: 'LOGIN', resource: 'auth', details: `Login: ${primaryUser.email}`, req: request });
+    audit({
+      userId: primaryUser.id,
+      role: primaryUser.role,
+      action: 'LOGIN',
+      resource: 'auth',
+      details: `Login: ${primaryUser.email}`,
+      req: request,
+    });
 
-    return NextResponse.json({
+    // Mutate JSON body to include accounts
+    const body = {
       user: {
         id: primaryUser.id,
         name: primaryUser.name,
@@ -119,6 +163,14 @@ export async function POST(request: NextRequest) {
       },
       accounts,
       requiresRoleSelection: accounts.length > 1,
+    };
+
+    return new NextResponse(JSON.stringify(body), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Set-Cookie': response.headers.get('set-cookie')!,
+      },
     });
   } catch (error) {
     console.error('Login error:', error);

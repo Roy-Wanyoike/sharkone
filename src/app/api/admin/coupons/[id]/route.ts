@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(
   _req: NextRequest,
@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const coupon = await db.coupon.findUnique({
+    const coupon = await prisma.coupon.findUnique({
       where: { id },
       include: { usedCoupons: { take: 10, orderBy: { usedAt: 'desc' } } },
     });
@@ -31,7 +31,7 @@ export async function PUT(
     const { id } = await params;
     const body = await req.json();
 
-    const existing = await db.coupon.findUnique({ where: { id } });
+    const existing = await prisma.coupon.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Coupon not found' }, { status: 404 });
     }
@@ -59,7 +59,7 @@ export async function PUT(
       }
     }
 
-    const coupon = await db.coupon.update({
+    const coupon = await prisma.coupon.update({
       where: { id },
       data: updatable,
     });
@@ -77,12 +77,12 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const existing = await db.coupon.findUnique({ where: { id } });
+    const existing = await prisma.coupon.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Coupon not found' }, { status: 404 });
     }
 
-    const coupon = await db.coupon.update({
+    const coupon = await prisma.coupon.update({
       where: { id },
       data: { isActive: false },
     });

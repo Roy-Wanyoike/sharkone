@@ -2,12 +2,13 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Package, Truck, DollarSign, Bell, CheckCheck, BellOff } from 'lucide-react';
+import { Package, Truck, DollarSign, Bell, CheckCheck, BellOff, ArrowRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 import type { Notification } from '@/types';
 
 interface NotificationDropdownProps {
@@ -189,6 +190,23 @@ export function NotificationDropdown({ open, onClose }: NotificationDropdownProp
                 </div>
               </ScrollArea>
             )}
+
+            {/* View All Link */}
+            <div
+              className="border-t border-gray-100 px-2 py-2"
+              onClick={onClose}
+            >
+              <Button
+                asChild
+                variant="ghost"
+                className="w-full justify-center text-xs text-amber-700 hover:text-amber-800 hover:bg-amber-50 h-8 rounded-lg"
+              >
+                <Link href="/notifications">
+                  View All Notifications
+                  <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                </Link>
+              </Button>
+            </div>
           </motion.div>
         </>
       )}

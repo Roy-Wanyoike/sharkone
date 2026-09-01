@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function POST(
   request: Request,
@@ -20,7 +20,7 @@ export async function POST(
     const withdrawAmount = parseFloat(amount);
 
     // Get seller with wallet
-    const seller = await db.seller.findUnique({
+    const seller = await prisma.seller.findUnique({
       where: { id: sellerId },
       include: { wallet: true },
     });
@@ -37,7 +37,7 @@ export async function POST(
     }
 
     // Create transaction
-    const transaction = await db.transaction.create({
+    const transaction = await prisma.transaction.create({
       data: {
         userId: seller.userId,
         type: 'WITHDRAWAL',
@@ -48,7 +48,7 @@ export async function POST(
     });
 
     // Update wallet
-    const updatedWallet = await db.wallet.update({
+    const updatedWallet = await prisma.wallet.update({
       where: { sellerId },
       data: {
         balance: { decrement: withdrawAmount },

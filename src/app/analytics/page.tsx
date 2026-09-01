@@ -53,6 +53,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { formatCurrency } from '@/lib/currency';
+import { useCurrencyStore } from '@/store/currency-store';
 
 // ===================== TYPES =====================
 interface RevenueOverTime {
@@ -106,15 +108,7 @@ interface AnalyticsData {
 }
 
 // ===================== CONSTANTS =====================
-const kesFormatter = new Intl.NumberFormat('en-KE', {
-  style: 'currency',
-  currency: 'KES',
-  minimumFractionDigits: 0,
-});
-
-function formatKES(amount: number): string {
-  return kesFormatter.format(amount);
-}
+/* currency formatting handled by formatCurrency from @/lib/currency */
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: 'bg-yellow-100 text-yellow-800',
@@ -328,6 +322,7 @@ function ChartCard({
 
 // ===================== REVENUE TREND CHART =====================
 function RevenueTrendChart({ data }: { data: RevenueOverTime[] }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const formattedData = data.map((d) => ({
     ...d,
     date: format(parseISO(d.date), 'MMM dd'),
@@ -353,7 +348,7 @@ function RevenueTrendChart({ data }: { data: RevenueOverTime[] }) {
           tick={{ fontSize: 12, fill: '#94a3b8' }}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(v) => `KES ${(v / 1000).toFixed(0)}k`}
+          tickFormatter={(v) => formatCurrency(v, currencyCode, { compact: true })}
         />
         <RechartsTooltip
           contentStyle={{
@@ -362,7 +357,7 @@ function RevenueTrendChart({ data }: { data: RevenueOverTime[] }) {
             borderRadius: '8px',
             boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
           }}
-          formatter={(value: number) => [formatKES(value), 'Revenue']}
+          formatter={(value: number) => [formatCurrency(value, currencyCode), 'Revenue']}
         />
         <Area
           type="monotone"
@@ -440,6 +435,7 @@ function OrderStatusChart({ data }: { data: OrderStatusBreakdown[] }) {
 
 // ===================== TOP PRODUCTS BAR CHART =====================
 function TopProductsChart({ data }: { data: TopProduct[] }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const chartData = [...data].reverse().map((p) => ({
     name: p.productName.length > 18 ? p.productName.substring(0, 18) + '...' : p.productName,
     sales: p.totalSales,
@@ -456,7 +452,7 @@ function TopProductsChart({ data }: { data: TopProduct[] }) {
           tick={{ fontSize: 12, fill: '#94a3b8' }}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(v) => `KES ${(v / 1000).toFixed(0)}k`}
+          tickFormatter={(v) => formatCurrency(v, currencyCode, { compact: true })}
         />
         <YAxis
           type="category"
@@ -474,7 +470,7 @@ function TopProductsChart({ data }: { data: TopProduct[] }) {
             boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
           }}
           formatter={(value: number, _name: string, props: any) => [
-            `${formatKES(value)} (${props.payload.units} units)`,
+            `${formatCurrency(value, currencyCode)} (${props.payload.units} units)`,
             props.payload.fullName,
           ]}
         />
@@ -531,6 +527,7 @@ function CategoryDistributionChart({ data }: { data: CategoryDistribution[] }) {
 
 // ===================== SELLER TABLE =====================
 function SellerPerformanceTable({ data }: { data: SellerPerformance[] }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -548,7 +545,7 @@ function SellerPerformanceTable({ data }: { data: SellerPerformance[] }) {
             <TableRow key={seller.sellerId} className="border-slate-50">
               <TableCell className="font-medium text-slate-900">{seller.storeName}</TableCell>
               <TableCell className="text-center text-slate-600">{seller.productCount}</TableCell>
-              <TableCell className="text-right font-semibold text-slate-900">{formatKES(seller.totalRevenue)}</TableCell>
+              <TableCell className="text-right font-semibold text-slate-900">{formatCurrency(seller.totalRevenue, currencyCode)}</TableCell>
               <TableCell className="text-center">
                 <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
@@ -566,6 +563,7 @@ function SellerPerformanceTable({ data }: { data: SellerPerformance[] }) {
 
 // ===================== RECENT ACTIVITY =====================
 function RecentActivityFeed({ data }: { data: RecentActivity[] }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   return (
     <div className="space-y-3">
       {data.map((item, idx) => (
@@ -588,7 +586,7 @@ function RecentActivityFeed({ data }: { data: RecentActivity[] }) {
             </p>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-sm font-semibold text-slate-900">{formatKES(item.amount)}</p>
+            <p className="text-sm font-semibold text-slate-900">{formatCurrency(item.amount, currencyCode)}</p>
             <Badge
               variant="secondary"
               className={`text-[10px] px-1.5 py-0 font-medium ${STATUS_COLORS[item.status] || 'bg-gray-100 text-gray-800'}`}
@@ -622,6 +620,7 @@ function ChartSkeleton() {
 
 // ===================== MAIN PAGE =====================
 export default function AnalyticsPage() {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { data: analytics, isLoading, error } = useQuery<AnalyticsData>({
@@ -731,7 +730,7 @@ export default function AnalyticsPage() {
                 <KpiCard
                   icon={DollarSign}
                   label="Total Revenue"
-                  value={formatKES(totalRevenue)}
+                  value={formatCurrency(totalRevenue, currencyCode)}
                   change={revenueChange ? `${Math.abs(parseFloat(revenueChange))}%` : undefined}
                   changeType={revenueChangeType}
                 />
@@ -745,7 +744,7 @@ export default function AnalyticsPage() {
                 <KpiCard
                   icon={TrendingUp}
                   label="Average Order Value"
-                  value={formatKES(avgOrderValue)}
+                  value={formatCurrency(avgOrderValue, currencyCode)}
                   change="3.5%"
                   changeType="up"
                 />

@@ -15,6 +15,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useCompareStore } from '@/store/compare-store';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationDropdown } from '@/components/ecommerce/NotificationDropdown';
+import { CurrencySwitcher } from '@/components/ecommerce/CurrencySwitcher';
 import type { Role } from '@/types';
 
 interface NavbarProps {
@@ -117,6 +118,11 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
         >
           <Search className="h-5 w-5" />
         </Button>
+
+        {/* Currency Switcher */}
+        <div className="hidden sm:block">
+          <CurrencySwitcher />
+        </div>
 
         {/* Notification Bell */}
         <div className="relative">

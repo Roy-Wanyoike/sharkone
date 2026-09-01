@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,
@@ -8,7 +8,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const address = await db.address.findUnique({ where: { id } });
+    const address = await prisma.address.findUnique({ where: { id } });
 
     if (!address) {
       return NextResponse.json({ error: 'Address not found' }, { status: 404 });
@@ -30,20 +30,20 @@ export async function PUT(
     const body = await request.json();
     const { label, fullName, phone, county, city, addressLine, isDefault } = body;
 
-    const existing = await db.address.findUnique({ where: { id } });
+    const existing = await prisma.address.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Address not found' }, { status: 404 });
     }
 
     // If setting as default, unset other defaults for this user
     if (isDefault) {
-      await db.address.updateMany({
+      await prisma.address.updateMany({
         where: { userId: existing.userId, id: { not: id } },
         data: { isDefault: false },
       });
     }
 
-    const address = await db.address.update({
+    const address = await prisma.address.update({
       where: { id },
       data: {
         ...(label !== undefined && { label }),
@@ -70,7 +70,7 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    await db.address.delete({ where: { id } });
+    await prisma.address.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {

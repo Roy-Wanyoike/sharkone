@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function PUT(
   request: Request,
@@ -8,7 +8,7 @@ export async function PUT(
   try {
     const { id } = await params;
 
-    const notification = await db.notification.findUnique({ where: { id } });
+    const notification = await prisma.notification.findUnique({ where: { id } });
     if (!notification) {
       return NextResponse.json(
         { error: 'Notification not found' },
@@ -16,7 +16,7 @@ export async function PUT(
       );
     }
 
-    await db.notification.update({
+    await prisma.notification.update({
       where: { id },
       data: { isRead: true },
     });

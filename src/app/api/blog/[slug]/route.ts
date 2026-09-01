@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
   try {
     const { slug } = await params;
 
-    const post = await db.blogPost.findUnique({
+    const post = await prisma.blogPost.findUnique({
       where: { slug },
     });
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { OrderStatus } from '@prisma/client';
 
 export async function GET(
@@ -14,7 +14,7 @@ export async function GET(
     // Get all order items for this seller
     const where: Record<string, unknown> = { sellerId };
 
-    const orderItems = await db.orderItem.findMany({
+    const orderItems = await prisma.orderItem.findMany({
       where,
       include: {
         order: {

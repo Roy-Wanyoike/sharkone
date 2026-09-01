@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 /**
  * Parse county/area from a shipping address string.
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Fetch all specified deliveries with their orders
-    const deliveries = await db.delivery.findMany({
+    const deliveries = await prisma.delivery.findMany({
       where: {
         id: { in: deliveryIds },
       },

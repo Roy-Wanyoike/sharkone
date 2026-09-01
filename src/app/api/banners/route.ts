@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { BannerPosition } from '@prisma/client';
 
 export async function GET(request: Request) {
@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
     // Handle click tracking
     if (click === 'true' && bannerId) {
-      await db.banner.update({
+      await prisma.banner.update({
         where: { id: bannerId },
         data: { clicksCount: { increment: 1 } },
       });
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       where.position = position;
     }
 
-    const banners = await db.banner.findMany({
+    const banners = await prisma.banner.findMany({
       where,
       orderBy: { order: 'asc' },
     });

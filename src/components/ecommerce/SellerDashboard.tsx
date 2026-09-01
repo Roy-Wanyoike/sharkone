@@ -47,8 +47,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/currency';
 import { useCurrencyStore } from '@/store/currency-store';
-import { formatCurrency as formatCurrencyLib } from '@/lib/currency';
 
 /* ------------------------------------------------------------------ */
 /*  Hydration-safe mounted detection                                   */
@@ -150,7 +150,7 @@ interface Category {
 /*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
 
-/* currency formatting handled by formatCurrencyLib from @/lib/currency */
+/* currency formatting handled by formatCurrency from @/lib/currency */
 
 function formatDate(dateStr: string): string {
   return format(new Date(dateStr), 'MMM dd, yyyy');
@@ -282,6 +282,7 @@ function BarSkeleton() {
 export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps) {
   const mounted = useMounted();
   const queryClient = useQueryClient();
+  const currencyCode = useCurrencyStore((s) => s.code);
 
   // Auto-detect seller if not provided
   const autoSellersQuery = useQuery<{ id: string }[]>({
@@ -439,7 +440,7 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
 
   const statsCards = stats
     ? [
-        { label: 'Total Revenue', value: formatCurrencyLib(stats.totalRevenue), change: '+12.5%', icon: <DollarSign className="h-5 w-5" />, color: 'bg-amber-50 text-amber-700' },
+        { label: 'Total Revenue', value: formatCurrency(stats.totalRevenue, currencyCode), change: '+12.5%', icon: <DollarSign className="h-5 w-5" />, color: 'bg-amber-50 text-amber-700' },
         { label: 'Total Orders', value: String(stats.totalOrders), change: '+8.2%', icon: <ShoppingBag className="h-5 w-5" />, color: 'bg-emerald-50 text-emerald-700' },
         { label: 'Products Listed', value: String(stats.totalProducts), change: `+${stats.totalProducts > 0 ? '1' : '0'}`, icon: <Package className="h-5 w-5" />, color: 'bg-gray-100 text-gray-700' },
         { label: 'Rating', value: stats.rating > 0 ? stats.rating.toFixed(1) : 'N/A', change: stats.rating > 0 ? `+${(stats.rating * 0.02).toFixed(1)}` : '', icon: <Star className="h-5 w-5" />, color: 'bg-amber-50 text-amber-700' },
@@ -449,10 +450,10 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
   /* ---- Quick stats for overview ---- */
   const quickStats = stats
     ? [
-        { label: 'Wallet Balance', value: formatCurrencyLib(stats.balance), icon: <Wallet className="h-4 w-4" />, accent: true },
-        { label: 'Pending Clearance', value: formatCurrencyLib(stats.pendingClearance), icon: <Clock className="h-4 w-4" />, accent: false },
-        { label: 'Total Earnings', value: formatCurrencyLib(stats.totalEarnings), icon: <TrendingUp className="h-4 w-4" />, accent: false },
-        { label: 'Total Withdrawn', value: formatCurrencyLib(stats.totalWithdrawn), icon: <ArrowDownRight className="h-4 w-4" />, accent: false },
+        { label: 'Wallet Balance', value: formatCurrency(stats.balance, currencyCode), icon: <Wallet className="h-4 w-4" />, accent: true },
+        { label: 'Pending Clearance', value: formatCurrency(stats.pendingClearance, currencyCode), icon: <Clock className="h-4 w-4" />, accent: false },
+        { label: 'Total Earnings', value: formatCurrency(stats.totalEarnings, currencyCode), icon: <TrendingUp className="h-4 w-4" />, accent: false },
+        { label: 'Total Withdrawn', value: formatCurrency(stats.totalWithdrawn, currencyCode), icon: <ArrowDownRight className="h-4 w-4" />, accent: false },
       ]
     : [];
 
@@ -611,7 +612,7 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
                       <tr key={order.id} className="hover:bg-gray-50 transition">
                         <td className="px-6 py-3 font-medium text-[#0F172A]">{order.orderNumber}</td>
                         <td className="px-6 py-3 text-gray-600">{order.buyerName}</td>
-                        <td className="px-6 py-3 font-medium text-[#0F172A]">{formatCurrencyLib(order.total)}</td>
+                        <td className="px-6 py-3 font-medium text-[#0F172A]">{formatCurrency(order.total, currencyCode)}</td>
                         <td className="px-6 py-3">
                           <Badge variant="secondary" className={`text-[10px] font-semibold ${statusBadgeColor(order.status)}`}>
                             {formatStatusLabel(order.status)}
@@ -657,7 +658,7 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="prod-price">Price (KES)</Label>
+                      <Label htmlFor="prod-price">Price ({currencyCode})</Label>
                       <Input
                         id="prod-price"
                         type="number"
@@ -805,7 +806,7 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
 
                     {/* Price + Stock */}
                     <div className="flex items-center justify-between mt-3">
-                      <span className="text-lg font-bold text-[#0F172A]">{formatCurrencyLib(product.price)}</span>
+                      <span className="text-lg font-bold text-[#0F172A]">{formatCurrency(product.price, currencyCode)}</span>
                       <div className="flex items-center gap-2">
                         {/* Stock Level Indicator */}
                         <div className="flex items-center gap-1.5">
@@ -948,7 +949,7 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
                         <td className="px-6 py-3 font-medium text-[#0F172A]">{order.orderNumber}</td>
                         <td className="px-6 py-3 text-gray-600">{order.buyerName}</td>
                         <td className="px-6 py-3 text-gray-600">{order.itemCount} item{order.itemCount > 1 ? 's' : ''}</td>
-                        <td className="px-6 py-3 font-medium text-[#0F172A]">{formatCurrencyLib(order.total)}</td>
+                        <td className="px-6 py-3 font-medium text-[#0F172A]">{formatCurrency(order.total, currencyCode)}</td>
                         <td className="px-6 py-3">
                           <Badge variant="secondary" className={`text-[10px] font-semibold ${statusBadgeColor(order.status)}`}>
                             {formatStatusLabel(order.status)}
@@ -1049,7 +1050,7 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
                             {formatStatusLabel(ret.status)}
                           </Badge>
                         </td>
-                        <td className="px-6 py-3 font-medium text-[#0F172A]">{formatCurrencyLib(ret.refundAmount)}</td>
+                        <td className="px-6 py-3 font-medium text-[#0F172A]">{formatCurrency(ret.refundAmount, currencyCode)}</td>
                         <td className="px-6 py-3 text-gray-500">{formatDate(ret.createdAt)}</td>
                         <td className="px-6 py-3">
                           {ret.status === 'PENDING' ? (
@@ -1122,7 +1123,7 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
                             style={{ width: `${Math.max(pct, 4)}%` }}
                           />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-[#0F172A]">
-                            {formatCurrencyLib(amount)}
+                            {formatCurrency(amount, currencyCode)}
                           </span>
                         </div>
                       </div>
@@ -1216,7 +1217,7 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-[#0F172A] truncate">{product.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs font-semibold text-[#0F172A]">{formatCurrencyLib(product.price)}</span>
+                          <span className="text-xs font-semibold text-[#0F172A]">{formatCurrency(product.price, currencyCode)}</span>
                           <Badge variant="secondary" className={`text-[9px] font-semibold ${productStatusBadgeColor(product.status)}`}>
                             {product.status}
                           </Badge>
@@ -1256,19 +1257,19 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                   <div>
                     <p className="text-xs text-gray-400 mb-1">Total Revenue</p>
-                    <p className="text-xl font-bold text-white">{formatCurrencyLib(stats.totalRevenue)}</p>
+                    <p className="text-xl font-bold text-white">{formatCurrency(stats.totalRevenue, currencyCode)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-400 mb-1">Wallet Balance</p>
-                    <p className="text-xl font-bold text-amber-400">{formatCurrencyLib(stats.balance)}</p>
+                    <p className="text-xl font-bold text-amber-400">{formatCurrency(stats.balance, currencyCode)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-400 mb-1">Pending Clearance</p>
-                    <p className="text-xl font-bold text-white">{formatCurrencyLib(stats.pendingClearance)}</p>
+                    <p className="text-xl font-bold text-white">{formatCurrency(stats.pendingClearance, currencyCode)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-400 mb-1">Total Withdrawn</p>
-                    <p className="text-xl font-bold text-white">{formatCurrencyLib(stats.totalWithdrawn)}</p>
+                    <p className="text-xl font-bold text-white">{formatCurrency(stats.totalWithdrawn, currencyCode)}</p>
                   </div>
                 </div>
               ) : null}

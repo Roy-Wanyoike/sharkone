@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { UserRole } from '@prisma/client';
 
 export async function GET(request: Request) {
@@ -9,20 +9,20 @@ export async function GET(request: Request) {
 
     // If no userId provided, fall back to the first buyer user
     if (!userId) {
-      const buyer = await db.user.findFirst({ where: { role: UserRole.BUYER } });
+      const buyer = await prisma.user.findFirst({ where: { role: UserRole.BUYER } });
       if (!buyer) {
         return NextResponse.json({ notifications: [], unreadCount: 0 });
       }
       userId = buyer.id;
     }
 
-    const notifications = await db.notification.findMany({
+    const notifications = await prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
 
-    const unreadCount = await db.notification.count({
+    const unreadCount = await prisma.notification.count({
       where: { userId, isRead: false },
     });
 
@@ -59,7 +59,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    await db.notification.updateMany({
+    await prisma.notification.updateMany({
       where: { id: { in: notificationIds } },
       data: { isRead: true },
     });

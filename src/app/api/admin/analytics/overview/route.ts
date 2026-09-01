@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
@@ -24,25 +24,25 @@ export async function GET() {
       dailyRevenueRaw,
     ] = await Promise.all([
       // Total revenue (paid orders)
-      db.order.aggregate({
+      prisma.order.aggregate({
         _sum: { totalAmount: true },
         where: { paymentStatus: 'PAID' },
       }),
 
       // Total orders
-      db.order.count(),
+      prisma.order.count(),
 
       // Total customers (BUYER role)
-      db.user.count({ where: { role: 'BUYER' } }),
+      prisma.user.count({ where: { role: 'BUYER' } }),
 
       // Total products (ACTIVE)
-      db.product.count({ where: { status: 'ACTIVE' } }),
+      prisma.product.count({ where: { status: 'ACTIVE' } }),
 
       // Total sellers
-      db.seller.count(),
+      prisma.seller.count(),
 
       // This month revenue
-      db.order.aggregate({
+      prisma.order.aggregate({
         _sum: { totalAmount: true },
         where: {
           paymentStatus: 'PAID',
@@ -51,7 +51,7 @@ export async function GET() {
       }),
 
       // Last month revenue
-      db.order.aggregate({
+      prisma.order.aggregate({
         _sum: { totalAmount: true },
         where: {
           paymentStatus: 'PAID',
@@ -60,13 +60,13 @@ export async function GET() {
       }),
 
       // This month orders
-      db.order.count({ where: { createdAt: { gte: thisMonthStart } } }),
+      prisma.order.count({ where: { createdAt: { gte: thisMonthStart } } }),
 
       // Last month orders
-      db.order.count({ where: { createdAt: { gte: lastMonthStart, lt: thisMonthStart } } }),
+      prisma.order.count({ where: { createdAt: { gte: lastMonthStart, lt: thisMonthStart } } }),
 
       // Top 5 selling products by orderItem quantity sum
-      db.$queryRaw<
+      prisma.$queryRaw<
         { productId: string; name: string; image: string; totalSold: number; revenue: number }[]
       >`
         SELECT p.id as productId, p.name, p.image, SUM(oi.quantity) as totalSold, SUM(oi.quantity * oi.price) as revenue
@@ -78,7 +78,7 @@ export async function GET() {
       `,
 
       // Order status distribution
-      db.$queryRaw<{ status: string; count: number }[]>`
+      prisma.$queryRaw<{ status: string; count: number }[]>`
         SELECT status, COUNT(*) as count
         FROM [Order]
         GROUP BY status
@@ -86,7 +86,7 @@ export async function GET() {
       `,
 
       // Payment status distribution
-      db.$queryRaw<{ status: string; count: number }[]>`
+      prisma.$queryRaw<{ status: string; count: number }[]>`
         SELECT paymentStatus as status, COUNT(*) as count
         FROM [Order]
         GROUP BY paymentStatus
@@ -94,7 +94,7 @@ export async function GET() {
       `,
 
       // Daily revenue for last 30 days
-      db.$queryRaw<{ date: string; revenue: number; orders: number }[]>`
+      prisma.$queryRaw<{ date: string; revenue: number; orders: number }[]>`
         SELECT DATE(createdAt) as date, COALESCE(SUM(CASE WHEN paymentStatus = 'PAID' THEN totalAmount ELSE 0 END), 0) as revenue, COUNT(*) as orders
         FROM [Order]
         WHERE createdAt >= DATE('now', '-30 days')

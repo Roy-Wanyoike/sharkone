@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'orderNumber query param is required' }, { status: 400 });
     }
 
-    const order = await db.order.findUnique({
+    const order = await prisma.order.findUnique({
       where: { orderNumber },
       select: { id: true },
     });
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const delivery = await db.delivery.findUnique({
+    const delivery = await prisma.delivery.findUnique({
       where: { orderId: order.id },
       include: {
         order: {

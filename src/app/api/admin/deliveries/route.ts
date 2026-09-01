@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { Prisma } from '@prisma/client';
 
 const PAGE_SIZE = 10;
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     const [deliveries, total] = await Promise.all([
-      db.delivery.findMany({
+      prisma.delivery.findMany({
         where,
         include: {
           order: {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * PAGE_SIZE,
         take: PAGE_SIZE,
       }),
-      db.delivery.count({ where }),
+      prisma.delivery.count({ where }),
     ]);
 
     const totalPages = Math.ceil(total / PAGE_SIZE);

@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
-    const totalWarehouses = await db.warehouse.count();
-    const activeWarehouses = await db.warehouse.count({ where: { status: 'ACTIVE' } });
+    const totalWarehouses = await prisma.warehouse.count();
+    const activeWarehouses = await prisma.warehouse.count({ where: { status: 'ACTIVE' } });
 
     // Total capacity across all warehouses
-    const capacityData = await db.warehouse.aggregate({
+    const capacityData = await prisma.warehouse.aggregate({
       _sum: { capacity: true },
     });
     const totalCapacity = capacityData._sum.capacity || 0;
 
     // Total items in stock
-    const inventoryStats = await db.inventoryItem.aggregate({
+    const inventoryStats = await prisma.inventoryItem.aggregate({
       _sum: { quantity: true, reservedQuantity: true },
       _count: true,
     });
@@ -26,14 +26,14 @@ export async function GET() {
       : 0;
 
     // Low stock alerts: items where quantity <= reorderLevel
-    const lowStockAlerts = await db.inventoryItem.count({
+    const lowStockAlerts = await prisma.inventoryItem.count({
       where: {
         quantity: { lte: 10 }, // Using a simple threshold for the count
       },
     });
 
     // More precise low stock: quantity <= reorderLevel
-    const lowStockItems = await db.inventoryItem.findMany({
+    const lowStockItems = await prisma.inventoryItem.findMany({
       where: {
         quantity: { lte: 1000 }, // Fetch all to evaluate
       },
@@ -44,7 +44,7 @@ export async function GET() {
     ).length;
 
     // Inventory value (sum of quantity * price for each inventory item)
-    const inventoryWithProducts = await db.inventoryItem.findMany({
+    const inventoryWithProducts = await prisma.inventoryItem.findMany({
       select: {
         quantity: true,
         product: { select: { price: true } },
@@ -56,7 +56,7 @@ export async function GET() {
     );
 
     // Warehouses in maintenance
-    const maintenanceCount = await db.warehouse.count({ where: { status: 'MAINTENANCE' } });
+    const maintenanceCount = await prisma.warehouse.count({ where: { status: 'MAINTENANCE' } });
 
     return NextResponse.json({
       totalWarehouses,

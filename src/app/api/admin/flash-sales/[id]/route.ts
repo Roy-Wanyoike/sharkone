@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function PUT(
   req: NextRequest,
@@ -7,7 +7,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const existing = await db.flashSale.findUnique({ where: { id } });
+    const existing = await prisma.flashSale.findUnique({ where: { id } });
 
     if (!existing) {
       return NextResponse.json({ error: 'Flash sale not found' }, { status: 404 });
@@ -48,7 +48,7 @@ export async function PUT(
     if (isActive !== undefined) data.isActive = Boolean(isActive);
     if (totalStock !== undefined) data.totalStock = Math.max(1, Number(totalStock));
 
-    const flashSale = await db.flashSale.update({
+    const flashSale = await prisma.flashSale.update({
       where: { id },
       data,
       include: {
@@ -69,13 +69,13 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const existing = await db.flashSale.findUnique({ where: { id } });
+    const existing = await prisma.flashSale.findUnique({ where: { id } });
 
     if (!existing) {
       return NextResponse.json({ error: 'Flash sale not found' }, { status: 404 });
     }
 
-    await db.flashSale.delete({ where: { id } });
+    await prisma.flashSale.delete({ where: { id } });
 
     return NextResponse.json({ message: 'Flash sale deleted' });
   } catch (error) {

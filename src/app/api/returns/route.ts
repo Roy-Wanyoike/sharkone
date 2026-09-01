@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { ReturnStatus, RefundStatus } from '@prisma/client';
 import { audit } from '@/lib/audit';
 
@@ -28,9 +28,9 @@ export async function GET(request: Request) {
       where.status = status as ReturnStatus;
     }
 
-    const total = await db.returnRequest.count({ where });
+    const total = await prisma.returnRequest.count({ where });
 
-    const returns = await db.returnRequest.findMany({
+    const returns = await prisma.returnRequest.findMany({
       where,
       include: {
         order: {
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
     }
 
     // Check if an existing return request exists for this order item
-    const existingReturn = await db.returnRequest.findUnique({
+    const existingReturn = await prisma.returnRequest.findUnique({
       where: { orderItemId },
     });
     if (existingReturn) {
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
     }
 
     // Fetch the order item to calculate refund amount
-    const orderItem = await db.orderItem.findUnique({
+    const orderItem = await prisma.orderItem.findUnique({
       where: { id: orderItemId },
     });
 
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
 
     const refundAmount = orderItem.price * orderItem.quantity;
 
-    const returnRequest = await db.returnRequest.create({
+    const returnRequest = await prisma.returnRequest.create({
       data: {
         returnNumber: generateReturnNumber(),
         orderId,

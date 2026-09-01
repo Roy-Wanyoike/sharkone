@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { DeliveryStatus } from '@prisma/client';
 
 export async function GET(
@@ -14,26 +14,26 @@ export async function GET(
 
     const [activeDeliveries, completedToday, completedTotal, completedDeliveries] =
       await Promise.all([
-        db.delivery.count({
+        prisma.delivery.count({
           where: {
             deliveryPersonId,
             status: { notIn: [DeliveryStatus.DELIVERED, DeliveryStatus.FAILED] },
           },
         }),
-        db.delivery.count({
+        prisma.delivery.count({
           where: {
             deliveryPersonId,
             status: DeliveryStatus.DELIVERED,
             deliveredAt: { gte: todayStart },
           },
         }),
-        db.delivery.count({
+        prisma.delivery.count({
           where: {
             deliveryPersonId,
             status: DeliveryStatus.DELIVERED,
           },
         }),
-        db.delivery.findMany({
+        prisma.delivery.findMany({
           where: {
             deliveryPersonId,
             status: DeliveryStatus.DELIVERED,

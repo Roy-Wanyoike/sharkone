@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { DeliveryStatus, OrderStatus, TransactionStatus, TransactionType } from '@prisma/client';
 
 export async function PUT(
@@ -18,7 +18,7 @@ export async function PUT(
       );
     }
 
-    const delivery = await db.delivery.findUnique({
+    const delivery = await prisma.delivery.findUnique({
       where: { id: deliveryId },
       include: {
         order: {
@@ -51,7 +51,7 @@ export async function PUT(
     }
 
     // Update delivery status and set deliveredAt
-    await db.delivery.update({
+    await prisma.delivery.update({
       where: { id: deliveryId },
       data: {
         status: DeliveryStatus.DELIVERED,
@@ -60,7 +60,7 @@ export async function PUT(
     });
 
     // Update order status
-    await db.order.update({
+    await prisma.order.update({
       where: { id: delivery.orderId },
       data: { status: OrderStatus.DELIVERED },
     });
@@ -73,9 +73,9 @@ export async function PUT(
     }
 
     for (const [sellerId, amount] of sellerEarningsMap) {
-      const seller = await db.seller.findUnique({ where: { id: sellerId } });
+      const seller = await prisma.seller.findUnique({ where: { id: sellerId } });
       if (seller) {
-        await db.transaction.create({
+        await prisma.transaction.create({
           data: {
             userId: seller.userId,
             type: TransactionType.EARNING,
@@ -87,7 +87,7 @@ export async function PUT(
         });
 
         // Update wallet
-        await db.wallet.upsert({
+        await prisma.wallet.upsert({
           where: { sellerId },
           create: {
             sellerId,

@@ -602,6 +602,7 @@ function PaymentStep({
   cardDetails: { number: string; expiry: string; cvv: string };
   setCardDetails: (d: { number: string; expiry: string; cvv: string }) => void;
 }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   return (
     <div className="space-y-6">
       <div>

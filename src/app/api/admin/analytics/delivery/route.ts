@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
@@ -15,20 +15,20 @@ export async function GET() {
       dailyDeliveriesRaw,
     ] = await Promise.all([
       // Total deliveries
-      db.delivery.count(),
+      prisma.delivery.count(),
 
       // Delivered count
-      db.delivery.count({ where: { status: 'DELIVERED' } }),
+      prisma.delivery.count({ where: { status: 'DELIVERED' } }),
 
       // Average delivery time (from createdAt to deliveredAt for delivered orders)
-      db.$queryRaw<{ avgHours: number }[]>`
+      prisma.$queryRaw<{ avgHours: number }[]>`
         SELECT AVG((julianday(deliveredAt) - julianday(createdAt)) * 24) as avgHours
         FROM Delivery
         WHERE status = 'DELIVERED' AND deliveredAt IS NOT NULL
       `,
 
       // Delivery status distribution
-      db.$queryRaw<{ status: string; count: number }[]>`
+      prisma.$queryRaw<{ status: string; count: number }[]>`
         SELECT status, COUNT(*) as count
         FROM Delivery
         GROUP BY status
@@ -36,7 +36,7 @@ export async function GET() {
       `,
 
       // Top 5 delivery persons by completed deliveries
-      db.$queryRaw<
+      prisma.$queryRaw<
         { userId: string; name: string; completedDeliveries: number; phone: string | null }[]
       >`
         SELECT u.id as userId, u.name, u.phone, COUNT(d.id) as completedDeliveries
@@ -49,7 +49,7 @@ export async function GET() {
       `,
 
       // Daily deliveries for last 30 days
-      db.$queryRaw<{ date: string; deliveries: number; delivered: number }[]>`
+      prisma.$queryRaw<{ date: string; deliveries: number; delivered: number }[]>`
         SELECT DATE(createdAt) as date, COUNT(*) as deliveries, SUM(CASE WHEN status = 'DELIVERED' THEN 1 ELSE 0 END) as delivered
         FROM Delivery
         WHERE createdAt >= DATE('now', '-30 days')

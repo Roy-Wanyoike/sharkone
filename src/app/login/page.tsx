@@ -123,12 +123,11 @@ export default function LoginPage() {
             {/* Demo hint */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 mb-6">
               <p className="text-xs text-amber-800">
-                <span className="font-semibold">Demo:</span> Use{' '}
+                <span className="font-semibold">Demo accounts:</span>{' '}
                 <code className="bg-amber-100 px-1.5 py-0.5 rounded text-amber-900 font-mono">roy@sharkone.com</code>
-                {' '}with any password to see the multi-account role picker.
-                {' '}Or try{' '}
+                {' '}or{' '}
                 <code className="bg-amber-100 px-1.5 py-0.5 rounded text-amber-900 font-mono">techstore@sharkone.com</code>
-                {' '}for direct seller login.
+                {' '}— password: <code className="bg-amber-100 px-1.5 py-0.5 rounded text-amber-900 font-mono">password123</code>
               </p>
             </div>
 
@@ -172,7 +171,7 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter any password (demo mode)"
+                    placeholder="Enter your password"
                     className="pl-10 pr-10 h-11"
                     value={form.password}
                     onChange={(e) => { setForm({ ...form, password: e.target.value }); setError(''); }}

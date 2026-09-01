@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
@@ -8,7 +8,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const delivery = await db.delivery.findUnique({
+    const delivery = await prisma.delivery.findUnique({
       where: { id },
       select: { id: true },
     });
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: 'Delivery not found' }, { status: 404 });
     }
 
-    const waypoints = await db.deliveryWaypoint.findMany({
+    const waypoints = await prisma.deliveryWaypoint.findMany({
       where: { deliveryId: id },
       orderBy: { timestamp: 'asc' },
     });
@@ -52,7 +52,7 @@ export async function POST(
       );
     }
 
-    const delivery = await db.delivery.findUnique({
+    const delivery = await prisma.delivery.findUnique({
       where: { id },
       select: { id: true, status: true },
     });
@@ -61,7 +61,7 @@ export async function POST(
       return NextResponse.json({ error: 'Delivery not found' }, { status: 404 });
     }
 
-    const waypoint = await db.deliveryWaypoint.create({
+    const waypoint = await prisma.deliveryWaypoint.create({
       data: {
         deliveryId: id,
         latitude,

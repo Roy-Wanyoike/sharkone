@@ -75,7 +75,7 @@ function RegisterPageContent() {
 
   const update = (k: string, v: string) => setForm((prev) => ({ ...prev, [k]: v }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.fullName.trim() || !form.email.trim() || !form.phone.trim() || !form.password.trim() || !form.confirmPassword.trim()) {
       toast.error('Please fill in all required fields');
@@ -87,6 +87,10 @@ function RegisterPageContent() {
     }
     if (form.password !== form.confirmPassword) {
       toast.error('Passwords do not match');
+      return;
+    }
+    if (form.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
       return;
     }
     if (!terms) {
@@ -102,10 +106,34 @@ function RegisterPageContent() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.fullName,
+          email: form.email,
+          password: form.password,
+          role: activeRole,
+          phone: form.phone,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || 'Registration failed');
+        setLoading(false);
+        return;
+      }
+
       toast.success('Account created successfully! Redirecting...');
-      router.push('/');
-    }, 1000);
+      router.push('/login');
+    } catch {
+      toast.error('Something went wrong. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (

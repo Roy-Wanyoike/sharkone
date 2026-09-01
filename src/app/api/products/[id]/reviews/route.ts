@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(
   _request: Request,
@@ -14,7 +14,7 @@ export async function GET(
     const skip = (page - 1) * limit;
 
     // Calculate average rating from all reviews of this product
-    const allReviews = await db.review.findMany({
+    const allReviews = await prisma.review.findMany({
       where: { productId: id },
       select: { rating: true },
     });
@@ -25,7 +25,7 @@ export async function GET(
         ? allReviews.reduce((sum, r) => sum + r.rating, 0) / total
         : 0;
 
-    const reviews = await db.review.findMany({
+    const reviews = await prisma.review.findMany({
       where: { productId: id },
       orderBy: { createdAt: 'desc' },
       skip,
@@ -60,15 +60,15 @@ export async function POST(
     }
 
     // Check product exists
-    const product = await db.product.findUnique({ where: { id } });
+    const product = await prisma.product.findUnique({ where: { id } });
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
     // Find or use a buyer user
-    let buyerUser = await db.user.findFirst({ where: { role: 'BUYER' } });
+    let buyerUser = await prisma.user.findFirst({ where: { role: 'BUYER' } });
     if (!buyerUser) {
-      buyerUser = await db.user.create({
+      buyerUser = await prisma.user.create({
         data: {
           email: `${Date.now()}-reviewer@sharkone.com`,
           name: userName.trim(),
@@ -77,7 +77,7 @@ export async function POST(
       });
     }
 
-    const review = await db.review.create({
+    const review = await prisma.review.create({
       data: {
         productId: id,
         userId: buyerUser.id,

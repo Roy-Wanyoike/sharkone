@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { TransactionType } from '@prisma/client';
 
 export async function GET(
@@ -12,7 +12,7 @@ export async function GET(
     const type = searchParams.get('type') || '';
 
     // Get the seller's userId
-    const seller = await db.seller.findUnique({
+    const seller = await prisma.seller.findUnique({
       where: { id: sellerId },
       select: { userId: true },
     });
@@ -27,7 +27,7 @@ export async function GET(
       where.type = type;
     }
 
-    const transactions = await db.transaction.findMany({
+    const transactions = await prisma.transaction.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       select: {

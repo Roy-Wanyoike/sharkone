@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
-    const orders = await db.order.findMany({
+    const orders = await prisma.order.findMany({
       where: {
         status: { in: ['PROCESSING', 'SHIPPED'] },
         delivery: null,

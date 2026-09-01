@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { Prisma } from '@prisma/client';
 
 export async function GET(request: Request) {
@@ -31,17 +31,17 @@ export async function GET(request: Request) {
 
     if (userId) {
       [logs, total] = await Promise.all([
-        db.auditLog.findMany({
+        prisma.auditLog.findMany({
           where,
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,
         }),
-        db.auditLog.count({ where }),
+        prisma.auditLog.count({ where }),
       ]);
     } else {
       [logs, total] = await Promise.all([
-        db.auditLog.findMany({
+        prisma.auditLog.findMany({
           where,
           include: {
             user: { select: { id: true, name: true, email: true, role: true } },
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
           skip: (page - 1) * limit,
           take: limit,
         }),
-        db.auditLog.count({ where }),
+        prisma.auditLog.count({ where }),
       ]);
     }
 

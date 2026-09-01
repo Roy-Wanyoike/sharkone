@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { DeliveryStatus, OrderStatus } from '@prisma/client';
 
 const VALID_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[]> = {
@@ -34,7 +34,7 @@ export async function PUT(
       );
     }
 
-    const delivery = await db.delivery.findUnique({
+    const delivery = await prisma.delivery.findUnique({
       where: { id: deliveryId },
       include: { order: true },
     });
@@ -62,7 +62,7 @@ export async function PUT(
       updateData.deliveredAt = new Date();
     }
 
-    await db.delivery.update({
+    await prisma.delivery.update({
       where: { id: deliveryId },
       data: updateData,
     });
@@ -70,7 +70,7 @@ export async function PUT(
     // Update order status if mapped
     const newOrderStatus = ORDER_STATUS_MAP[status as DeliveryStatus];
     if (newOrderStatus) {
-      await db.order.update({
+      await prisma.order.update({
         where: { id: delivery.orderId },
         data: { status: newOrderStatus },
       });

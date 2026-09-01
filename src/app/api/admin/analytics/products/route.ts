@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(request: Request) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       where.name = { contains: search };
     }
 
-    const products = await db.$queryRaw<
+    const products = await prisma.$queryRaw<
       {
         id: string;
         name: string;

@@ -4,17 +4,17 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-let db: PrismaClient
+let prisma: PrismaClient
 
 if (globalForPrisma.prisma) {
-  db = globalForPrisma.prisma
+  prisma = globalForPrisma.prisma
 } else {
-  db = new PrismaClient({
+  prisma = new PrismaClient({
     log: ['query'],
   })
   if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = db
+    globalForPrisma.prisma = prisma
   }
 }
 
-export { db }
+export default prisma

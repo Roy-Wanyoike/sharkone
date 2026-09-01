@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { TransactionType } from '@prisma/client';
 
 export async function GET(
@@ -9,7 +9,7 @@ export async function GET(
   try {
     const { buyerId } = await params;
 
-    const transactions = await db.transaction.findMany({
+    const transactions = await prisma.transaction.findMany({
       where: {
         userId: buyerId,
         type: { in: [TransactionType.PURCHASE, TransactionType.REFUND] },

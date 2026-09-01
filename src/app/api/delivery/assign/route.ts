@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 const MAX_ACTIVE_DELIVERIES = 5;
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Find the order by ID, verify it exists and status is PROCESSING or SHIPPED
-    const order = await db.order.findUnique({
+    const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         delivery: true,
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     const orderCounty = parseCountyFromAddress(order.shippingAddress);
 
     // 3. Find all DELIVERY role users
-    const drivers = await db.user.findMany({
+    const drivers = await prisma.user.findMany({
       where: { role: 'DELIVERY' },
     });
 
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     const driverIds = drivers.map(d => d.id);
 
     // 4. Fetch all delivery stats for these drivers in batch
-    const allDeliveries = await db.delivery.findMany({
+    const allDeliveries = await prisma.delivery.findMany({
       where: {
         deliveryPersonId: { in: driverIds },
       },
@@ -257,8 +257,8 @@ export async function POST(request: NextRequest) {
     const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
     // 8. Create Delivery record and update order status in a transaction
-    const [delivery] = await db.$transaction([
-      db.delivery.create({
+    const [delivery] = await prisma.$transaction([
+      prisma.delivery.create({
         data: {
           orderId: order.id,
           deliveryPersonId: bestDriver.driver.id,
@@ -271,7 +271,7 @@ export async function POST(request: NextRequest) {
           deliveryPerson: true,
         },
       }),
-      db.order.update({
+      prisma.order.update({
         where: { id: order.id },
         data: { status: 'OUT_FOR_DELIVERY' },
       }),

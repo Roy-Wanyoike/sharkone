@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(
   _request: Request,
@@ -8,7 +8,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const warehouse = await db.warehouse.findUnique({
+    const warehouse = await prisma.warehouse.findUnique({
       where: { id },
       include: {
         inventoryItems: {
@@ -40,7 +40,7 @@ export async function GET(
       );
     }
 
-    const inventoryStats = await db.inventoryItem.aggregate({
+    const inventoryStats = await prisma.inventoryItem.aggregate({
       where: { warehouseId: id },
       _sum: { quantity: true, reservedQuantity: true },
       _count: true,
@@ -72,7 +72,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const existing = await db.warehouse.findUnique({ where: { id } });
+    const existing = await prisma.warehouse.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json(
         { error: 'Warehouse not found' },
@@ -82,7 +82,7 @@ export async function PUT(
 
     // Check code uniqueness if changed
     if (body.code && body.code !== existing.code) {
-      const codeExists = await db.warehouse.findUnique({ where: { code: body.code } });
+      const codeExists = await prisma.warehouse.findUnique({ where: { code: body.code } });
       if (codeExists) {
         return NextResponse.json(
           { error: 'Warehouse code already exists' },
@@ -91,7 +91,7 @@ export async function PUT(
       }
     }
 
-    const warehouse = await db.warehouse.update({
+    const warehouse = await prisma.warehouse.update({
       where: { id },
       data: {
         ...(body.name !== undefined && { name: body.name }),
@@ -129,7 +129,7 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const existing = await db.warehouse.findUnique({ where: { id } });
+    const existing = await prisma.warehouse.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json(
         { error: 'Warehouse not found' },
@@ -138,7 +138,7 @@ export async function DELETE(
     }
 
     // Soft-delete by setting status to INACTIVE
-    const warehouse = await db.warehouse.update({
+    const warehouse = await prisma.warehouse.update({
       where: { id },
       data: { status: 'INACTIVE' },
     });

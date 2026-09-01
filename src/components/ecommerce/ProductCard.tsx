@@ -58,6 +58,7 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
           alt={product.name}
           className="group-hover:scale-105 transition-transform duration-500 object-cover w-[90%] h-[90%] rounded-lg"
           loading="lazy"
+          decoding="async"
         />
         {discount > 0 && (
           <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">

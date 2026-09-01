@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function POST(
   request: NextRequest,
@@ -15,7 +15,7 @@ export async function POST(
     }
 
     // Find the delivery
-    const delivery = await db.delivery.findUnique({
+    const delivery = await prisma.delivery.findUnique({
       where: { id },
       include: { order: true },
     });
@@ -25,7 +25,7 @@ export async function POST(
     }
 
     // Verify the new driver exists and is a DELIVERY user
-    const newDriver = await db.user.findUnique({
+    const newDriver = await prisma.user.findUnique({
       where: { id: deliveryPersonId },
     });
 
@@ -34,7 +34,7 @@ export async function POST(
     }
 
     // Check new driver doesn't have too many active deliveries
-    const activeCount = await db.delivery.count({
+    const activeCount = await prisma.delivery.count({
       where: {
         deliveryPersonId,
         status: { notIn: ['DELIVERED', 'FAILED'] },
@@ -47,7 +47,7 @@ export async function POST(
     const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
     // Update delivery record
-    const updated = await db.delivery.update({
+    const updated = await prisma.delivery.update({
       where: { id },
       data: {
         deliveryPersonId,

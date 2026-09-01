@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
@@ -12,7 +12,7 @@ export async function GET() {
       recentActivity,
     ] = await Promise.all([
       // 1. Revenue over time - last 30 days
-      db.$queryRaw<
+      prisma.$queryRaw<
         { date: string; revenue: number; orders: number }[]
       >`
         SELECT DATE(createdAt) as date, SUM(totalAmount) as revenue, COUNT(*) as orders
@@ -23,7 +23,7 @@ export async function GET() {
       `,
 
       // 2. Order status breakdown
-      db.$queryRaw<{ status: string; count: number }[]>`
+      prisma.$queryRaw<{ status: string; count: number }[]>`
         SELECT status, COUNT(*) as count
         FROM [Order]
         GROUP BY status
@@ -31,7 +31,7 @@ export async function GET() {
       `,
 
       // 3. Top 5 products by total sales
-      db.$queryRaw<
+      prisma.$queryRaw<
         { productName: string; productId: string; image: string; totalSales: number; unitsSold: number }[]
       >`
         SELECT p.name as productName, p.id as productId, p.image, SUM(oi.quantity * oi.price) as totalSales, SUM(oi.quantity) as unitsSold
@@ -43,7 +43,7 @@ export async function GET() {
       `,
 
       // 4. Category distribution
-      db.$queryRaw<
+      prisma.$queryRaw<
         { categoryName: string; count: number }[]
       >`
         SELECT c.name as categoryName, COUNT(p.id) as count
@@ -54,7 +54,7 @@ export async function GET() {
       `,
 
       // 5. Seller performance
-      db.$queryRaw<
+      prisma.$queryRaw<
         {
           sellerId: string;
           storeName: string;
@@ -80,7 +80,7 @@ export async function GET() {
       `,
 
       // 6. Recent activity - last 10 orders
-      db.order.findMany({
+      prisma.order.findMany({
         take: 10,
         orderBy: { createdAt: 'desc' },
         select: {

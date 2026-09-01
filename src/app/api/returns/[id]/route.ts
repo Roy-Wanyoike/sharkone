@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { ReturnStatus } from '@prisma/client';
 
 export async function GET(
@@ -9,7 +9,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const returnRequest = await db.returnRequest.findUnique({
+    const returnRequest = await prisma.returnRequest.findUnique({
       where: { id },
       include: {
         order: {
@@ -93,7 +93,7 @@ export async function PUT(
       APPROVED: 'REJECTED',
     };
 
-    const existing = await db.returnRequest.findUnique({ where: { id } });
+    const existing = await prisma.returnRequest.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Return request not found' }, { status: 404 });
     }
@@ -108,7 +108,7 @@ export async function PUT(
 
     // When APPROVED, create a REFUND transaction
     if (status === 'APPROVED') {
-      await db.transaction.create({
+      await prisma.transaction.create({
         data: {
           userId: existing.buyerId,
           type: 'REFUND',
@@ -133,7 +133,7 @@ export async function PUT(
       updateData.resolvedAt = new Date();
 
       // Update the related transaction to COMPLETED
-      const transaction = await db.transaction.findFirst({
+      const transaction = await prisma.transaction.findFirst({
         where: {
           orderId: existing.orderId,
           type: 'REFUND',
@@ -142,7 +142,7 @@ export async function PUT(
         orderBy: { createdAt: 'desc' },
       });
       if (transaction) {
-        await db.transaction.update({
+        await prisma.transaction.update({
           where: { id: transaction.id },
           data: { status: 'COMPLETED' },
         });
@@ -155,7 +155,7 @@ export async function PUT(
       updateData.resolvedAt = new Date();
     }
 
-    const updated = await db.returnRequest.update({
+    const updated = await prisma.returnRequest.update({
       where: { id },
       data: updateData,
       include: {

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
-    const slides = await db.heroSlide.findMany({
+    const slides = await prisma.heroSlide.findMany({
       where: { active: true },
       orderBy: { order: 'asc' },
     });

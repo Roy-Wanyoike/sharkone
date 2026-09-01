@@ -39,6 +39,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             src={slides[current].image}
             alt={slides[current].title}
             className="w-full h-full object-cover"
+            decoding="async"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/90 via-[#0F172A]/50 to-[#0F172A]/20" />
           <div className="absolute inset-0 flex flex-col justify-end px-6 md:px-16 lg:px-32 pb-12 md:pb-16">

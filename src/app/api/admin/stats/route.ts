@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
@@ -11,15 +11,15 @@ export async function GET() {
       revenueResult,
       activeDeliveries,
     ] = await Promise.all([
-      db.user.count(),
-      db.seller.count(),
-      db.product.count({ where: { status: 'ACTIVE' } }),
-      db.order.count(),
-      db.order.aggregate({
+      prisma.user.count(),
+      prisma.seller.count(),
+      prisma.product.count({ where: { status: 'ACTIVE' } }),
+      prisma.order.count(),
+      prisma.order.aggregate({
         _sum: { totalAmount: true },
         where: { paymentStatus: 'PAID' },
       }),
-      db.delivery.count({
+      prisma.delivery.count({
         where: {
           status: { in: ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'NEAR_LOCATION'] },
         },

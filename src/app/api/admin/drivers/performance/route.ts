@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 const MAX_ACTIVE_DELIVERIES = 5;
 
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const statusFilter = searchParams.get('status'); // 'available' | 'busy'
 
     // 1. Fetch all DELIVERY role users
-    const drivers = await db.user.findMany({
+    const drivers = await prisma.user.findMany({
       where: { role: 'DELIVERY' },
       orderBy: { name: 'asc' },
     });
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const driverIds = drivers.map(d => d.id);
 
     // 2. Batch-fetch all deliveries for these drivers
-    const allDeliveries = await db.delivery.findMany({
+    const allDeliveries = await prisma.delivery.findMany({
       where: {
         deliveryPersonId: { in: driverIds },
       },

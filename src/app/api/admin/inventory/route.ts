@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(request: Request) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
     if (lowStock === 'true') {
       // Items where available quantity (quantity - reservedQuantity) <= reorderLevel
-      const allItems = await db.inventoryItem.findMany({
+      const allItems = await prisma.inventoryItem.findMany({
         where: warehouseId ? { warehouseId } : {},
         include: {
           product: {
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ inventory: filtered, total: filtered.length });
     }
 
-    const inventory = await db.inventoryItem.findMany({
+    const inventory = await prisma.inventoryItem.findMany({
       where,
       include: {
         product: {

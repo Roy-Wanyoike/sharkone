@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
@@ -8,7 +8,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const delivery = await db.delivery.findUnique({
+    const delivery = await prisma.delivery.findUnique({
       where: { id },
       include: {
         order: {
@@ -51,7 +51,7 @@ export async function PUT(
     const body = await request.json();
     const { status, notes } = body;
 
-    const delivery = await db.delivery.findUnique({ where: { id } });
+    const delivery = await prisma.delivery.findUnique({ where: { id } });
 
     if (!delivery) {
       return NextResponse.json({ error: 'Delivery not found' }, { status: 404 });
@@ -66,7 +66,7 @@ export async function PUT(
       updateData.deliveredAt = new Date();
     }
 
-    const updated = await db.delivery.update({
+    const updated = await prisma.delivery.update({
       where: { id },
       data: updateData,
       include: {
@@ -85,7 +85,7 @@ export async function PUT(
 
     // If setting to DELIVERED, update order status too
     if (status === 'DELIVERED') {
-      await db.order.update({
+      await prisma.order.update({
         where: { id: delivery.orderId },
         data: { status: 'DELIVERED' },
       });
@@ -93,7 +93,7 @@ export async function PUT(
 
     // If setting to FAILED, update order status too
     if (status === 'FAILED') {
-      await db.order.update({
+      await prisma.order.update({
         where: { id: delivery.orderId },
         data: { status: 'PROCESSING' },
       });

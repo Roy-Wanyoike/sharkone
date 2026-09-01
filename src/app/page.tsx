@@ -10,6 +10,7 @@ import { ProductGrid } from '@/components/ecommerce/ProductGrid';
 import { CartSidebar } from '@/components/ecommerce/CartSidebar';
 import { SearchDialog } from '@/components/ecommerce/SearchDialog';
 import { Footer } from '@/components/ecommerce/Footer';
+import { FlashSaleNotifier } from '@/components/ecommerce/FlashSaleNotifier';
 import { PromoBanner } from '@/components/ecommerce/PromoBanner';
 import { FlashSaleBanner } from '@/components/ecommerce/FlashSaleBanner';
 import { MarketingBanners } from '@/components/ecommerce/MarketingBanners';
@@ -68,6 +69,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
+      <FlashSaleNotifier />
       <Navbar
         onSearchOpen={() => {
           setSearchKey((k) => k + 1);

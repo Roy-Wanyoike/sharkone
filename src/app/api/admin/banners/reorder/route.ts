@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function PUT(request: Request) {
   try {
@@ -15,7 +15,7 @@ export async function PUT(request: Request) {
 
     await Promise.all(
       bannerOrders.map((item) =>
-        db.banner.update({
+        prisma.banner.update({
           where: { id: item.id },
           data: { order: item.order },
         })

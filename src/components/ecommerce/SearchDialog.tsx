@@ -124,6 +124,8 @@ export function SearchDialog({
                     src={product.image}
                     alt={product.name}
                     className="w-14 h-14 object-cover rounded-lg shrink-0"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-medium text-gray-900 truncate">

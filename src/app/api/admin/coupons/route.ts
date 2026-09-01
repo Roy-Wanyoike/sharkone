@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { CouponType } from '@prisma/client';
 
 const VALID_TYPES: CouponType[] = ['PERCENTAGE', 'FIXED_AMOUNT', 'FREE_SHIPPING'];
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       : {};
 
     const [coupons, total] = await Promise.all([
-      db.coupon.findMany({
+      prisma.coupon.findMany({
         where,
         include: {
           _count: {
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
         skip: (page - 1) * limit,
         take: limit,
       }),
-      db.coupon.count({ where }),
+      prisma.coupon.count({ where }),
     ]);
 
     // Enrich with computed usage stats
@@ -81,14 +81,14 @@ export async function POST(req: NextRequest) {
     }
 
     const finalCode = couponCode.trim().toUpperCase();
-    const existing = await db.coupon.findUnique({ where: { code: finalCode } });
+    const existing = await prisma.coupon.findUnique({ where: { code: finalCode } });
     if (existing) {
       // If auto-generating, retry with a longer code
       if (generateCode) {
         const retryCode = generateCouponCode(12);
-        const retryExists = await db.coupon.findUnique({ where: { code: retryCode } });
+        const retryExists = await prisma.coupon.findUnique({ where: { code: retryCode } });
         if (!retryExists) {
-          const coupon = await db.coupon.create({
+          const coupon = await prisma.coupon.create({
             data: {
               code: retryCode,
               type,
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'A coupon with this code already exists' }, { status: 409 });
     }
 
-    const coupon = await db.coupon.create({
+    const coupon = await prisma.coupon.create({
       data: {
         code: finalCode,
         type,

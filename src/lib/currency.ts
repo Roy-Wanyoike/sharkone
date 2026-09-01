@@ -141,4 +141,3 @@ export function getAvailableCurrencies(): CurrencyConfig[] {
     return order.indexOf(a.code) - order.indexOf(b.code);
   });
 }
-}

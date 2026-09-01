@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { DeliveryStatus } from '@prisma/client';
 
 export async function GET(
@@ -17,7 +17,7 @@ export async function GET(
       where.status = statusFilter as DeliveryStatus;
     }
 
-    const deliveries = await db.delivery.findMany({
+    const deliveries = await prisma.delivery.findMany({
       where,
       include: {
         order: {

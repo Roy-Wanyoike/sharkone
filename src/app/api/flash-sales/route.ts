@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
     const now = new Date();
 
-    const flashSales = await db.flashSale.findMany({
+    const flashSales = await prisma.flashSale.findMany({
       where: {
         isActive: true,
         startTime: { lte: now },

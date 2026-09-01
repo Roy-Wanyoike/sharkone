@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const post = await db.blogPost.findUnique({ where: { id } });
+    const post = await prisma.blogPost.findUnique({ where: { id } });
 
     if (!post) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
@@ -28,7 +28,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const existing = await db.blogPost.findUnique({ where: { id } });
+    const existing = await prisma.blogPost.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
@@ -47,7 +47,7 @@ export async function PUT(
       }
     }
 
-    const post = await db.blogPost.update({
+    const post = await prisma.blogPost.update({
       where: { id },
       data,
     });
@@ -69,12 +69,12 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const existing = await db.blogPost.findUnique({ where: { id } });
+    const existing = await prisma.blogPost.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
-    const post = await db.blogPost.update({
+    const post = await prisma.blogPost.update({
       where: { id },
       data: { status: 'ARCHIVED' },
     });

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { BannerPosition } from '@prisma/client';
 
 export async function PUT(
@@ -11,7 +11,7 @@ export async function PUT(
     const body = await request.json();
     const { title, image, link, position, order, active } = body;
 
-    const existing = await db.banner.findUnique({ where: { id } });
+    const existing = await prisma.banner.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Banner not found' }, { status: 404 });
     }
@@ -26,7 +26,7 @@ export async function PUT(
     if (order !== undefined) updateData.order = order;
     if (active !== undefined) updateData.active = active;
 
-    const banner = await db.banner.update({
+    const banner = await prisma.banner.update({
       where: { id },
       data: updateData,
     });
@@ -48,12 +48,12 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const existing = await db.banner.findUnique({ where: { id } });
+    const existing = await prisma.banner.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Banner not found' }, { status: 404 });
     }
 
-    await db.banner.delete({ where: { id } });
+    await prisma.banner.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {

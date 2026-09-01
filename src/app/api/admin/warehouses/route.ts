@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { WarehouseStatus } from '@prisma/client';
 
 export async function GET(request: Request) {
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       ];
     }
 
-    const warehouses = await db.warehouse.findMany({
+    const warehouses = await prisma.warehouse.findMany({
       where,
       include: {
         _count: { select: { inventoryItems: true } },
@@ -33,14 +33,14 @@ export async function GET(request: Request) {
     // Get inventory summary per warehouse
     const warehouseSummaries = await Promise.all(
       warehouses.map(async (wh) => {
-        const inventoryStats = await db.inventoryItem.aggregate({
+        const inventoryStats = await prisma.inventoryItem.aggregate({
           where: { warehouseId: wh.id },
           _sum: { quantity: true, reservedQuantity: true },
           _count: true,
         });
 
         // Get low stock items count (quantity <= reorderLevel)
-        const lowStockCount = await db.inventoryItem.count({
+        const lowStockCount = await prisma.inventoryItem.count({
           where: {
             warehouseId: wh.id,
             quantity: { lte: 10 },
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     }
 
     // Check unique code
-    const existing = await db.warehouse.findUnique({ where: { code } });
+    const existing = await prisma.warehouse.findUnique({ where: { code } });
     if (existing) {
       return NextResponse.json(
         { error: 'Warehouse code already exists' },
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const warehouse = await db.warehouse.create({
+    const warehouse = await prisma.warehouse.create({
       data: {
         name,
         code,

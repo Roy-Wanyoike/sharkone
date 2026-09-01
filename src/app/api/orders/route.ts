@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { audit } from '@/lib/audit';
 
 export async function POST(request: Request) {
@@ -27,9 +27,9 @@ export async function POST(request: Request) {
     }
 
     // Use a default buyer ID (first buyer user) or create a placeholder
-    let buyer = await db.user.findFirst({ where: { role: 'BUYER' } });
+    let buyer = await prisma.user.findFirst({ where: { role: 'BUYER' } });
     if (!buyer) {
-      buyer = await db.user.create({
+      buyer = await prisma.user.create({
         data: {
           email: buyerEmail || 'guest@sharkone.com',
           name: buyerName || 'Guest User',
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const order = await db.order.create({
+    const order = await prisma.order.create({
       data: {
         orderNumber,
         buyerId: buyer.id,
@@ -54,18 +54,18 @@ export async function POST(request: Request) {
 
     // Create order items
     for (const item of items) {
-      const product = await db.product.findUnique({
+      const product = await prisma.product.findUnique({
         where: { id: item.productId },
       });
 
       const sellerId = product?.sellerId || '';
       const seller = sellerId
-        ? await db.seller.findUnique({ where: { id: sellerId } })
+        ? await prisma.seller.findUnique({ where: { id: sellerId } })
         : null;
       const commissionRate = seller?.commissionRate || 0.1;
       const sellerEarnings = Math.round(item.price * item.quantity * (1 - commissionRate));
 
-      await db.orderItem.create({
+      await prisma.orderItem.create({
         data: {
           orderId: order.id,
           productId: item.productId,

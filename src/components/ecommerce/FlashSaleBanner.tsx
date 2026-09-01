@@ -93,6 +93,8 @@ function FlashSaleCard({ sale, index }: { sale: FlashSaleProduct; index: number 
             src={sale.product.image}
             alt={sale.product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+            decoding="async"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         </div>

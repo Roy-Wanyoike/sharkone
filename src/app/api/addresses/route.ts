@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
     // Auto-detect buyer if not provided
     if (!userId) {
-      const buyer = await db.user.findFirst({ where: { role: 'BUYER' } });
+      const buyer = await prisma.user.findFirst({ where: { role: 'BUYER' } });
       userId = buyer?.id ?? null;
     }
 
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ addresses: [] });
     }
 
-    const addresses = await db.address.findMany({
+    const addresses = await prisma.address.findMany({
       where: { userId },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
     });
@@ -42,13 +42,13 @@ export async function POST(request: NextRequest) {
 
     // If setting as default, unset other defaults
     if (isDefault) {
-      await db.address.updateMany({
+      await prisma.address.updateMany({
         where: { userId },
         data: { isDefault: false },
       });
     }
 
-    const address = await db.address.create({
+    const address = await prisma.address.create({
       data: { userId, label, fullName, phone, county, city, addressLine, isDefault: isDefault ?? false },
     });
 

@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 
@@ -16,13 +16,13 @@ export async function GET(request: NextRequest) {
     };
 
     const [posts, total] = await Promise.all([
-      db.blogPost.findMany({
+      prisma.blogPost.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      db.blogPost.count({ where }),
+      prisma.blogPost.count({ where }),
     ]);
 
     return NextResponse.json({ posts, total });
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       '-' +
       Date.now();
 
-    const post = await db.blogPost.create({
+    const post = await prisma.blogPost.create({
       data: {
         title,
         slug,

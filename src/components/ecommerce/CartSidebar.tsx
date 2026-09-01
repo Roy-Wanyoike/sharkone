@@ -76,6 +76,8 @@ export function CartSidebar() {
                         src={item.product.image}
                         alt={item.product.name}
                         className="w-20 h-20 object-cover rounded-lg shrink-0"
+                        loading="lazy"
+                        decoding="async"
                       />
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-medium text-gray-900 truncate">

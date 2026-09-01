@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { BannerPosition } from '@prisma/client';
 
 export async function GET(request: Request) {
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       where.active = active === 'true';
     }
 
-    const banners = await db.banner.findMany({
+    const banners = await prisma.banner.findMany({
       where,
       orderBy: [{ position: 'asc' }, { order: 'asc' }],
     });
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const banner = await db.banner.create({
+    const banner = await prisma.banner.create({
       data: {
         title,
         image,

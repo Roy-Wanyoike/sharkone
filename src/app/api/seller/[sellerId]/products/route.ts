@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { ProductStatus } from '@prisma/client';
 
 function generateSlug(name: string): string {
@@ -24,7 +24,7 @@ export async function GET(
       where.status = status;
     }
 
-    const products = await db.product.findMany({
+    const products = await prisma.product.findMany({
       where,
       include: {
         category: { select: { id: true, name: true, slug: true } },
@@ -55,19 +55,19 @@ export async function POST(
       );
     }
 
-    const seller = await db.seller.findUnique({ where: { id: sellerId } });
+    const seller = await prisma.seller.findUnique({ where: { id: sellerId } });
     if (!seller) {
       return NextResponse.json({ error: 'Seller not found' }, { status: 404 });
     }
 
     let slug = generateSlug(name);
     // Ensure unique slug
-    const existing = await db.product.findUnique({ where: { slug } });
+    const existing = await prisma.product.findUnique({ where: { slug } });
     if (existing) {
       slug = `${slug}-${Date.now()}`;
     }
 
-    const product = await db.product.create({
+    const product = await prisma.product.create({
       data: {
         name,
         slug,

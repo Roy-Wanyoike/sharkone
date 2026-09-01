@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
     // Fetch all inventory items then filter in-memory for the
     // computed condition: quantity - reservedQuantity <= reorderLevel
-    const items = await db.inventoryItem.findMany({
+    const items = await prisma.inventoryItem.findMany({
       include: {
         product: {
           select: { id: true, name: true, slug: true, image: true },

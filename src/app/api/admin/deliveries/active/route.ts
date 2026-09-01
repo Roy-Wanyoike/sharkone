@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET() {
   try {
-    const deliveries = await db.delivery.findMany({
+    const deliveries = await prisma.delivery.findMany({
       where: {
         status: { in: ['IN_TRANSIT', 'NEAR_LOCATION'] },
       },

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { StockTransferStatus } from '@prisma/client';
 
 export async function GET(request: Request) {
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
       where.status = status;
     }
 
-    const transfers = await db.stockTransfer.findMany({
+    const transfers = await prisma.stockTransfer.findMany({
       where,
       include: {
         product: {
@@ -68,9 +68,9 @@ export async function POST(request: Request) {
 
     // Validate warehouses exist
     const [fromWarehouse, toWarehouse, product] = await Promise.all([
-      db.warehouse.findUnique({ where: { id: fromWarehouseId } }),
-      db.warehouse.findUnique({ where: { id: toWarehouseId } }),
-      db.product.findUnique({ where: { id: productId } }),
+      prisma.warehouse.findUnique({ where: { id: fromWarehouseId } }),
+      prisma.warehouse.findUnique({ where: { id: toWarehouseId } }),
+      prisma.product.findUnique({ where: { id: productId } }),
     ]);
 
     if (!fromWarehouse) {
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     }
 
     // Check source inventory has enough available stock
-    const sourceInventory = await db.inventoryItem.findUnique({
+    const sourceInventory = await prisma.inventoryItem.findUnique({
       where: {
         productId_warehouseId: {
           productId,
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
     }
 
     // Generate transfer number: STF-001, STF-002, etc.
-    const lastTransfer = await db.stockTransfer.findFirst({
+    const lastTransfer = await prisma.stockTransfer.findFirst({
       orderBy: { createdAt: 'desc' },
       select: { transferNumber: true },
     });
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
     }
     const transferNumber = `STF-${String(nextNum).padStart(3, '0')}`;
 
-    const transfer = await db.stockTransfer.create({
+    const transfer = await prisma.stockTransfer.create({
       data: {
         transferNumber,
         productId,

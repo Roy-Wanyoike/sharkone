@@ -1,15 +1,8 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
 import { Globe } from 'lucide-react';
 import { useCurrencyStore } from '@/store/currency-store';
 import { getAvailableCurrencies } from '@/lib/currency';
-
-const mounted = useSyncExternalStore(
-  () => () => {},
-  () => true,
-  () => false
-);
 
 export function CurrencySwitcher() {
   const { code, setCurrency } = useCurrencyStore();

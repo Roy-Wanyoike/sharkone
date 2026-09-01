@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -7,7 +7,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
 
-    const company = await db.company.findUnique({
+    const company = await prisma.company.findUnique({
       where: { id },
       include: {
         user: {
@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const body = await request.json();
 
-    const existing = await db.company.findUnique({ where: { id } });
+    const existing = await prisma.company.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     if (paymentTerms !== undefined) updateData.paymentTerms = paymentTerms;
     if (isVerified !== undefined) updateData.isVerified = isVerified;
 
-    const company = await db.company.update({
+    const company = await prisma.company.update({
       where: { id },
       data: updateData,
       include: {
@@ -84,18 +84,18 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
 
-    const existing = await db.company.findUnique({ where: { id } });
+    const existing = await prisma.company.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
     // Deactivate by removing the company link from user and deleting company
-    await db.user.updateMany({
+    await prisma.user.updateMany({
       where: { companyId: id },
       data: { companyId: null },
     });
 
-    await db.company.delete({ where: { id } });
+    await prisma.company.delete({ where: { id } });
 
     return NextResponse.json({ message: 'Company deactivated and removed' });
   } catch (error) {

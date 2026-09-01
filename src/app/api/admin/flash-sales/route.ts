@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     }
 
     const [flashSales, total] = await Promise.all([
-      db.flashSale.findMany({
+      prisma.flashSale.findMany({
         where,
         include: {
           product: {
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
         skip: (page - 1) * limit,
         take: limit,
       }),
-      db.flashSale.count({ where }),
+      prisma.flashSale.count({ where }),
     ]);
 
     return NextResponse.json({ flashSales, total, page, limit });
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate product exists
-    const product = await db.product.findUnique({
+    const product = await prisma.product.findUnique({
       where: { id: productId },
       select: { id: true, name: true, price: true },
     });
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
 
     const salePrice = parseFloat((product.price * (1 - discountPercentage / 100)).toFixed(2));
 
-    const flashSale = await db.flashSale.create({
+    const flashSale = await prisma.flashSale.create({
       data: {
         name: name.trim(),
         productId,

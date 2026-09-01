@@ -86,6 +86,7 @@ export function TrendingProducts({
                   alt={product.name}
                   className="w-[85%] h-[85%] object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
+                  decoding="async"
                 />
               </div>
               <div className="p-4">

@@ -273,7 +273,7 @@ const MOCK_SPECS = [
 /*  Trust Badges                                                       */
 /* ------------------------------------------------------------------ */
 const TRUST_BADGES = [
-  { icon: Truck, label: 'Free Shipping', desc: 'On orders over $50' },
+  { icon: Truck, label: 'Free Shipping', desc: 'On orders over KSh 5,000' },
   { icon: ShieldCheck, label: 'Secure Payment', desc: '100% protected' },
   { icon: RotateCcw, label: 'Easy Returns', desc: '30-day return policy' },
 ];

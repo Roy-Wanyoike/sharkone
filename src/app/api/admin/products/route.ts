@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { ProductStatus } from '@prisma/client';
 import { audit } from '@/lib/audit';
 
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     }
 
     const [products, total] = await Promise.all([
-      db.product.findMany({
+      prisma.product.findMany({
         where,
         include: {
           category: { select: { id: true, name: true, slug: true } },
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
         skip: (page - 1) * limit,
         take: limit,
       }),
-      db.product.count({ where }),
+      prisma.product.count({ where }),
     ]);
 
     return NextResponse.json({
@@ -89,12 +89,12 @@ export async function POST(request: Request) {
     let slug = generateSlug(name);
 
     // Ensure unique slug
-    const existing = await db.product.findUnique({ where: { slug } });
+    const existing = await prisma.product.findUnique({ where: { slug } });
     if (existing) {
       slug = `${slug}-${Date.now()}`;
     }
 
-    const product = await db.product.create({
+    const product = await prisma.product.create({
       data: {
         name,
         slug,

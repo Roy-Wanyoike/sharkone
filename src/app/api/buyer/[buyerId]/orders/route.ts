@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { OrderStatus } from '@prisma/client';
 
 export async function GET(
@@ -17,7 +17,7 @@ export async function GET(
       where.status = statusFilter as OrderStatus;
     }
 
-    const orders = await db.order.findMany({
+    const orders = await prisma.order.findMany({
       where,
       include: {
         orderItems: {

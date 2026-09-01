@@ -72,6 +72,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { formatCurrency } from '@/lib/currency';
+import { useCurrencyStore } from '@/store/currency-store';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
@@ -199,8 +201,7 @@ interface DriverPerformance {
 
 // ===================== HELPERS =====================
 
-const formatKES = (amount: number) =>
-  new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 }).format(amount);
+/* currency formatting handled by formatCurrency from @/lib/currency */
 
 const deliveryStatusColors: Record<string, string> = {
   ASSIGNED: 'bg-blue-100 text-blue-700',
@@ -600,6 +601,7 @@ function DriverCard({ driver, index }: { driver: DriverPerformance; index: numbe
 // ===================== EXPANDED ROW =====================
 
 function ExpandedRow({ deliveryId, onClose }: { deliveryId: string; onClose: () => void }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const detailQuery = useQuery<{ delivery: DeliveryDetail }>({
     queryKey: ['admin-delivery-detail', deliveryId],
     queryFn: () => fetch(`/api/admin/deliveries/${deliveryId}`).then((r) => r.json()),
@@ -653,11 +655,11 @@ function ExpandedRow({ deliveryId, onClose }: { deliveryId: string; onClose: () 
               <div className="text-sm space-y-1.5">
                 <p className="text-slate-700">
                   <span className="text-slate-400">Amount:</span>{' '}
-                  <span className="font-semibold text-slate-900">{formatKES(delivery.order.totalAmount)}</span>
+                  <span className="font-semibold text-slate-900">{formatCurrency(delivery.order.totalAmount, currencyCode)}</span>
                 </p>
                 <p className="text-slate-700">
                   <span className="text-slate-400">Fee:</span>{' '}
-                  <span className="font-medium text-slate-900">{formatKES(delivery.order.deliveryFee)}</span>
+                  <span className="font-medium text-slate-900">{formatCurrency(delivery.order.deliveryFee, currencyCode)}</span>
                 </p>
                 <p className="text-slate-700">
                   <span className="text-slate-400">Payment:</span>{' '}
@@ -732,7 +734,7 @@ function ExpandedRow({ deliveryId, onClose }: { deliveryId: string; onClose: () 
                     )}
                     <span className="text-slate-700 flex-1 truncate">{item.product?.name || 'Unknown Product'}</span>
                     <span className="text-slate-400">x{item.quantity}</span>
-                    <span className="font-semibold text-slate-900">{formatKES(item.price)}</span>
+                    <span className="font-semibold text-slate-900">{formatCurrency(item.price, currencyCode)}</span>
                   </div>
                 ))}
               </div>
@@ -753,6 +755,7 @@ function ExpandedRow({ deliveryId, onClose }: { deliveryId: string; onClose: () 
 // ===================== MAIN CONTENT (Wrapped in Suspense) =====================
 
 function DeliveriesContent() {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -1353,11 +1356,11 @@ function DeliveriesContent() {
                     </div>
                     <div>
                       <span className="text-slate-500">Amount:</span>
-                      <span className="ml-2 font-medium text-slate-900">{formatKES(deliveryDetail.order.totalAmount)}</span>
+                      <span className="ml-2 font-medium text-slate-900">{formatCurrency(deliveryDetail.order.totalAmount, currencyCode)}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Delivery Fee:</span>
-                      <span className="ml-2 font-medium text-slate-900">{formatKES(deliveryDetail.order.deliveryFee)}</span>
+                      <span className="ml-2 font-medium text-slate-900">{formatCurrency(deliveryDetail.order.deliveryFee, currencyCode)}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Payment:</span>
@@ -1381,7 +1384,7 @@ function DeliveriesContent() {
                             )}
                             <span className="text-slate-700 flex-1 truncate">{item.product?.name || 'Unknown Product'}</span>
                             <span className="text-slate-500">x{item.quantity}</span>
-                            <span className="font-medium text-slate-900">{formatKES(item.price)}</span>
+                            <span className="font-medium text-slate-900">{formatCurrency(item.price, currencyCode)}</span>
                           </div>
                         ))}
                       </div>
@@ -1565,7 +1568,7 @@ function DeliveriesContent() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-900">{order.orderNumber}</p>
                       <p className="text-xs text-slate-500 truncate">{order.buyer?.name} — {order.shippingAddress}</p>
-                      <p className="text-sm font-medium text-amber-600 mt-1">{formatKES(order.totalAmount)}</p>
+                      <p className="text-sm font-medium text-amber-600 mt-1">{formatCurrency(order.totalAmount, currencyCode)}</p>
                     </div>
                     <Button
                       size="sm"

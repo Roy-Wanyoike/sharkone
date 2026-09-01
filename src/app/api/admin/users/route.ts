@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 import { UserRole } from '@prisma/client';
 
 export async function GET(request: Request) {
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     }
 
     const [users, total] = await Promise.all([
-      db.user.findMany({
+      prisma.user.findMany({
         where,
         include: {
           seller: {
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
         skip: (page - 1) * limit,
         take: limit,
       }),
-      db.user.count({ where }),
+      prisma.user.count({ where }),
     ]);
 
     const mapped = users.map((u) => ({

@@ -65,6 +65,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { formatCurrency } from '@/lib/currency';
+import { useCurrencyStore } from '@/store/currency-store';
 import {
   Select,
   SelectContent,
@@ -287,9 +289,7 @@ const roleColors: Record<string, string> = {
   ADMIN: 'bg-slate-100 text-slate-800',
 };
 
-function formatCurrency(amount: number): string {
-  return `KES ${amount.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-}
+/* currency formatting handled by formatCurrency from @/lib/currency */
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-KE', {
@@ -502,6 +502,7 @@ function AnalyticsSkeleton() {
 
 // ===================== DASHBOARD TAB =====================
 function DashboardTab() {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const { data: stats, isLoading: statsLoading } = useQuery<Stats>({
     queryKey: ['admin-stats'],
     queryFn: () => fetch('/api/admin/stats').then((r) => r.json()),
@@ -519,7 +520,7 @@ function DashboardTab() {
 
   const statCards = stats
     ? [
-        { icon: DollarSign, label: 'Total Revenue', value: formatCurrency(stats.totalRevenue), change: analytics ? `${analytics.revenueChangePercent > 0 ? '+' : ''}${analytics.revenueChangePercent}%` : undefined, color: 'bg-amber-500' },
+        { icon: DollarSign, label: 'Total Revenue', value: formatCurrency(stats.totalRevenue, currencyCode), change: analytics ? `${analytics.revenueChangePercent > 0 ? '+' : ''}${analytics.revenueChangePercent}%` : undefined, color: 'bg-amber-500' },
         { icon: ShoppingBag, label: 'Total Orders', value: stats.totalOrders.toString(), change: analytics ? `${analytics.ordersChangePercent > 0 ? '+' : ''}${analytics.ordersChangePercent}%` : undefined, color: 'bg-blue-500' },
         { icon: Package, label: 'Total Products', value: stats.totalProducts.toString(), color: 'bg-green-500' },
         { icon: Store, label: 'Total Sellers', value: stats.totalSellers.toString(), color: 'bg-purple-500' },
@@ -568,11 +569,11 @@ function DashboardTab() {
             </div>
             <div className="flex items-end gap-4">
               <div>
-                <p className="text-2xl font-bold text-slate-900">{formatCurrency(analytics.thisMonthRevenue)}</p>
+                <p className="text-2xl font-bold text-slate-900">{formatCurrency(analytics.thisMonthRevenue, currencyCode)}</p>
                 <p className="text-xs text-slate-500 mt-0.5">This month</p>
               </div>
               <div className="pb-0.5">
-                <p className="text-sm text-slate-500">vs {formatCurrency(analytics.lastMonthRevenue)}</p>
+                <p className="text-sm text-slate-500">vs {formatCurrency(analytics.lastMonthRevenue, currencyCode)}</p>
                 <p className="text-xs text-slate-400">Last month</p>
               </div>
               <div className={`ml-auto flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-semibold ${analytics.revenueChangePercent >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
@@ -636,7 +637,7 @@ function DashboardTab() {
             {analytics && (
               <div className="text-right">
                 <p className="text-sm font-semibold text-slate-900">Avg Order Value</p>
-                <p className="text-lg font-bold text-amber-600">{formatCurrency(analytics.averageOrderValue)}</p>
+                <p className="text-lg font-bold text-amber-600">{formatCurrency(analytics.averageOrderValue, currencyCode)}</p>
               </div>
             )}
           </div>
@@ -662,7 +663,7 @@ function DashboardTab() {
                   <div key={day.date} className="flex-1 flex flex-col items-center gap-1 group relative min-w-0">
                     {/* Tooltip */}
                     <div className="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-slate-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
-                      <p className="font-semibold">{formatCurrency(day.revenue)}</p>
+                      <p className="font-semibold">{formatCurrency(day.revenue, currencyCode)}</p>
                       <p className="text-slate-400">{day.orders} orders</p>
                       <p className="text-slate-400">{dayName}, {label}</p>
                       <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-slate-900" />
@@ -709,7 +710,7 @@ function DashboardTab() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">{product.name}</p>
-                    <p className="text-xs text-slate-500">{product.totalSold} sold · {formatCurrency(product.revenue)}</p>
+                    <p className="text-xs text-slate-500">{product.totalSold} sold · {formatCurrency(product.revenue, currencyCode)}</p>
                   </div>
                 </div>
               ))}
@@ -804,7 +805,7 @@ function DashboardTab() {
                     <TableCell className="font-mono text-xs">{order.orderNumber}</TableCell>
                     <TableCell className="font-medium">{order.buyer.name}</TableCell>
                     <TableCell>{order.itemCount}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(order.totalAmount)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(order.totalAmount, currencyCode)}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[order.status] || 'bg-gray-100 text-gray-800'}`}>
                         {order.status}
@@ -829,6 +830,7 @@ function DashboardTab() {
 
 // ===================== PRODUCTS TAB =====================
 function ProductsTab({ onAddProduct }: { onAddProduct: () => void }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
@@ -927,7 +929,7 @@ function ProductsTab({ onAddProduct }: { onAddProduct: () => void }) {
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">{product.category?.name}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{formatCurrency(product.price)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(product.price, currencyCode)}</TableCell>
                     <TableCell>
                       <span className={`text-sm ${product.stock < 10 ? 'text-red-600 font-medium' : 'text-slate-700'}`}>
                         {product.stock}
@@ -972,6 +974,7 @@ function ProductsTab({ onAddProduct }: { onAddProduct: () => void }) {
 
 // ===================== ORDERS TAB =====================
 function OrdersTab() {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   const { data, isLoading, refetch } = useQuery<{ orders: AdminOrder[]; total: number }>({
@@ -1043,7 +1046,7 @@ function OrdersTab() {
                       </div>
                     </TableCell>
                     <TableCell>{order.itemCount}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(order.totalAmount)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(order.totalAmount, currencyCode)}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[order.status] || 'bg-gray-100 text-gray-800'}`}>
                         {order.status}
@@ -1068,6 +1071,7 @@ function OrdersTab() {
 
 // ===================== SELLERS TAB =====================
 function SellersTab() {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const queryClient = useQueryClient();
 
   const { data: sellers, isLoading, refetch } = useQuery<AdminSeller[]>({
@@ -1145,7 +1149,7 @@ function SellersTab() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm font-medium">{seller.totalSales}</TableCell>
-                    <TableCell className="text-sm">{formatCurrency(seller.wallet?.balance ?? 0)}</TableCell>
+                    <TableCell className="text-sm">{formatCurrency(seller.wallet?.balance ?? 0, currencyCode)}</TableCell>
                     <TableCell>
                       <Switch
                         checked={seller.isVerified}
@@ -1255,6 +1259,7 @@ function UsersTab() {
 
 // ===================== WAREHOUSES TAB =====================
 function WarehousesTab({ onAddWarehouse }: { onAddWarehouse: () => void }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const queryClient = useQueryClient();
   const [expandedWarehouse, setExpandedWarehouse] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -1325,7 +1330,7 @@ function WarehousesTab({ onAddWarehouse }: { onAddWarehouse: () => void }) {
             <StatCard
               icon={DollarSign}
               label="Inventory Value"
-              value={formatCurrency(stats.inventoryValue)}
+              value={formatCurrency(stats.inventoryValue, currencyCode)}
               color="bg-amber-500"
             />
           </>
@@ -1558,6 +1563,7 @@ function ProductDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     name: '', description: '', price: '', originalPrice: '', image: '', images: '',
@@ -1630,7 +1636,7 @@ function ProductDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Price (KES) *</Label>
+              <Label>Price ({currencyCode}) *</Label>
               <Input
                 type="number"
                 value={form.price}
@@ -1642,7 +1648,7 @@ function ProductDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Original Price (KES)</Label>
+              <Label>Original Price ({currencyCode})</Label>
               <Input
                 type="number"
                 value={form.originalPrice}
@@ -1983,6 +1989,7 @@ const bannerPositionColors: Record<string, string> = {
 };
 
 function BannersTab({ onAddBanner, onEditBanner }: { onAddBanner: () => void; onEditBanner: (b: AdminBanner) => void }) {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const queryClient = useQueryClient();
   const [positionFilter, setPositionFilter] = useState('ALL');
 
@@ -2407,6 +2414,7 @@ function BannerCreateDialog({ open, onOpenChange }: { open: boolean; onOpenChang
 
 // ===================== MAIN PAGE =====================
 export default function AdminPage() {
+  const currencyCode = useCurrencyStore((s) => s.code);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
