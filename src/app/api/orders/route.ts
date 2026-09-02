@@ -94,21 +94,20 @@ export async function POST(request: Request) {
       const commissionRate = seller?.commissionRate || 0.1;
       const sellerEarnings = Math.round(item.price * item.quantity * (1 - commissionRate));
 
-      if (sellerId) {
-        await prisma.orderItem.create({
-          data: {
-            orderId: order.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-            sellerId,
-            sellerEarnings,
-            status: 'PENDING',
-          },
-        });
-      }
+      // Create order item first, then deduct stock to avoid race condition
+      const orderItem = await prisma.orderItem.create({
+        data: {
+          orderId: order.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          sellerId,
+          sellerEarnings,
+          status: 'PENDING',
+        },
+      });
 
-      // Deduct stock
+      // Deduct stock only after order item is successfully created
       await prisma.product.update({
         where: { id: item.productId },
         data: { stock: { decrement: item.quantity } },
