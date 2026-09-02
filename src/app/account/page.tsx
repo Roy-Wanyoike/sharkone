@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
@@ -53,20 +52,7 @@ import { Footer } from '@/components/ecommerce/Footer';
 import { useCartStore } from '@/store/cart-store';
 import { useCurrencyStore } from '@/store/currency-store';
 import { formatCurrency } from '@/lib/currency';
-
-const queryClient = new QueryClient();
-
-const KENYAN_COUNTIES = [
-  'Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Uasin Gishu',
-  'Kiambu', 'Machakos', 'Kakamega', 'Meru', 'Embu',
-  'Nyeri', "Murang'a", 'Kisii', 'Nyamira', 'Bungoma',
-  'Trans Nzoia', 'Nandi', 'Baringo', 'Laikipia', 'Narok',
-  'Kajiado', 'Makueni', 'Kitui', 'Tharaka Nithi',
-  'Homa Bay', 'Migori', 'Siaya', 'Busia', 'Vihiga',
-  'West Pokot', 'Samburu', 'Turkana', 'Marsabit', 'Isiolo',
-  'Garissa', 'Wajir', 'Mandera', 'Lamu', 'Tana River',
-  'Taita Taveta', 'Kilifi', 'Kwale', 'Other',
-];
+import { KENYAN_COUNTIES } from '@/lib/counties';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -261,11 +247,13 @@ function AccountPageContent() {
   const [settingsPhone, setSettingsPhone] = useState('');
 
   // Pre-fill settings when buyer loads
-  if (buyer && !settingsName && !settingsEmail) {
-    setSettingsName(buyer.name);
-    setSettingsEmail(buyer.email);
-    setSettingsPhone(buyer.phone || '');
-  }
+  useEffect(() => {
+    if (buyer && !settingsName && !settingsEmail) {
+      setSettingsName(buyer.name);
+      setSettingsEmail(buyer.email);
+      setSettingsPhone(buyer.phone || '');
+    }
+  }, [buyer, settingsName, settingsEmail]);
 
   // Stats
   const statsQuery = useQuery<BuyerStats>({
@@ -1081,14 +1069,12 @@ function WishlistCard({ productId, onRemove, onAddToCart }: { productId: string;
 
 export default function AccountPage() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="animate-spin h-8 w-8 border-4 border-amber-500 border-t-transparent rounded-full" />
-        </div>
-      }>
-        <AccountPageContent />
-      </Suspense>
-    </QueryClientProvider>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin h-8 w-8 border-4 border-amber-500 border-t-transparent rounded-full" />
+      </div>
+    }>
+      <AccountPageContent />
+    </Suspense>
   );
 }

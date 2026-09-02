@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { KENYAN_COUNTIES } from '@/lib/counties';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -78,17 +79,7 @@ interface ShippingErrors {
   postalCode?: string;
 }
 
-const KENYAN_COUNTIES = [
-  'Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Uasin Gishu',
-  'Kiambu', 'Machakos', 'Kakamega', 'Meru', 'Embu',
-  'Nyeri', 'Murang\'a', 'Kisii', 'Nyamira', 'Bungoma',
-  'Trans Nzoia', 'Nandi', 'Baringo', 'Laikipia', 'Narok',
-  'Kajiado', 'Makueni', 'Kitui', 'Machakos', 'Tharaka Nithi',
-  'Homa Bay', 'Migori', 'Siaya', 'Busia', 'Vihiga',
-  'West Pokot', 'Samburu', 'Turkana', 'Marsabit', 'Isiolo',
-  'Garissa', 'Wajir', 'Mandera', 'Lamu', 'Tana River',
-  'Taita Taveta', 'Kilifi', 'Kwale', 'Other',
-];
+
 
 const initialShipping: ShippingForm = {
   fullName: '',

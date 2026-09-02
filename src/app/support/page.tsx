@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -115,7 +116,7 @@ function SimpleNavbar() {
 
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-16 lg:px-32 py-3 backdrop-blur-md border-b border-gray-200 bg-white/90 shadow-sm">
-      <a href="/" className="flex items-center gap-2.5 shrink-0">
+      <Link href="/" className="flex items-center gap-2.5 shrink-0">
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
           <path d="M16 4C14 4 10 8 8 12C6 16 6 22 8 26C10 28 14 28 16 28C18 28 22 28 24 26C26 22 26 16 24 12C22 8 18 4 16 4Z" fill="#0F172A" />
           <path d="M16 4C15 4 13 6 12 8C11 10 11 14 12 16C13 17 15 17 16 17C17 17 19 17 20 16C21 14 21 10 20 8C19 6 17 4 16 4Z" fill="#F59E0B" />
@@ -124,17 +125,17 @@ function SimpleNavbar() {
           <span className="text-[#0F172A]">SHARK</span>
           <span className="text-[#F59E0B]">ONE</span>
         </span>
-      </a>
+      </Link>
 
       <div className="hidden md:flex items-center gap-8">
         {links.map((l) => (
-          <a
+          <Link
             key={l.href}
             href={l.href}
             className={`text-sm font-medium transition-colors ${l.href === '/support' ? 'text-amber-600' : 'text-gray-700 hover:text-amber-600'}`}
           >
             {l.label}
-          </a>
+          </Link>
         ))}
       </div>
 
@@ -158,14 +159,14 @@ function SimpleNavbar() {
           >
             <div className="flex flex-col p-4 gap-1">
               {links.map((l) => (
-                <a
+                <Link
                   key={l.href}
                   href={l.href}
                   onClick={() => setOpen(false)}
                   className={`py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 ${l.href === '/support' ? 'text-amber-600' : 'text-gray-700'}`}
                 >
                   {l.label}
-                </a>
+                </Link>
               ))}
             </div>
           </motion.div>

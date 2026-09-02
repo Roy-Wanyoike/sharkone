@@ -122,26 +122,24 @@ npm run start
 
 ## Project Structure
 
+For a detailed folder layout with descriptions of every directory, see [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md).
+
 ```
 sharkone/
-├── prisma/
-│   └── schema.prisma          # 20+ Prisma models
-├── public/
-│   └── logo.svg, logo-white.svg
-├── src/
-│   ├── app/                   # Next.js App Router pages
-│   │   ├── api/                # 60+ API routes
-│   │   ├── admin/              # Admin dashboard
-│   │   ├── product/[id]/        # Product detail
-│   │   └── ...                 # All other pages
-│   ├── components/
-│   │   ├── ecommerce/          # Business components
-│   │   ├── ui/                # shadcn/ui components
-│   │   └── auth/              # Auth components
-│   ├── lib/                    # Utilities (currency, db, auth, audit)
-│   ├── store/                  # Zustand stores (cart, auth, currency)
-│   └── hooks/                  # Custom React hooks
-└── PENDING_FEATURES.md      # Roadmap of planned features
+├── src/app/                   # Frontend pages + API routes (Next.js App Router)
+│   ├── api/                # 60+ Backend API routes
+│   ├── admin/              # Admin dashboard
+│   ├── product/[id]/        # Product detail
+│   └── ...                 # All other pages
+├── src/components/            # Reusable UI components
+├── src/lib/                   # Shared utilities (database, auth, payments, etc.)
+├── src/store/                 # Zustand state management
+├── src/hooks/                 # Custom React hooks
+├── src/types/                 # TypeScript type definitions
+├── src/messages/              # i18n translations (en, sw)
+├── mobile/                   # Future React Native mobile app (placeholder)
+├── prisma/                   # Database schema (20+ Prisma models)
+└── public/                   # Static assets
 ```
 
 ## Design System
