@@ -7,7 +7,7 @@ export async function getAuthUser() {
   if (!token) return null;
   const user = await prisma.user.findUnique({
     where: { id: token },
-    select: { id: true, name: true, email: true, role: true, avatar: true },
+    select: { id: true, name: true, email: true, role: true, avatar: true, notificationPrefs: true },
   });
   return user;
 }

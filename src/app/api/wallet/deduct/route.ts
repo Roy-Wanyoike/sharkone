@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { requireAuth } from '@/lib/auth-guard';
 
 // POST /api/wallet/deduct — deduct from wallet (for purchases)
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get('sharkone-token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
     const { amount, description, referenceId } = body;
@@ -20,8 +19,8 @@ export async function POST(request: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       // Ensure wallet exists
       const wallet = await tx.buyerWallet.upsert({
-        where: { userId: token },
-        create: { userId: token, balance: 0, isActive: true },
+        where: { userId: user.id },
+        create: { userId: user.id, balance: 0, isActive: true },
         update: {},
       });
 

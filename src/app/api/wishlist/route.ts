@@ -1,21 +1,14 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import prisma from '@/lib/db';
-
-async function getUserId(): Promise<string | null> {
-  const cookieStore = await cookies();
-  return cookieStore.get('sharkone-token')?.value ?? null;
-}
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function GET() {
   try {
-    const userId = await getUserId();
-    if (!userId) {
-      return NextResponse.json([]);
-    }
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const items = await prisma.wishlistItem.findMany({
-      where: { userId },
+      where: { userId: user.id },
       include: {
         product: {
           select: {
@@ -44,10 +37,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const userId = await getUserId();
-    if (!userId) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { productId } = await request.json();
     if (!productId) {
@@ -58,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     const item = await prisma.wishlistItem.create({
-      data: { userId, productId },
+      data: { userId: user.id, productId },
       include: {
         product: {
           select: {
@@ -97,10 +88,8 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const userId = await getUserId();
-    if (!userId) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { productId } = await request.json();
     if (!productId) {
@@ -111,7 +100,7 @@ export async function DELETE(request: Request) {
     }
 
     await prisma.wishlistItem.deleteMany({
-      where: { userId, productId },
+      where: { userId: user.id, productId },
     });
 
     return NextResponse.json({ success: true });

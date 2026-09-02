@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { requireAuth } from '@/lib/auth-guard';
 
 // GET /api/wallet/transactions — paginated transaction history
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('sharkone-token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, Number(searchParams.get('page')) || 1);
@@ -18,8 +17,8 @@ export async function GET(request: NextRequest) {
 
     // Get or create wallet
     const wallet = await prisma.buyerWallet.upsert({
-      where: { userId: token },
-      create: { userId: token, balance: 0, isActive: true },
+      where: { userId: user.id },
+      create: { userId: user.id, balance: 0, isActive: true },
       update: {},
     });
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { ReturnStatus, RefundStatus } from '@prisma/client';
 import { audit } from '@/lib/audit';
+import { requireAuth } from '@/lib/auth-guard';
 
 function generateReturnNumber(): string {
   const digits = Math.floor(100000 + Math.random() * 900000).toString();
@@ -95,15 +96,20 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { orderId, orderItemId, reason, description, buyerId, sellerId } = body;
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!orderId || !orderItemId || !reason || !buyerId || !sellerId) {
+    const body = await request.json();
+    const { orderId, orderItemId, reason, description, sellerId } = body;
+
+    if (!orderId || !orderItemId || !reason || !sellerId) {
       return NextResponse.json(
-        { error: 'Missing required fields: orderId, orderItemId, reason, buyerId, sellerId' },
+        { error: 'Missing required fields: orderId, orderItemId, reason, sellerId' },
         { status: 400 }
       );
     }
+
+    const buyerId = user.id;
 
     // Check if an existing return request exists for this order item
     const existingReturn = await prisma.returnRequest.findUnique({
@@ -155,7 +161,7 @@ export async function POST(request: Request) {
       },
     });
 
-    audit({ userId: buyerId, action: 'CREATE_RETURN', resource: 'return', resourceId: returnRequest.id, details: `Return ${returnRequest.returnNumber}, amount: ${refundAmount}`, req: request });
+    audit({ userId: user.id, action: 'CREATE_RETURN', resource: 'return', resourceId: returnRequest.id, details: `Return ${returnRequest.returnNumber}, amount: ${refundAmount}`, req: request });
 
     return NextResponse.json({
       id: returnRequest.id,
