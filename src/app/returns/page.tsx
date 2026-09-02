@@ -42,6 +42,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { useCurrencyStore } from '@/store/currency-store';
 import { formatCurrency } from '@/lib/currency';
+import { Footer } from '@/components/ecommerce/Footer';
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -719,6 +720,7 @@ function ReturnsContent() {
           if (!open) setDetailReturnId(null);
         }}
       />
+      <Footer />
     </div>
   );
 }
