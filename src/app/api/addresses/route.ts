@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    let userId = searchParams.get('userId');
-
-    // Auto-detect buyer if not provided
-    if (!userId) {
-      const buyer = await prisma.user.findFirst({ where: { role: 'BUYER' } });
-      userId = buyer?.id ?? null;
-    }
-
-    if (!userId) {
-      return NextResponse.json({ addresses: [] });
-    }
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const addresses = await prisma.address.findMany({
-      where: { userId },
+      where: { userId: user.id },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
     });
 
@@ -30,12 +21,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, label, fullName, phone, county, city, addressLine, isDefault } = body;
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!userId || !label || !fullName || !phone || !county || !addressLine) {
+    const body = await request.json();
+    const { label, fullName, phone, county, city, addressLine, isDefault } = body;
+
+    if (!label || !fullName || !phone || !county || !addressLine) {
       return NextResponse.json(
-        { error: 'userId, label, fullName, phone, county, and addressLine are required' },
+        { error: 'label, fullName, phone, county, and addressLine are required' },
         { status: 400 }
       );
     }
@@ -43,13 +37,13 @@ export async function POST(request: NextRequest) {
     // If setting as default, unset other defaults
     if (isDefault) {
       await prisma.address.updateMany({
-        where: { userId },
+        where: { userId: user.id },
         data: { isDefault: false },
       });
     }
 
     const address = await prisma.address.create({
-      data: { userId, label, fullName, phone, county, city, addressLine, isDefault: isDefault ?? false },
+      data: { userId: user.id, label, fullName, phone, county, city, addressLine, isDefault: isDefault ?? false },
     });
 
     return NextResponse.json({ address }, { status: 201 });

@@ -1,36 +1,29 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { UserRole } from '@prisma/client';
+import { requireAuth } from '@/lib/auth-guard';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
 export async function GET(request: Request) {
   try {
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
-    let userId = searchParams.get('userId');
     const rawLimit = parseInt(searchParams.get('limit') ?? '', 10);
     const limit = isNaN(rawLimit) ? DEFAULT_LIMIT : Math.min(Math.max(rawLimit, 1), MAX_LIMIT);
     const cursor = searchParams.get('cursor') || undefined;
 
-    // If no userId provided, fall back to the first buyer user
-    if (!userId) {
-      const buyer = await prisma.user.findFirst({ where: { role: UserRole.BUYER } });
-      if (!buyer) {
-        return NextResponse.json({ notifications: [], unreadCount: 0, nextCursor: null });
-      }
-      userId = buyer.id;
-    }
-
     const notifications = await prisma.notification.findMany({
-      where: { userId },
+      where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
       take: limit + 1, // fetch one extra to check if there's a next page
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
     const unreadCount = await prisma.notification.count({
-      where: { userId, isRead: false },
+      where: { userId: user.id, isRead: false },
     });
 
     let nextCursor: string | null = null;

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { UserRole } from '@prisma/client';
+import { requireAuth } from '@/lib/auth-guard';
 
 const DEFAULT_PREFS = {
   email: true,
@@ -11,10 +11,8 @@ const DEFAULT_PREFS = {
 
 export async function GET() {
   try {
-    const user = await prisma.user.findFirst({ where: { role: UserRole.BUYER } });
-    if (!user) {
-      return NextResponse.json({ preferences: DEFAULT_PREFS });
-    }
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     let prefs = DEFAULT_PREFS;
     if (user.notificationPrefs) {
@@ -37,20 +35,15 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const body: {
       email?: boolean;
       push?: boolean;
       orderUpdates?: boolean;
       promotions?: boolean;
     } = await request.json();
-
-    const user = await prisma.user.findFirst({ where: { role: UserRole.BUYER } });
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
 
     // Merge existing prefs with updates
     let currentPrefs = DEFAULT_PREFS;

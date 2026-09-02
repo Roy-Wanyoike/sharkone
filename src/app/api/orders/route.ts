@@ -3,9 +3,13 @@ import prisma from '@/lib/db';
 import { audit } from '@/lib/audit';
 import { sendTemplatedEmail } from '@/lib/email';
 import { registerEmailProviders } from '@/lib/email/register';
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function POST(request: Request) {
   try {
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const body = await request.json();
 
     const {
@@ -30,17 +34,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Use a default buyer ID (first buyer user) or create a placeholder
-    let buyer = await prisma.user.findFirst({ where: { role: 'BUYER' } });
+    const buyer = await prisma.user.findUnique({ where: { id: user.id } });
     if (!buyer) {
-      buyer = await prisma.user.create({
-        data: {
-          email: buyerEmail || 'guest@sharkone.com',
-          name: buyerName || 'Guest User',
-          phone: buyerPhone || null,
-          role: 'BUYER',
-        },
-      });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // B2B credit limit check

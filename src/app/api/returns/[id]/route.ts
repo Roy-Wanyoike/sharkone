@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { ReturnStatus } from '@prisma/client';
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { id } = await params;
 
     const returnRequest = await prisma.returnRequest.findUnique({
@@ -33,6 +37,10 @@ export async function GET(
 
     if (!returnRequest) {
       return NextResponse.json({ error: 'Return request not found' }, { status: 404 });
+    }
+
+    if (returnRequest.buyerId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     return NextResponse.json({
@@ -80,6 +88,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { id } = await params;
     const body = await request.json();
     const { status, adminNotes } = body;
@@ -96,6 +107,10 @@ export async function PUT(
     const existing = await prisma.returnRequest.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Return request not found' }, { status: 404 });
+    }
+
+    if (existing.buyerId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const updateData: Record<string, unknown> = {
