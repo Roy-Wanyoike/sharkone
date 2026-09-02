@@ -6,17 +6,6 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const position = searchParams.get('position') || '';
-    const click = searchParams.get('click');
-    const bannerId = searchParams.get('id');
-
-    // Handle click tracking
-    if (click === 'true' && bannerId) {
-      await prisma.banner.update({
-        where: { id: bannerId },
-        data: { clicksCount: { increment: 1 } },
-      });
-      return NextResponse.json({ success: true });
-    }
 
     // Return active banners
     const where: Record<string, unknown> = { active: true };
@@ -35,6 +24,33 @@ export async function GET(request: Request) {
     console.error('Error fetching public banners:', error);
     return NextResponse.json(
       { error: 'Failed to fetch banners' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { bannerId, action } = body;
+
+    // Handle click tracking via POST only
+    if (action === 'click' && bannerId) {
+      await prisma.banner.update({
+        where: { id: bannerId },
+        data: { clicksCount: { increment: 1 } },
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json(
+      { error: 'Invalid action or missing bannerId' },
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error('Error processing banner action:', error);
+    return NextResponse.json(
+      { error: 'Failed to process banner action' },
       { status: 500 }
     );
   }
