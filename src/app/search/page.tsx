@@ -269,6 +269,18 @@ function SearchContent() {
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
 
+  // Save search query to recent searches on mount
+  React.useEffect(() => {
+    if (initialQuery.trim()) {
+      fetch('/api/search/recent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: initialQuery.trim() }),
+      }).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],

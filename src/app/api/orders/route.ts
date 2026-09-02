@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { audit } from '@/lib/audit';
+import { sendTemplatedEmail } from '@/lib/email';
+import { registerEmailProviders } from '@/lib/email/register';
 
 export async function POST(request: Request) {
   try {
@@ -41,6 +43,21 @@ export async function POST(request: Request) {
       });
     }
 
+    // B2B credit limit check
+    if (buyer.companyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: buyer.companyId },
+      });
+      if (company && company.creditLimit > 0) {
+        if (company.creditUsed + totalAmount > company.creditLimit) {
+          return NextResponse.json(
+            { error: 'Credit limit exceeded. Contact your account manager.' },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     const order = await prisma.order.create({
       data: {
         orderNumber,
@@ -51,6 +68,7 @@ export async function POST(request: Request) {
         shippingAddress: typeof shippingAddress === 'string' ? shippingAddress : JSON.stringify(shippingAddress),
         status: 'PENDING',
         paymentStatus: paymentMethod === 'wallet' ? 'PAID' : 'PENDING',
+        companyId: buyer.companyId || undefined,
       },
     });
 
@@ -129,7 +147,35 @@ export async function POST(request: Request) {
       },
     });
 
+    // Increment B2B credit used after successful order creation
+    if (buyer.companyId) {
+      await prisma.company.update({
+        where: { id: buyer.companyId },
+        data: { creditUsed: { increment: totalAmount } },
+      });
+    }
+
     audit({ userId: buyer.id, role: 'BUYER', action: 'CREATE_ORDER', resource: 'order', resourceId: order.id, details: `Order ${order.orderNumber}, total: ${totalAmount}`, req: request });
+
+    // Fire-and-forget: send ORDER_CONFIRMED email to buyer
+    try {
+      registerEmailProviders();
+      const emailItems = items.map((item: { name?: string; price: number; quantity: number }) => ({
+        name: item.name || 'Product',
+        price: String(item.price),
+        quantity: item.quantity,
+      }));
+      sendTemplatedEmail('ORDER_CONFIRMED', buyer.email, {
+        orderNumber: order.orderNumber,
+        customerName: buyer.name,
+        items: emailItems,
+        total: String(totalAmount),
+        currency: 'KES',
+        deliveryAddress: typeof shippingAddress === 'string' ? shippingAddress : JSON.stringify(shippingAddress),
+      }).catch((err) => console.error('Failed to send order confirmation email:', err));
+    } catch (err) {
+      console.error('Failed to send order confirmation email:', err);
+    }
 
     return NextResponse.json(order, { status: 201 });
   } catch (error) {

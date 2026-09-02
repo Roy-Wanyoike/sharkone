@@ -3,12 +3,17 @@
 import { useMemo, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
-import { DeliveryDashboard } from '@/components/ecommerce/DeliveryDashboard';
 import { Footer } from '@/components/ecommerce/Footer';
+
+const DeliveryDashboard = dynamic(() => import('@/components/ecommerce/DeliveryDashboard').then(mod => ({ default: mod.DeliveryDashboard })), {
+  loading: () => <div className="flex items-center justify-center h-96"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"/></div>,
+  ssr: false,
+});
 
 const queryClient = new QueryClient();
 

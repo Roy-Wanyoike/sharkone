@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/QueryProvider";
+import { WebsiteJsonLd, OrganizationJsonLd } from '@/components/seo/JsonLd';
 import { RolePickerModal } from "@/components/auth/RolePickerModal";
 
 const geistSans = Geist({
@@ -68,14 +69,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:bg-amber-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-medium"
+        >
+          Skip to main content
+        </a>
+        <div id="main-content">
+        <WebsiteJsonLd />
+        <OrganizationJsonLd />
         <QueryProvider>
           {children}
           <RolePickerModal />
           <Toaster position="top-right" richColors />
         </QueryProvider>
+        </div>
       </body>
     </html>
   );

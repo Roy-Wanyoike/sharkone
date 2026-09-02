@@ -68,6 +68,9 @@ worklog.md
 test
 prompt
 
+# Internal development reports
+PENDING_FEATURES.md
+
 # Agent context (internal development)
 /agent-ctx/
 

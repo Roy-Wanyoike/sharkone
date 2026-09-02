@@ -1,0 +1,70 @@
+{
+  "common": {
+    "home": "Home",
+    "shop": "Shop",
+    "sell": "Sell",
+    "trackOrder": "Track Order",
+    "returns": "Returns",
+    "about": "About",
+    "contact": "Contact",
+    "support": "Support",
+    "login": "Log In",
+    "signup": "Sign Up",
+    "search": "Search products...",
+    "cart": "Cart",
+    "wishlist": "Wishlist",
+    "compare": "Compare",
+    "notifications": "Notifications",
+    "account": "Account",
+    "admin": "Admin",
+    "logout": "Log Out",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try Again",
+    "backToHome": "Back to Homepage",
+    "viewAll": "View All",
+    "addToCart": "Add to Cart",
+    "buyNow": "Buy Now",
+    "outOfStock": "Out of Stock",
+    "inStock": "In Stock",
+    "freeShipping": "Free Shipping"
+  },
+  "hero": {
+    "tagline": "Shop. Ship. Smile.",
+    "subtitle": "East Africa's Premier E-Commerce Platform",
+    "cta": "Start Shopping",
+    "cta2": "Sell on SHARKONE"
+  },
+  "products": {
+    "featured": "Featured Categories",
+    "trending": "Trending Now",
+    "flashSale": "Flash Sale",
+    "recentlyViewed": "Recently Viewed",
+    "description": "Description",
+    "specifications": "Specifications",
+    "reviews": "Reviews",
+    "related": "Related Products",
+    "addToWishlist": "Add to Wishlist",
+    "removeFromWishlist": "Remove from Wishlist",
+    "compare": "Compare"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "shipping": "Shipping Information",
+    "payment": "Payment Method",
+    "review": "Review Order",
+    "placeOrder": "Place Order",
+    "orderPlaced": "Order Placed Successfully",
+    "mpesa": "M-Pesa",
+    "card": "Card Payment",
+    "wallet": "HoneyCoin Wallet",
+    "cod": "Cash on Delivery"
+  },
+  "footer": {
+    "newsletter": "Subscribe to our newsletter",
+    "placeholder": "Enter your email",
+    "subscribe": "Subscribe",
+    "rights": "All rights reserved.",
+    "description": "Shop. Ship. Smile. — East Africa's premier e-commerce platform"
+  }
+}

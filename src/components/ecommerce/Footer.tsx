@@ -9,19 +9,34 @@ import { toast } from 'sonner';
 export function Footer() {
   const [email, setEmail] = useState('');
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
     if (!email.trim() || !email.includes('@')) {
       toast.error('Please enter a valid email address');
       return;
     }
-    toast.success('Subscribed successfully!', {
-      description: `We'll send deals to ${email}`,
-    });
-    setEmail('');
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (res.status === 200) {
+        toast.info('Already subscribed!', { description: 'This email is already on our list.' });
+      } else if (res.ok) {
+        toast.success('Subscribed successfully!', {
+          description: `We'll send deals to ${email}`,
+        });
+        setEmail('');
+      } else {
+        throw new Error('Subscription failed');
+      }
+    } catch {
+      toast.error('Something went wrong. Please try again.');
+    }
   };
 
   return (
-    <footer id="footer" className="bg-[#0F172A] text-gray-400">
+    <footer id="footer" role="contentinfo" className="bg-[#0F172A] text-gray-400">
       {/* Newsletter */}
       <div className="px-6 md:px-16 lg:px-32 py-12 border-b border-white/10">
         <div className="max-w-2xl mx-auto text-center">
@@ -32,8 +47,10 @@ export function Footer() {
           </p>
           <div className="flex gap-2 mt-6 max-w-md mx-auto">
             <div className="relative flex-1">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <label htmlFor="newsletter-email" className="sr-only">Email address</label>
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" aria-hidden="true" />
               <input
+                id="newsletter-email"
                 type="email"
                 placeholder="Enter your email"
                 value={email}

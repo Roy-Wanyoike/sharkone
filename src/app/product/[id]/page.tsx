@@ -16,11 +16,19 @@ import {
   PackageCheck,
   ChevronRight,
   AlertCircle,
+  ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -400,10 +408,12 @@ function ProductImageGallery({ product }: { product: Product }) {
 /*  Reviews Section                                                    */
 /* ------------------------------------------------------------------ */
 function ReviewSection({ productId }: { productId: string }) {
+  const [sort, setSort] = useState('recent');
+
   const { data, isLoading } = useQuery({
-    queryKey: ['reviews', productId],
+    queryKey: ['reviews', productId, sort],
     queryFn: async () => {
-      const res = await fetch(`/api/products/${productId}/reviews?limit=50`);
+      const res = await fetch(`/api/products/${productId}/reviews?limit=50&sort=${sort}`);
       if (!res.ok) throw new Error('Failed to load reviews');
       return res.json() as Promise<{ reviews: { id: string; userName: string; rating: number; title?: string | null; comment: string; isVerified: boolean; createdAt: string }[]; total: number; averageRating: number }>;
     },
@@ -418,16 +428,29 @@ function ReviewSection({ productId }: { productId: string }) {
       <ReviewForm productId={productId} />
 
       {/* Summary */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="flex items-center gap-1.5">
-          <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
-          <span className="text-lg font-bold text-[#0F172A]">
-            {averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+            <span className="text-lg font-bold text-[#0F172A]">
+              {averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
+            </span>
+          </div>
+          <span className="text-sm text-gray-500">
+            Based on {total} review{total !== 1 ? 's' : ''}
           </span>
         </div>
-        <span className="text-sm text-gray-500">
-          Based on {total} review{total !== 1 ? 's' : ''}
-        </span>
+        <Select value={sort} onValueChange={setSort}>
+          <SelectTrigger className="w-[160px] h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recent">Most Recent</SelectItem>
+            <SelectItem value="highest">Highest Rated</SelectItem>
+            <SelectItem value="lowest">Lowest Rated</SelectItem>
+            <SelectItem value="helpful">Most Helpful</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Review list */}

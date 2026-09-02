@@ -16,6 +16,7 @@ import { useCompareStore } from '@/store/compare-store';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationDropdown } from '@/components/ecommerce/NotificationDropdown';
 import { CurrencySwitcher } from '@/components/ecommerce/CurrencySwitcher';
+import { LanguageSwitcher } from '@/components/ecommerce/LanguageSwitcher';
 import type { Role } from '@/types';
 
 interface NavbarProps {
@@ -47,7 +48,7 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
   const notificationCount = notifData?.unreadCount ?? 0;
 
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-16 lg:px-32 py-3 backdrop-blur-md border-b border-gray-200 bg-white/90 shadow-sm">
+    <nav role="navigation" aria-label="Main navigation" className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-16 lg:px-32 py-3 backdrop-blur-md border-b border-gray-200 bg-white/90 shadow-sm">
       {/* Logo */}
       <div className="flex items-center gap-2.5 shrink-0">
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -93,6 +94,12 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
           Returns
         </Link>
         <Link
+          href="/support"
+          className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
+        >
+          Support
+        </Link>
+        <Link
           href="/about"
           className="text-gray-700 hover:text-amber-600 transition-colors text-sm font-medium"
         >
@@ -124,6 +131,11 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
           <CurrencySwitcher />
         </div>
 
+        {/* Language Switcher */}
+        <div className="hidden sm:block">
+          <LanguageSwitcher />
+        </div>
+
         {/* Notification Bell */}
         <div className="relative">
           <Button
@@ -131,6 +143,7 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
             size="icon"
             className="relative text-gray-600 hover:text-gray-900 hover:bg-gray-100"
             aria-label="Notifications"
+            aria-expanded={notifOpen}
             onClick={() => setNotifOpen(!notifOpen)}
           >
             <Bell className="h-5 w-5" />
@@ -246,6 +259,7 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
           className="md:hidden text-gray-600 hover:text-gray-900"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
+          aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? (
             <X className="h-5 w-5" />
@@ -263,10 +277,12 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg md:hidden"
+            role="menu"
           >
             <div className="flex flex-col p-4 gap-1">
               <Link
                 href="/"
+                role="menuitem"
                 className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -274,6 +290,7 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
               </Link>
               <a
                 href="#products"
+                role="menuitem"
                 className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -281,6 +298,7 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
               </a>
               <Link
                 href="/sell"
+                role="menuitem"
                 className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -288,6 +306,7 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
               </Link>
               <Link
                 href="/track"
+                role="menuitem"
                 className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -295,13 +314,23 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
               </Link>
               <Link
                 href="/returns"
+                role="menuitem"
                 className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Returns
               </Link>
               <Link
+                href="/support"
+                role="menuitem"
+                className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Support
+              </Link>
+              <Link
                 href="/about"
+                role="menuitem"
                 className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -309,6 +338,7 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
               </Link>
               <Link
                 href="/contact"
+                role="menuitem"
                 className="text-gray-700 hover:text-amber-600 py-2.5 text-sm font-medium px-3 rounded-lg hover:bg-gray-50 block"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -320,6 +350,7 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
                 <Link
                   key={option.value}
                   href={option.href}
+                  role="menuitem"
                   className={`flex items-center gap-2 py-2.5 text-sm font-medium px-3 rounded-lg transition-colors ${
                     activeRole === option.value
                       ? 'text-amber-700 bg-amber-50'
@@ -336,6 +367,7 @@ export function Navbar({ onSearchOpen, onRoleChange, activeRole }: NavbarProps) 
               ))}
               <Link
                 href="/admin"
+                role="menuitem"
                 className="flex items-center gap-2 py-2.5 text-sm font-medium px-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >

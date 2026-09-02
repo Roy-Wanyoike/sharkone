@@ -12,6 +12,16 @@ export async function GET(
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
     const limit = Math.max(1, Math.min(50, parseInt(url.searchParams.get('limit') || '10', 10)));
     const skip = (page - 1) * limit;
+    const sort = url.searchParams.get('sort') || 'recent';
+
+    type OrderBy = { createdAt?: 'desc' | 'asc'; rating?: 'desc' | 'asc'; isFeatured?: 'desc' | 'asc' };
+    let orderBy: OrderBy = { createdAt: 'desc' };
+    if (sort === 'highest') orderBy = { rating: 'desc' };
+    else if (sort === 'lowest') orderBy = { rating: 'asc' };
+    else if (sort === 'helpful') orderBy = { isFeatured: 'desc', createdAt: 'desc' };
+
+    // Only return approved reviews
+    const reviewWhere = { productId: id, status: 'APPROVED' as const };
 
     // Calculate average rating from all reviews of this product
     const allReviews = await prisma.review.findMany({
@@ -26,8 +36,8 @@ export async function GET(
         : 0;
 
     const reviews = await prisma.review.findMany({
-      where: { productId: id },
-      orderBy: { createdAt: 'desc' },
+      where: reviewWhere,
+      orderBy,
       skip,
       take: limit,
     });
@@ -77,6 +87,17 @@ export async function POST(
       });
     }
 
+    // Check if buyer has a delivered order containing this product (auto-verify)
+    const deliveredOrderItem = await prisma.orderItem.findFirst({
+      where: {
+        productId: id,
+        order: {
+          buyerId: buyerUser.id,
+          status: 'DELIVERED',
+        },
+      },
+    });
+
     const review = await prisma.review.create({
       data: {
         productId: id,
@@ -85,7 +106,7 @@ export async function POST(
         rating: Math.round(rating),
         title: title?.trim() || null,
         comment: comment.trim(),
-        isVerified: false,
+        isVerified: !!deliveredOrderItem,
       },
     });
 

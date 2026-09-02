@@ -1,0 +1,70 @@
+{
+  "common": {
+    "home": "Nyumbani",
+    "shop": "Nunua",
+    "sell": "Uza",
+    "trackOrder": "Fuatilia Agizo",
+    "returns": "Mahali pa Kurudisha",
+    "about": "Kuhusu",
+    "contact": "Wasiliana",
+    "support": "Msaada",
+    "login": "Ingia",
+    "signup": "Jisajili",
+    "search": "Tafuta bidhaa...",
+    "cart": "Gari",
+    "wishlist": "Orodha ya Matamanio",
+    "compare": "Linganisha",
+    "notifications": "Arifa",
+    "account": "Akaunti",
+    "admin": "Msimamizi",
+    "logout": "Toka",
+    "loading": "Inapakia...",
+    "error": "Kuna hitilafu",
+    "retry": "Jaribu Tena",
+    "backToHome": "Rudi Nyumbani",
+    "viewAll": "Tazama Zote",
+    "addToCart": "Ongeza kwenye Gari",
+    "buyNow": "Nunua Sasa",
+    "outOfStock": "Hakuna Stoki",
+    "inStock": "Stoki Ipo",
+    "freeShipping": "Usafiri Bure"
+  },
+  "hero": {
+    "tagline": "Nunua. Tuma. Furaha.",
+    "subtitle": "Jukwaa Kuu la Biashara ya Mtandaoni Afrika Mashariki",
+    "cta": "Anza Kununua",
+    "cta2": "Uza kwenye SHARKONE"
+  },
+  "products": {
+    "featured": "Makundi Mashuhuri",
+    "trending": "Ina Trendi Sasa",
+    "flashSale": "Mauzo ya Haraka",
+    "recentlyViewed": "UliyoTazama Hivi Karibuni",
+    "description": "Maelezo",
+    "specifications": "Ufundi",
+    "reviews": "Mapitio",
+    "related": "Bidhaa Zinazohusiana",
+    "addToWishlist": "Ongeza kwenye Orodha ya Matamanio",
+    "removeFromWishlist": "Ondoa kwenye Orodha ya Matamanio",
+    "compare": "Linganisha"
+  },
+  "checkout": {
+    "title": "Malipo",
+    "shipping": "Maelezo ya Usafiri",
+    "payment": "Njia ya Malipo",
+    "review": "Kagua Agizo",
+    "placeOrder": "Weka Agizo",
+    "orderPlaced": "Agizo Limehifadhiwa Kwa Mafanikio",
+    "mpesa": "M-Pesa",
+    "card": "Malipo ya Kadi",
+    "wallet": "Pochi ya HoneyCoin",
+    "cod": "Malipo Wakati wa Kuagiza"
+  },
+  "footer": {
+    "newsletter": "Jisajili kwa jarida letu",
+    "placeholder": "Weka barua pepe yako",
+    "subscribe": "Jisajili",
+    "rights": "Haki zote zimehifadhiwa.",
+    "description": "Nunua. Tuma. Furaha. — Jukwaa kuu la biashara ya mtandaoni Afrika Mashariki"
+  }
+}

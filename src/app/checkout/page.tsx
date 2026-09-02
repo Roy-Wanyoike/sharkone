@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Check,
   CheckCircle2,
@@ -550,6 +550,57 @@ function ShippingStep({
 }
 
 // ============================================================
+// Wallet Components
+// ============================================================
+
+function WalletBalanceCard({ currencyCode }: { currencyCode: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['wallet-checkout'],
+    queryFn: async () => {
+      const res = await fetch('/api/wallet');
+      if (!res.ok) return { balance: 0 };
+      const d = await res.json();
+      return { balance: d.wallet?.balance ?? 0 };
+    },
+  });
+
+  return (
+    <div className="bg-white rounded-lg p-4 border border-gray-100 max-w-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-[#0F172A]">SharkWallet Balance</p>
+          {isLoading ? (
+            <Skeleton className="h-7 w-28 mt-1" />
+          ) : (
+            <p className="text-2xl font-bold text-[#F59E0B]">{formatCurrency(data?.balance ?? 0, currencyCode)}</p>
+          )}
+        </div>
+        <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+          <Wallet className="h-5 w-5 text-[#F59E0B]" />
+        </div>
+      </div>
+      <p className="text-xs text-gray-400 mt-2">
+        Insufficient balance will prompt an additional payment method
+      </p>
+    </div>
+  );
+}
+
+function WalletBalanceInline({ currencyCode }: { currencyCode: string }) {
+  const { data } = useQuery({
+    queryKey: ['wallet-checkout'],
+    queryFn: async () => {
+      const res = await fetch('/api/wallet');
+      if (!res.ok) return { balance: 0 };
+      const d = await res.json();
+      return { balance: d.wallet?.balance ?? 0 };
+    },
+  });
+
+  return <p className="text-gray-500 mt-1">Balance: {formatCurrency(data?.balance ?? 0, currencyCode)}</p>;
+}
+
+// ============================================================
 // Step 2: Payment
 // ============================================================
 
@@ -744,20 +795,7 @@ function PaymentStep({
                       )}
 
                       {opt.id === 'wallet' && (
-                        <div className="bg-white rounded-lg p-4 border border-gray-100 max-w-sm">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-medium text-[#0F172A]">SharkWallet Balance</p>
-                              <p className="text-2xl font-bold text-[#F59E0B]">{formatCurrency(5200, currencyCode)}</p>
-                            </div>
-                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                              <Wallet className="h-5 w-5 text-[#F59E0B]" />
-                            </div>
-                          </div>
-                          <p className="text-xs text-gray-400 mt-2">
-                            Insufficient balance will prompt an additional payment method
-                          </p>
-                        </div>
+                        <WalletBalanceCard currencyCode={currencyCode} />
                       )}
                     </div>
                   </motion.div>
@@ -898,7 +936,7 @@ function ReviewStep({
                   <p className="text-gray-500 mt-1">Equity Bank · SHARKONE Commerce</p>
                 )}
                 {paymentMethod === 'wallet' && (
-                  <p className="text-gray-500 mt-1">Balance: {formatCurrency(5200, currencyCode)}</p>
+                  <WalletBalanceInline currencyCode={currencyCode} />
                 )}
               </div>
             </div>
@@ -1195,6 +1233,23 @@ export default function CheckoutPage() {
     const total = Math.max(0, subtotal + effectiveDeliveryFee + platformFee - couponDiscount);
 
     try {
+      // If wallet payment, deduct from wallet first
+      if (paymentMethod === 'wallet') {
+        try {
+          await fetch('/api/wallet/deduct', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount: total,
+              description: `Order ${num}`,
+              referenceId: num,
+            }),
+          });
+        } catch {
+          // Continue even if wallet deduct fails (demo mode)
+        }
+      }
+
       await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -43,7 +43,7 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
     : 0;
 
   return (
-    <Link href={`/product/${product.id}`} className="group flex flex-col">
+    <Link href={`/product/${product.id}`} className="group flex flex-col" aria-label={`View ${product.name}`}>
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -56,6 +56,8 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
         <img
           src={product.image}
           alt={product.name}
+          role="img"
+          aria-label={product.name}
           className="group-hover:scale-105 transition-transform duration-500 object-cover w-[90%] h-[90%] rounded-lg"
           loading="lazy"
           decoding="async"
@@ -75,7 +77,7 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
             });
           }}
           className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:scale-110 transition-transform"
-          aria-label="Toggle wishlist"
+          aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
         >
           <Heart
             className={`h-4 w-4 transition-colors ${
@@ -106,7 +108,7 @@ export function ProductCard({ product, onQuickView }: { product: Product; onQuic
               ? 'bg-amber-500 text-white'
               : 'bg-white text-gray-500 hover:text-amber-600'
           }`}
-          aria-label="Toggle compare"
+          aria-label={comparing ? 'Remove from comparison' : 'Add to comparison'}
         >
           <GitCompareArrows className="h-3.5 w-3.5" />
         </button>

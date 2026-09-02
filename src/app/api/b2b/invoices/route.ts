@@ -1,25 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 
+const TAX_RATE = 0.16;
+
+const paymentTermsMap: Record<string, number> = {
+  NET_15: 15,
+  NET_30: 30,
+  NET_60: 60,
+  NET_90: 90,
+};
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const orderId = searchParams.get('orderId');
+    const status = searchParams.get('status');
+    const companyId = searchParams.get('companyId');
 
-    if (!orderId) {
-      return NextResponse.json({ error: 'orderId is required' }, { status: 400 });
+    const where: Record<string, unknown> = {
+      user: {
+        company: { isNot: null },
+      },
+    };
+
+    if (status) {
+      where.paymentStatus = status;
     }
 
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    if (companyId) {
+      where.companyId = companyId;
+    }
+
+    const orders = await prisma.order.findMany({
+      where,
       include: {
+        buyer: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
         company: {
           select: {
-            id: true, name: true, registrationNo: true, email: true,
-            phone: true, county: true, city: true, address: true, paymentTerms: true,
+            id: true,
+            name: true,
+            registrationNo: true,
+            email: true,
+            phone: true,
+            county: true,
+            city: true,
+            address: true,
+            paymentTerms: true,
           },
         },
-        buyer: { select: { id: true, name: true, email: true, phone: true } },
         orderItems: {
           include: {
             product: { select: { id: true, name: true, image: true } },
@@ -27,81 +56,61 @@ export async function GET(request: NextRequest) {
           },
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
 
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    }
+    const invoices = orders.map((order) => {
+      const subtotal = order.orderItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+      const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
+      const total = Math.round((subtotal + tax + order.deliveryFee) * 100) / 100;
 
-    if (!order.company) {
-      return NextResponse.json({ error: 'This order is not a B2B order' }, { status: 400 });
-    }
+      const daysOffset = paymentTermsMap[order.company?.paymentTerms || 'NET_30'] || 30;
+      const dueDate = new Date(order.createdAt);
+      dueDate.setDate(dueDate.getDate() + daysOffset);
 
-    // Calculate payment terms due date
-    const paymentTermsMap: Record<string, number> = {
-      NET_15: 15,
-      NET_30: 30,
-      NET_60: 60,
-      NET_90: 90,
-    };
-    const daysOffset = paymentTermsMap[order.company.paymentTerms] || 30;
-    const dueDate = new Date(order.createdAt);
-    dueDate.setDate(dueDate.getDate() + daysOffset);
+      return {
+        invoiceNumber: `INV-${order.id.substring(0, 8).toUpperCase()}`,
+        date: order.createdAt,
+        dueDate: dueDate.toISOString(),
+        company: order.company
+          ? {
+              id: order.company.id,
+              name: order.company.name,
+              email: order.company.email,
+              phone: order.company.phone,
+              county: order.company.county,
+              city: order.company.city,
+              address: order.company.address,
+            }
+          : null,
+        buyer: order.buyer,
+        items: order.orderItems.map((item) => ({
+          id: item.id,
+          productName: item.product.name,
+          sellerName: item.seller.storeName,
+          quantity: item.quantity,
+          price: item.price,
+          total: Math.round(item.price * item.quantity * 100) / 100,
+        })),
+        subtotal: Math.round(subtotal * 100) / 100,
+        tax,
+        total,
+        status: order.paymentStatus,
+        poNumber: order.poNumber,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+      };
+    });
 
-    // Calculate subtotal and tax
-    const subtotal = order.orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const taxRate = 0.16; // 16% VAT
-    const tax = Math.round(subtotal * taxRate * 100) / 100;
-    const total = Math.round((subtotal + tax + order.deliveryFee) * 100) / 100;
-
-    const invoice = {
-      invoiceNumber: `INV-${order.orderNumber}`,
-      poNumber: order.poNumber,
-      orderNumber: order.orderNumber,
-      orderDate: order.createdAt,
-      dueDate: dueDate.toISOString(),
-      paymentTerms: order.company.paymentTerms,
-      status: order.paymentStatus,
-
-      // Company (billing) details
-      billing: {
-        companyName: order.company.name,
-        registrationNo: order.company.registrationNo,
-        email: order.company.email,
-        phone: order.company.phone,
-        county: order.company.county,
-        city: order.company.city,
-        address: order.company.address,
-      },
-
-      // Contact person
-      contact: {
-        name: order.buyer.name,
-        email: order.buyer.email,
-        phone: order.buyer.phone,
-      },
-
-      // Line items
-      lineItems: order.orderItems.map((item) => ({
-        id: item.id,
-        productName: item.product.name,
-        sellerName: item.seller.storeName,
-        quantity: item.quantity,
-        unitPrice: item.price,
-        total: Math.round(item.price * item.quantity * 100) / 100,
-      })),
-
-      // Totals
-      subtotal: Math.round(subtotal * 100) / 100,
-      taxRate,
-      tax,
-      deliveryFee: order.deliveryFee,
-      total,
-    };
-
-    return NextResponse.json(invoice);
+    return NextResponse.json({ invoices, count: invoices.length });
   } catch (error) {
-    console.error('Error generating invoice:', error);
-    return NextResponse.json({ error: 'Failed to generate invoice' }, { status: 500 });
+    console.error('Error fetching invoices:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch invoices' },
+      { status: 500 }
+    );
   }
 }

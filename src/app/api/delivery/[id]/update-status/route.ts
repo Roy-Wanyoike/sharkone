@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { DeliveryStatus, OrderStatus } from '@prisma/client';
+import { sendTemplatedEmail } from '@/lib/email';
+import { registerEmailProviders } from '@/lib/email/register';
 
 const VALID_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[]> = {
   [DeliveryStatus.ASSIGNED]: [DeliveryStatus.PICKED_UP],
@@ -36,7 +38,12 @@ export async function PUT(
 
     const delivery = await prisma.delivery.findUnique({
       where: { id: deliveryId },
-      include: { order: true },
+      include: {
+        order: {
+          include: { buyer: { select: { email: true, name: true } } },
+        },
+        courier: { select: { name: true } },
+      },
     });
 
     if (!delivery) {
@@ -74,6 +81,33 @@ export async function PUT(
         where: { id: delivery.orderId },
         data: { status: newOrderStatus },
       });
+    }
+
+    // Fire-and-forget: send notification emails on key status changes
+    try {
+      registerEmailProviders();
+      const buyer = delivery.order.buyer;
+      if (buyer?.email) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+        if (status === DeliveryStatus.IN_TRANSIT) {
+          sendTemplatedEmail('ORDER_SHIPPED', buyer.email, {
+            orderNumber: delivery.order.orderNumber,
+            customerName: buyer.name,
+            trackingNumber: delivery.courierTrackingId || delivery.id,
+            trackingUrl: `${baseUrl}/track?delivery=${delivery.id}`,
+            carrier: delivery.courier?.name || null,
+          }).catch((err) => console.error('Failed to send shipped email:', err));
+        } else if (status === DeliveryStatus.DELIVERED) {
+          sendTemplatedEmail('ORDER_DELIVERED', buyer.email, {
+            orderNumber: delivery.order.orderNumber,
+            customerName: buyer.name,
+            reviewUrl: `${baseUrl}/product/${delivery.orderId}`,
+          }).catch((err) => console.error('Failed to send delivered email:', err));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to dispatch delivery notification email:', err);
     }
 
     return NextResponse.json({ success: true, deliveryId, status });

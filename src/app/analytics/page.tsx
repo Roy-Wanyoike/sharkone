@@ -23,6 +23,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader2,
+  Download,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -688,10 +689,21 @@ export default function AnalyticsPage() {
                 Last 30 Days
               </p>
             </div>
-            <Badge variant="outline" className="w-fit border-amber-200 bg-amber-50 text-amber-700 px-3 py-1 text-sm">
-              <Activity className="h-3.5 w-3.5 mr-1" />
-              Live Data
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="w-fit border-amber-200 bg-amber-50 text-amber-700 px-3 py-1 text-sm">
+                <Activity className="h-3.5 w-3.5 mr-1" />
+                Live Data
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                onClick={() => window.open('/api/admin/analytics/export?type=orders', '_blank')}
+              >
+                <Download className="h-4 w-4 mr-1.5" />
+                Export
+              </Button>
+            </div>
           </div>
 
           {/* Loading state */}

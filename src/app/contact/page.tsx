@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import {
   Mail,
   Phone,
   MapPin,
   Clock,
-  ExternalLink,
   Menu,
   X,
   Send,
+  Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,7 @@ import {
 } from '@/components/ui/accordion';
 import { toast } from 'sonner';
 import { Footer } from '@/components/ecommerce/Footer';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /* ------------------------------------------------------------------ */
 /*  Minimal Navbar                                                     */
@@ -121,30 +123,80 @@ function FadeIn({ children, className = '', delay = 0 }: { children: React.React
 }
 
 /* ------------------------------------------------------------------ */
-/*  FAQ data                                                           */
+/*  FAQ Section (dynamic from API)                                      */
 /* ------------------------------------------------------------------ */
-const faqs = [
-  {
-    q: 'How does shipping work on SHARKONE?',
-    a: 'Once you place an order, the seller confirms it and a delivery partner is assigned. You can track your order in real-time through the SHARKONE platform. Standard delivery takes 1-3 business days within major cities.',
-  },
-  {
-    q: 'What is your return and refund policy?',
-    a: 'You can request a return within 7 days of receiving your item if it is damaged, defective, or not as described. Once approved, refunds are processed to your SharkWallet within 3-5 business days.',
-  },
-  {
-    q: 'How do I become a seller on SHARKONE?',
-    a: 'Sign up as a seller, complete your profile, and submit your store details for review. Once approved, you can start listing products immediately. We provide tools for inventory management, order tracking, and analytics.',
-  },
-  {
-    q: 'What payment methods are supported?',
-    a: 'SHARKONE supports mobile money (M-Pesa, Airtel Money), bank transfers, debit/credit cards (Visa, Mastercard), and our built-in SharkWallet for seamless in-app payments.',
-  },
-  {
-    q: 'Is SHARKONE available outside Kenya?',
-    a: 'Yes! While we started in Kenya, SHARKONE is expanding across East Africa and the broader continent. We currently serve customers and sellers in Kenya, Uganda, Tanzania, Nigeria, and Ghana with more countries coming soon.',
-  },
-];
+interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+}
+
+function FAQSection() {
+  const [search, setSearch] = useState('');
+
+  const { data: faqs, isLoading } = useQuery<FAQItem[]>({
+    queryKey: ['faqs'],
+    queryFn: () => fetch('/api/faqs').then((r) => r.json()),
+  });
+
+  const filteredFaqs = useMemo(() => {
+    if (!faqs) return [];
+    if (!search.trim()) return faqs;
+    const q = search.toLowerCase();
+    return faqs.filter(
+      (f) =>
+        f.question.toLowerCase().includes(q) ||
+        f.answer.toLowerCase().includes(q) ||
+        f.category.toLowerCase().includes(q)
+    );
+  }, [faqs, search]);
+
+  return (
+    <section className="px-6 md:px-16 lg:px-32 pb-16 md:pb-24">
+      <FadeIn className="max-w-3xl mx-auto">
+        <div className="text-center mb-10">
+          <p className="text-amber-600 text-xs font-semibold uppercase tracking-wider mb-3">FAQ</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A]">Frequently Asked Questions</h2>
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search FAQs..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-14 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : filteredFaqs.length === 0 ? (
+          <p className="text-center text-gray-500 text-sm py-8">No FAQs found matching your search.</p>
+        ) : (
+          <Accordion type="single" collapsible className="w-full">
+            {filteredFaqs.map((faq, i) => (
+              <AccordionItem key={faq.id} value={`faq-${i}`}>
+                <AccordionTrigger className="text-[#0F172A] font-medium text-left hover:no-underline">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-600 leading-relaxed">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
+      </FadeIn>
+    </section>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Contact info cards                                                 */
@@ -166,22 +218,30 @@ export default function ContactPage() {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !subject || !message.trim()) {
       toast.error('Please fill in all fields');
       return;
     }
     setSubmitting(true);
-    // Simulate submission
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, subject, message }),
+      });
+      if (!res.ok) throw new Error('Submission failed');
       toast.success('Message sent!', { description: 'We\'ll get back to you within 24 hours.' });
       setName('');
       setEmail('');
       setSubject('');
       setMessage('');
+    } catch {
+      toast.error('Failed to send message. Please try again.');
+    } finally {
       setSubmitting(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -334,28 +394,8 @@ export default function ContactPage() {
           </div>
         </section>
 
-        {/* ---- 3. FAQ Section ---- */}
-        <section className="px-6 md:px-16 lg:px-32 pb-16 md:pb-24">
-          <FadeIn className="max-w-3xl mx-auto">
-            <div className="text-center mb-10">
-              <p className="text-amber-600 text-xs font-semibold uppercase tracking-wider mb-3">FAQ</p>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A]">Frequently Asked Questions</h2>
-            </div>
-
-            <Accordion type="single" collapsible className="w-full">
-              {faqs.map((faq, i) => (
-                <AccordionItem key={i} value={`faq-${i}`}>
-                  <AccordionTrigger className="text-[#0F172A] font-medium text-left hover:no-underline">
-                    {faq.q}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-gray-600 leading-relaxed">
-                    {faq.a}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </FadeIn>
-        </section>
+        {/* ---- 3. FAQ Section (dynamic) ---- */}
+        <FAQSection />
 
         {/* ---- 4. Map Placeholder ---- */}
         <section className="px-6 md:px-16 lg:px-32 pb-16 md:pb-24">
@@ -365,28 +405,13 @@ export default function ContactPage() {
               <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A]">Find Us in Nairobi</h2>
             </div>
 
-            <div className="relative rounded-2xl border border-gray-200 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200">
-              {/* Map visual placeholder */}
-              <div className="flex flex-col items-center justify-center py-20 md:py-28 px-6 text-center">
-                <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
-                  <MapPin className="h-8 w-8 text-amber-600" />
-                </div>
-                <p className="text-[#0F172A] font-semibold text-lg">Nairobi, Kenya</p>
-                <p className="text-gray-500 text-sm mt-1">SHARKONE Headquarters</p>
-                <a
-                  href="https://maps.google.com/?q=Nairobi,Kenya"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button
-                    variant="outline"
-                    className="mt-6 rounded-xl border-gray-300 text-[#0F172A] hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View on Google Maps
-                  </Button>
-                </a>
-              </div>
+            <div className="relative rounded-2xl border border-gray-200 overflow-hidden">
+              <iframe 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15955.24928473057!2d36.81625915!3d-1.29206685!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f1172d84d49a7%3A0xf7cf0254b297924c!2sNairobi%2C%20Kenya!5e0!3m2!1sen!2sus!4v1700000000000!5m2!1sen!2sus"
+                width="100%" height="400" style={{border:0}} allowFullScreen loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="rounded-xl"
+              />
             </div>
           </FadeIn>
         </section>

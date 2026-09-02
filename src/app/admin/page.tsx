@@ -18,6 +18,7 @@ import {
   Edit,
   Archive,
   ArrowLeft,
+  ArrowRight,
   ArrowUp,
   ArrowDown,
   ShieldCheck,
@@ -249,6 +250,7 @@ const navItems: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'products', label: 'Products', icon: Package },
   { key: 'orders', label: 'Orders', icon: ShoppingBag },
+  { key: 'reviews', label: 'Reviews', icon: Star },
   { key: 'sellers', label: 'Sellers', icon: Store },
   { key: 'users', label: 'Users', icon: Users },
   { key: 'warehouses', label: 'Warehouses', icon: Warehouse },
@@ -266,6 +268,8 @@ const statusColors: Record<string, string> = {
   DELIVERED: 'bg-green-100 text-green-800',
   CANCELLED: 'bg-red-100 text-red-800',
   REFUNDED: 'bg-orange-100 text-orange-800',
+  APPROVED: 'bg-green-100 text-green-800',
+  REJECTED: 'bg-red-100 text-red-800',
   ACTIVE: 'bg-green-100 text-green-800',
   DRAFT: 'bg-gray-100 text-gray-800',
   ARCHIVED: 'bg-red-100 text-red-800',
@@ -330,11 +334,13 @@ function Sidebar({
   onTabChange,
   isOpen,
   onClose,
+  pendingReviewCount,
 }: {
   activeTab: string;
   onTabChange: (tab: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  pendingReviewCount?: number;
 }) {
   return (
     <>
@@ -401,7 +407,16 @@ function Sidebar({
                 className={navClassName}
               >
                 <Icon className="h-5 w-5" />
-                {item.label}
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.key === 'reviews' && pendingReviewCount != null && pendingReviewCount > 0 && (
+                  <span className={
+                    isActive
+                      ? 'bg-white text-amber-500 text-[10px] font-bold rounded-full px-1.5 py-0.5'
+                      : 'bg-amber-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5'
+                  }>
+                    {pendingReviewCount}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -2410,6 +2425,182 @@ function BannerCreateDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   );
 }
 
+// ===================== REVIEWS TAB =====================
+function ReviewsTab() {
+  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState('');
+  const queryClient = useQueryClient();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-reviews', page, statusFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams({ page: String(page), limit: '20' });
+      if (statusFilter) params.set('status', statusFilter);
+      const res = await fetch(`/api/admin/reviews?${params}`);
+      if (!res.ok) throw new Error('Failed to load reviews');
+      return res.json() as Promise<{
+        reviews: {
+          id: string;
+          productName: string;
+          reviewerName: string;
+          rating: number;
+          comment: string;
+          isVerified: boolean;
+          status: string;
+          createdAt: string;
+        }[];
+        pagination: { total: number; totalPages: number };
+      }>;
+    },
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/reviews/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isVerified: true, status: 'APPROVED' }),
+      });
+      if (!res.ok) throw new Error('Failed to verify');
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-reviews'] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-reviews'] }),
+  });
+
+  const reviews = data?.reviews ?? [];
+  const pagination = data?.pagination;
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="flex items-center gap-3">
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="PENDING">Pending</SelectItem>
+            <SelectItem value="APPROVED">Approved</SelectItem>
+            <SelectItem value="REJECTED">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+        {pagination && (
+          <span className="text-sm text-gray-500">{pagination.total} review{pagination.total !== 1 ? 's' : ''}</span>
+        )}
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : reviews.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <Star className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <p>No reviews found</p>
+        </div>
+      ) : (
+        <>
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead>Product</TableHead>
+                  <TableHead>Reviewer</TableHead>
+                  <TableHead>Rating</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reviews.map((review) => (
+                  <TableRow key={review.id}>
+                    <TableCell className="font-medium max-w-[200px] truncate">{review.productName}</TableCell>
+                    <TableCell>{review.reviewerName}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                        <span className="text-sm">{review.rating}</span>
+                        {review.isVerified && (
+                          <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-[10px] px-1.5 py-0 ml-1">V</Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-500">{formatDate(review.createdAt)}</TableCell>
+                    <TableCell>
+                      <Badge className={statusColors[review.status] || 'bg-gray-100 text-gray-800'}>
+                        {review.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs border-green-300 text-green-700 hover:bg-green-50"
+                          disabled={verifyMutation.isPending}
+                          onClick={() => verifyMutation.mutate(review.id)}
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                          Verify
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs border-red-300 text-red-700 hover:bg-red-50"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => deleteMutation.mutate(review.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-gray-600">Page {page} of {pagination.totalPages}</span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page >= pagination.totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ===================== MAIN PAGE =====================
 export default function AdminPage() {
   const currencyCode = useCurrencyStore((s) => s.code);
@@ -2421,6 +2612,18 @@ export default function AdminPage() {
   const [bannerEditOpen, setBannerEditOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<AdminBanner | null>(null);
 
+  // Fetch pending review count for sidebar badge
+  const { data: pendingData } = useQuery({
+    queryKey: ['admin-pending-reviews-count'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/reviews?status=pending&limit=1');
+      if (!res.ok) return { pagination: { total: 0 } };
+      return res.json() as Promise<{ pagination: { total: number } }>;
+    },
+    refetchInterval: 30000,
+  });
+  const pendingReviewCount = pendingData?.pagination?.total ?? 0;
+
   const currentNav = navItems.find((n) => n.key === activeTab);
 
   return (
@@ -2431,6 +2634,7 @@ export default function AdminPage() {
         onTabChange={setActiveTab}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        pendingReviewCount={pendingReviewCount}
       />
 
       {/* Main Content */}
@@ -2481,6 +2685,7 @@ export default function AdminPage() {
               <ProductsTab key="products" onAddProduct={() => setProductDialogOpen(true)} />
             )}
             {activeTab === 'orders' && <OrdersTab key="orders" />}
+            {activeTab === 'reviews' && <ReviewsTab key="reviews" />}
             {activeTab === 'sellers' && <SellersTab key="sellers" />}
             {activeTab === 'users' && <UsersTab key="users" />}
             {activeTab === 'warehouses' && (

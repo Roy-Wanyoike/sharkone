@@ -46,6 +46,7 @@ import {
   Star,
   Phone,
   User,
+  Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Footer } from '@/components/ecommerce/Footer';
@@ -186,6 +187,25 @@ function StatCardSkeleton() {
       <Skeleton className="h-7 w-20 mb-1" />
       <Skeleton className="h-3 w-24" />
     </div>
+  );
+}
+
+function WalletBalanceDisplay({ currencyCode }: { currencyCode: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['wallet-mini'],
+    queryFn: async () => {
+      const res = await fetch('/api/wallet');
+      if (!res.ok) return { balance: 0 };
+      const d = await res.json();
+      return { balance: d.wallet?.balance ?? 0 };
+    },
+  });
+
+  if (isLoading) return <Skeleton className="h-8 w-36 mt-1" />;
+  return (
+    <p className="text-2xl font-bold text-[#0F172A] mt-1">
+      {formatCurrency(data?.balance ?? 0, currencyCode)}
+    </p>
   );
 }
 
@@ -515,6 +535,10 @@ function AccountPageContent() {
                 <MapPin className="h-4 w-4" />
                 Addresses
               </TabsTrigger>
+              <TabsTrigger value="wallet" className="rounded-lg gap-1.5 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-3 py-2 text-xs sm:text-sm shrink-0">
+                <Wallet className="h-4 w-4" />
+                Wallet
+              </TabsTrigger>
               <TabsTrigger value="settings" className="rounded-lg gap-1.5 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-3 py-2 text-xs sm:text-sm shrink-0">
                 <Settings className="h-4 w-4" />
                 Settings
@@ -791,6 +815,54 @@ function AccountPageContent() {
                     ))}
                   </div>
                 )}
+              </div>
+            </TabsContent>
+
+            {/* Wallet Tab */}
+            <TabsContent value="wallet">
+              <div className="space-y-4">
+                <div className="bg-white border border-gray-200 rounded-xl p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">HoneyCoin Wallet Balance</p>
+                      <WalletBalanceDisplay currencyCode={currencyCode} />
+                    </div>
+                    <Link href="/wallet">
+                      <Button className="bg-[#F59E0B] hover:bg-amber-600 text-[#0F172A] font-semibold rounded-lg">
+                        <Wallet className="h-4 w-4 mr-2" />
+                        Manage Wallet
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Link href="/wallet">
+                      <div className="text-center p-4 rounded-lg border border-gray-100 hover:border-[#F59E0B] hover:bg-amber-50/30 transition-colors cursor-pointer">
+                        <Plus className="h-5 w-5 text-[#F59E0B] mx-auto mb-1" />
+                        <p className="text-xs font-medium text-gray-700">Top Up</p>
+                      </div>
+                    </Link>
+                    <Link href="/wallet">
+                      <div className="text-center p-4 rounded-lg border border-gray-100 hover:border-[#F59E0B] hover:bg-amber-50/30 transition-colors cursor-pointer">
+                        <DollarSign className="h-5 w-5 text-[#F59E0B] mx-auto mb-1" />
+                        <p className="text-xs font-medium text-gray-700">Transactions</p>
+                      </div>
+                    </Link>
+                    <Link href="/checkout">
+                      <div className="text-center p-4 rounded-lg border border-gray-100 hover:border-[#F59E0B] hover:bg-amber-50/30 transition-colors cursor-pointer">
+                        <ShoppingCart className="h-5 w-5 text-[#F59E0B] mx-auto mb-1" />
+                        <p className="text-xs font-medium text-gray-700">Pay with Wallet</p>
+                      </div>
+                    </Link>
+                    <Link href="/support">
+                      <div className="text-center p-4 rounded-lg border border-gray-100 hover:border-[#F59E0B] hover:bg-amber-50/30 transition-colors cursor-pointer">
+                        <Phone className="h-5 w-5 text-[#F59E0B] mx-auto mb-1" />
+                        <p className="text-xs font-medium text-gray-700">Support</p>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
               </div>
             </TabsContent>
 

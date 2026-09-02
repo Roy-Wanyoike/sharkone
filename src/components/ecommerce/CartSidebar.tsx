@@ -34,13 +34,15 @@ export function CartSidebar() {
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[71] flex flex-col"
+            role="dialog"
+            aria-label="Shopping Cart"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b">
               <div className="flex items-center gap-3">
                 <ShoppingBag className="h-5 w-5 text-gray-900" />
                 <h2 className="text-lg font-bold text-gray-900">Shopping Cart</h2>
-                <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full" aria-live="polite">
                   {items.length} {items.length === 1 ? 'item' : 'items'}
                 </span>
               </div>

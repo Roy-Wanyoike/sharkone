@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import withBundleAnalyzer from "@next/bundle-analyzer";
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -13,4 +17,8 @@ const nextConfig: NextConfig = {
   compress: true,
 };
 
-export default nextConfig;
+const config = process.env.ANALYZE === 'true'
+  ? withBundleAnalyzer({})(nextConfig)
+  : nextConfig;
+
+export default withNextIntl(config);

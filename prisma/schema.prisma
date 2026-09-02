@@ -101,6 +101,12 @@ enum PostStatus {
   ARCHIVED
 }
 
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum WarehouseStatus {
   ACTIVE
   INACTIVE
@@ -152,7 +158,16 @@ model User {
   sellerReturns ReturnRequest[] @relation("SellerReturns")
   usedCoupons   UsedCoupon[] @relation("UsedCoupons")
   addresses     Address[]    @relation("UserAddresses")
-  auditLogs     AuditLog[]
+  auditLogs           AuditLog[]
+  supportTickets       SupportTicket[]
+  assignedTickets      SupportTicket[] @relation("TicketAssignee")
+  ticketMessages       SupportTicketMessage[]
+  wishlistItems        WishlistItem[]
+  recentSearches       RecentSearch[]
+  paymentTransactions  PaymentTransaction[]
+  buyerWallet          BuyerWallet?
+  webhooks             Webhook[]
+  reviewResponses       ReviewResponse[]
 }
 
 model Seller {
@@ -216,6 +231,7 @@ model Product {
   inventory   InventoryItem[]
   flashSales  FlashSale[]
   stockTransfers StockTransfer[]
+  wishlistItems WishlistItem[]
 }
 
 model Order {
@@ -242,6 +258,7 @@ model Order {
   delivery   Delivery?
   transactions Transaction[]
   returns    ReturnRequest[]
+  paymentTransactions PaymentTransaction[]
 }
 
 model OrderItem {
@@ -281,6 +298,9 @@ model Delivery {
   order          Order  @relation(fields: [orderId], references: [id])
   deliveryPerson User?  @relation(fields: [deliveryPersonId], references: [id])
   waypoints     DeliveryWaypoint[]
+  courierId       String?
+  courier         Courier?  @relation(fields: [courierId], references: [id])
+  courierTrackingId String?
 }
 
 model Transaction {
@@ -337,11 +357,14 @@ model Review {
   title       String?
   comment     String
   isVerified  Boolean  @default(false)
+  isFeatured  Boolean  @default(false)
+  status      ReviewStatus @default(APPROVED)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id])
+  response    ReviewResponse?
 
   @@index([productId])
   @@index([userId])
@@ -637,4 +660,230 @@ model Company {
   orders Order[]
 
   @@index([name])
+}
+
+// ============================================================
+// Contact Form Submissions
+// ============================================================
+
+model ContactSubmission {
+  id         String    @id @default(uuid())
+  name       String
+  email      String
+  subject    String?
+  message    String
+  status     String    @default("NEW") // NEW, IN_PROGRESS, RESOLVED
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+// ============================================================
+// Newsletter Subscribers
+// ============================================================
+
+model NewsletterSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// Support Tickets
+// ============================================================
+
+model SupportTicket {
+  id             String   @id @default(uuid())
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id])
+  subject        String
+  description    String
+  status         String   @default("OPEN") // OPEN, IN_PROGRESS, WAITING, RESOLVED, CLOSED
+  priority       String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  assignedTo     String?
+  assignedToUser User?    @relation("TicketAssignee", fields: [assignedTo], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  messages       SupportTicketMessage[]
+}
+
+model SupportTicketMessage {
+  id         String   @id @default(uuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  message    String
+  isInternal Boolean  @default(false) // internal notes vs customer-visible
+  createdAt  DateTime @default(now())
+}
+
+// ============================================================
+// FAQ
+// ============================================================
+
+model FAQ {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  category  String   @default("General")
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// Wishlist (persisted to DB)
+// ============================================================
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+// ============================================================
+// Recent Searches (persisted)
+// ============================================================
+
+model RecentSearch {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  query     String
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// Review Response (seller replies)
+// ============================================================
+
+model ReviewResponse {
+  id       String  @id @default(uuid())
+  reviewId String  @unique
+  review   Review  @relation(fields: [reviewId], references: [id])
+  sellerId String
+  seller   User    @relation(fields: [sellerId], references: [id])
+  message  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// Webhooks
+// ============================================================
+
+model Webhook {
+  id        String   @id @default(uuid())
+  url       String
+  events    String   // JSON array of event types
+  secret    String
+  isActive  Boolean  @default(true)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deliveries WebhookDelivery[]
+}
+
+model WebhookDelivery {
+  id         String   @id @default(uuid())
+  webhookId  String
+  webhook    Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event      String
+  payload    String   // JSON
+  status     String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  statusCode Int?
+  response   String?
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+  nextRetry  DateTime?
+}
+
+// ============================================================
+// Courier (3PL)
+// ============================================================
+
+model Courier {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique // G4S, DHL, FARGO, etc.
+  apiKey    String?
+  apiUrl    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deliveries Delivery[]
+}
+
+// ============================================================
+// Email Log
+// ============================================================
+
+model EmailLog {
+  id        String   @id @default(uuid())
+  to        String
+  subject   String
+  template  String
+  data      String   // JSON
+  status    String   @default("PENDING") // PENDING, SENT, FAILED
+  error     String?
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// Payment Transaction
+// ============================================================
+
+model PaymentTransaction {
+  id             String   @id @default(uuid())
+  orderId        String?
+  order          Order?   @relation(fields: [orderId], references: [id])
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id])
+  method         String   // MPESA, CARD, WALLET, BANK_TRANSFER
+  provider       String   // DARAJA, FLUTTERWAVE, STRIPE, INTERNAL
+  providerTxId   String?  // External transaction ID from provider
+  amount         Float
+  currency       String   @default("KSH")
+  status         String   @default("PENDING") // PENDING, PROCESSING, SUCCESS, FAILED, REFUNDED
+  metadata       String?  // JSON - additional provider-specific data
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ============================================================
+// Buyer Wallet (HoneyCoin)
+// ============================================================
+
+model BuyerWallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Float    @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id            String      @id @default(uuid())
+  walletId      String
+  wallet        BuyerWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type          String      // TOP_UP, PURCHASE, REFUND, CASHBACK, TRANSFER_IN, TRANSFER_OUT
+  amount        Float
+  description   String?
+  referenceId   String?     // order ID or transfer ID
+  balanceBefore Float
+  balanceAfter  Float
+  createdAt     DateTime    @default(now())
 }
