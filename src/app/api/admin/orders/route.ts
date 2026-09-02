@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { OrderStatus } from '@prisma/client';
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function GET(request: Request) {
   try {
+    const user = await requireAuth('ADMIN');
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || '';
     const limit = parseInt(searchParams.get('limit') || '20');

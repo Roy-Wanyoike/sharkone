@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: 'B2B Commerce - SHARKONE',
   description:
     'Register your business for bulk ordering, credit terms, and invoicing on SHARKONE. Streamline your company procurement with NET 15-90 day payment terms.',
+  keywords: 'B2B, bulk ordering, business account, corporate procurement, NET terms, invoicing, SHARKONE business, Kenya',
   openGraph: {
     title: 'B2B Commerce - SHARKONE',
     description:

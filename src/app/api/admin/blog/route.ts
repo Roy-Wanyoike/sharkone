@@ -1,8 +1,11 @@
 import prisma from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function GET(request: NextRequest) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, Number(searchParams.get('page')) || 1);
@@ -33,6 +36,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const body = await request.json();
     const { title, excerpt, content, coverImage, author, tags, status } = body;

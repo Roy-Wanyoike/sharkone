@@ -97,7 +97,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
 
     await prisma.company.delete({ where: { id } });
 
-    return NextResponse.json({ message: 'Company deactivated and removed' });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting company:', error);
     return NextResponse.json({ error: 'Failed to deactivate company' }, { status: 500 });

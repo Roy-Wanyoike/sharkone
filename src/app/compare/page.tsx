@@ -305,6 +305,8 @@ export default function ComparePage() {
                             src={p.image}
                             alt={p.name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </div>
                       </Link>

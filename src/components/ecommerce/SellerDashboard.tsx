@@ -785,6 +785,8 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
                       src={product.image}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      decoding="async"
                     />
                     {/* Status Badge overlay */}
                     <div className="absolute top-2 right-2">
@@ -1038,6 +1040,8 @@ export function SellerDashboard({ sellerId: propSellerId }: SellerDashboardProps
                               src={ret.productImage || '/placeholder.png'}
                               alt={ret.productName}
                               className="h-8 w-8 rounded object-cover bg-gray-100"
+                              loading="lazy"
+                              decoding="async"
                             />
                             <span className="text-gray-900 font-medium line-clamp-1 max-w-[140px]">{ret.productName}</span>
                           </div>

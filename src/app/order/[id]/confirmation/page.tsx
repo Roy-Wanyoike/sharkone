@@ -239,6 +239,8 @@ function OrderConfirmationContent() {
                       src={item.product.image}
                       alt={item.product.name}
                       className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   <div className="flex-1 min-w-0">

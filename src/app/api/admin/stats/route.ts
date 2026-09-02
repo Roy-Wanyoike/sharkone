@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function GET() {
   try {
+    const user = await requireAuth('ADMIN');
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const [
       totalUsers,
       totalSellers,

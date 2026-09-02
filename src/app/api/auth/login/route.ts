@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { audit } from '@/lib/audit';
-import { verifyPassword, hashPassword } from '@/lib/password';
+import { verifyPassword } from '@/lib/password';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,28 +23,18 @@ export async function POST(request: NextRequest) {
 
     if (!primaryUser) {
       return NextResponse.json(
-        { error: 'No account found with this email' },
-        { status: 404 }
+        { error: 'Invalid email or password' },
+        { status: 401 }
       );
     }
 
     // --- Password verification ---
-    if (primaryUser.password) {
-      // User has a stored hash — verify it
-      const valid = await verifyPassword(password, primaryUser.password);
-      if (!valid) {
-        return NextResponse.json(
-          { error: 'Invalid email or password' },
-          { status: 401 }
-        );
-      }
-    } else {
-      // Legacy user without password hash — auto-migrate
-      const hashed = await hashPassword(password);
-      await prisma.user.update({
-        where: { id: primaryUser.id },
-        data: { password: hashed },
-      });
+    const valid = await verifyPassword(password, primaryUser.password);
+    if (!valid) {
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
     }
 
     // Set cookie with user ID

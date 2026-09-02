@@ -47,7 +47,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import {
   Table,
@@ -1072,7 +1071,6 @@ function OrdersTab() {
 // ===================== SELLERS TAB =====================
 function SellersTab() {
   const currencyCode = useCurrencyStore((s) => s.code);
-  const queryClient = useQueryClient();
 
   const { data: sellers, isLoading, refetch } = useQuery<AdminSeller[]>({
     queryKey: ['admin-sellers'],

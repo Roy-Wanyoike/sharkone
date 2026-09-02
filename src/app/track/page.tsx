@@ -464,6 +464,7 @@ function TrackContent() {
   const [searchInput, setSearchInput] = useState(prefillOrder);
   const [searching, setSearching] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [noTracking, setNoTracking] = useState(false);
 
   const [delivery, setDelivery] = useState<TrackingDelivery | null>(null);
   const [trackingInfo, setTrackingInfo] = useState<TrackingInfo | null>(null);
@@ -471,39 +472,70 @@ function TrackContent() {
   const [simulating, setSimulating] = useState(false);
   const simIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchTracking = useCallback(async (orderNumber: string) => {
+  const fetchTracking = useCallback(async (query: string) => {
     try {
-      const res = await fetch(`/api/delivery/lookup?orderNumber=${encodeURIComponent(orderNumber)}`);
+      const isPhone = /^[\d+\-\s()]{7,}$/.test(query.trim());
+      const url = isPhone
+        ? `/api/delivery/lookup?phone=${encodeURIComponent(query.trim())}`
+        : `/api/delivery/lookup?orderNumber=${encodeURIComponent(query.trim())}`;
+      const res = await fetch(url);
       if (!res.ok) {
-        setNotFound(true);
+        // Try to parse the body for a noDelivery flag
+        let body: { noDelivery?: boolean } = {};
+        try { body = await res.json(); } catch { /* ignore */ }
+        if (body.noDelivery) {
+          setNoTracking(true);
+          setNotFound(false);
+        } else {
+          setNotFound(true);
+          setNoTracking(false);
+        }
         return null;
       }
       const data = await res.json();
       setDelivery(data.delivery);
       setTrackingInfo(data.trackingInfo);
       setNotFound(false);
+      setNoTracking(false);
       return data.delivery as TrackingDelivery;
     } catch {
       setNotFound(true);
+      setNoTracking(false);
       return null;
     }
+  }, []);
+
+  const stopSimulation = useCallback(() => {
+    if (simIntervalRef.current) {
+      clearInterval(simIntervalRef.current);
+      simIntervalRef.current = null;
+    }
+    setSimulating(false);
   }, []);
 
   const handleTrack = async () => {
     if (!searchInput.trim()) return;
     setSearching(true);
     setNotFound(false);
+    setNoTracking(false);
+    setDelivery(null);
+    setTrackingInfo(null);
+    stopSimulation();
     await fetchTracking(searchInput.trim());
     setSearching(false);
   };
 
-  const handleRecentTrack = async (orderNumber: string) => {
+  const handleRecentTrack = useCallback(async (orderNumber: string) => {
     setSearchInput(orderNumber);
     setSearching(true);
     setNotFound(false);
+    setNoTracking(false);
+    setDelivery(null);
+    setTrackingInfo(null);
+    stopSimulation();
     await fetchTracking(orderNumber);
     setSearching(false);
-  };
+  }, [fetchTracking, stopSimulation]);
 
   // Simulation: add a new waypoint every 5 seconds
   const startSimulation = useCallback(() => {
@@ -552,14 +584,6 @@ function TrackContent() {
     }, 5000);
   }, [delivery]);
 
-  const stopSimulation = useCallback(() => {
-    if (simIntervalRef.current) {
-      clearInterval(simIntervalRef.current);
-      simIntervalRef.current = null;
-    }
-    setSimulating(false);
-  }, []);
-
   // Auto-start simulation when delivery has waypoints and is in transit
   useEffect(() => {
     if (
@@ -581,9 +605,9 @@ function TrackContent() {
   // Prefill and auto-search if URL has order param
   useEffect(() => {
     if (prefillOrder && mounted) {
-      void Promise.resolve().then(() => handleRecentTrack(prefillOrder));
+      handleRecentTrack(prefillOrder);
     }
-  }, [prefillOrder, mounted]);
+  }, [prefillOrder, mounted, handleRecentTrack]);
 
   const hasWaypoints = delivery && delivery.waypoints.length > 0;
 
@@ -615,14 +639,14 @@ function TrackContent() {
               <Package className="h-10 w-10 text-amber-400 mx-auto mb-4" />
               <h1 className="text-3xl md:text-4xl font-bold text-white">Track Your Order</h1>
               <p className="text-gray-400 mt-2 mb-8">
-                Enter your order number to get real-time delivery updates
+                Enter your order number or phone number to get real-time delivery updates
               </p>
 
               <div className="flex gap-3 max-w-lg mx-auto">
                 <div className="relative flex-1">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="SHK-XXXXXX"
+                    placeholder="Order number (SHK-XXXXXX) or phone"
                     className="pl-10 h-12 bg-white/10 border-white/20 text-white placeholder:text-gray-500 focus:border-amber-500"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
@@ -643,18 +667,35 @@ function TrackContent() {
               </div>
 
               {/* Not found message */}
-              {notFound && (
+              {notFound && !searching && (
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="text-red-400 text-sm mt-3"
                 >
-                  No delivery found for this order number. The order may not have been assigned for delivery yet.
+                  No delivery found. The order may not exist or has not been assigned for delivery yet.
                 </motion.p>
               )}
 
+              {/* No tracking info available */}
+              {noTracking && !searching && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-6"
+                >
+                  <div className="flex flex-col items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-6 max-w-md mx-auto">
+                    <Package className="h-8 w-8 text-gray-500" />
+                    <p className="text-white font-semibold">No Tracking Information Available</p>
+                    <p className="text-gray-500 text-sm text-center">
+                      This order has not been assigned for delivery yet. Please check back later.
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+
               {/* Recent Orders */}
-              {!delivery && !searching && (
+              {!delivery && !searching && !noTracking && (
                 <div className="mt-8">
                   <p className="text-gray-500 text-sm mb-3">Recent tracked orders</p>
                   <div className="flex flex-wrap justify-center gap-2">
@@ -680,9 +721,17 @@ function TrackContent() {
           </div>
         </section>
 
+        {/* Loading overlay while searching */}
+        {searching && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-amber-500 mb-3" />
+            <p className="text-gray-500 text-sm">Looking up your order...</p>
+          </div>
+        )}
+
         {/* Tracking Result */}
         <AnimatePresence>
-          {delivery && trackingInfo && (
+          {delivery && trackingInfo && !searching && (
             <motion.section
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

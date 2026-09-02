@@ -273,7 +273,7 @@ const MOCK_SPECS = [
 /*  Trust Badges                                                       */
 /* ------------------------------------------------------------------ */
 const TRUST_BADGES = [
-  { icon: Truck, label: 'Free Shipping', desc: 'On orders over KSh 5,000' },
+  { icon: Truck, label: 'Free Shipping', desc: 'On orders over 5,000 KSh' },
   { icon: ShieldCheck, label: 'Secure Payment', desc: '100% protected' },
   { icon: RotateCcw, label: 'Easy Returns', desc: '30-day return policy' },
 ];
@@ -385,6 +385,8 @@ function ProductImageGallery({ product }: { product: Product }) {
                 src={img}
                 alt={`${product.name} ${idx + 1}`}
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
             </button>
           ))}
@@ -520,6 +522,8 @@ function RelatedProductCard({ product }: { product: Product }) {
               src={product.image}
               alt={product.name}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+              decoding="async"
             />
           </div>
         </Link>
@@ -857,22 +861,22 @@ export default function ProductDetailPage({
         {/* Product Details Tabs */}
         <section className="px-6 md:px-16 lg:px-32 pb-16">
           <Tabs defaultValue="description" className="w-full">
-            <TabsList className="w-full justify-start bg-gray-100 rounded-lg p-1 h-auto">
+            <TabsList className="w-full justify-start bg-gray-100 rounded-lg p-1 h-auto overflow-x-auto flex-nowrap">
               <TabsTrigger
                 value="description"
-                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md px-6 py-2.5 text-sm font-medium"
+                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md px-4 sm:px-6 py-2.5 text-sm font-medium shrink-0"
               >
                 Description
               </TabsTrigger>
               <TabsTrigger
                 value="specifications"
-                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md px-6 py-2.5 text-sm font-medium"
+                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md px-4 sm:px-6 py-2.5 text-sm font-medium shrink-0"
               >
                 Specifications
               </TabsTrigger>
               <TabsTrigger
                 value="reviews"
-                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md px-6 py-2.5 text-sm font-medium"
+                className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md px-4 sm:px-6 py-2.5 text-sm font-medium shrink-0"
               >
                 Reviews ({product.reviewCount})
               </TabsTrigger>

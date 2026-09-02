@@ -14,6 +14,8 @@ export async function POST(request: Request) {
       totalAmount,
       deliveryFee,
       platformFee,
+      couponCode,
+      couponDiscount,
       buyerEmail,
       buyerName,
       buyerPhone,
@@ -52,31 +54,80 @@ export async function POST(request: Request) {
       },
     });
 
-    // Create order items
+    // Pre-fetch a fallback seller in case a product has no valid seller
+    const fallbackSeller = await prisma.seller.findFirst();
+
+    // Create order items + deduct stock
     for (const item of items) {
       const product = await prisma.product.findUnique({
         where: { id: item.productId },
       });
 
-      const sellerId = product?.sellerId || '';
+      // Skip items whose product no longer exists
+      if (!product) {
+        console.warn(`[Order] Product ${item.productId} not found, skipping item`);
+        continue;
+      }
+
+      const sellerId = product.sellerId || fallbackSeller?.id || '';
       const seller = sellerId
         ? await prisma.seller.findUnique({ where: { id: sellerId } })
         : null;
       const commissionRate = seller?.commissionRate || 0.1;
       const sellerEarnings = Math.round(item.price * item.quantity * (1 - commissionRate));
 
-      await prisma.orderItem.create({
-        data: {
-          orderId: order.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-          sellerId,
-          sellerEarnings,
-          status: 'PENDING',
-        },
+      if (sellerId) {
+        await prisma.orderItem.create({
+          data: {
+            orderId: order.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+            sellerId,
+            sellerEarnings,
+            status: 'PENDING',
+          },
+        });
+      }
+
+      // Deduct stock
+      await prisma.product.update({
+        where: { id: item.productId },
+        data: { stock: { decrement: item.quantity } },
       });
     }
+
+    // Track coupon usage
+    if (couponCode) {
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: couponCode.trim().toUpperCase() },
+      });
+
+      if (coupon) {
+        await prisma.coupon.update({
+          where: { id: coupon.id },
+          data: { usageCount: { increment: 1 } },
+        });
+
+        await prisma.usedCoupon.create({
+          data: {
+            couponId: coupon.id,
+            userId: buyer.id,
+            orderId: order.id,
+          },
+        }).catch(() => {
+          // Unique constraint [couponId, userId] may already exist; ignore
+        });
+      }
+    }
+
+    // Create delivery record for tracking
+    await prisma.delivery.create({
+      data: {
+        orderId: order.id,
+        status: 'ASSIGNED',
+      },
+    });
 
     audit({ userId: buyer.id, role: 'BUYER', action: 'CREATE_ORDER', resource: 'order', resourceId: order.id, details: `Order ${order.orderNumber}, total: ${totalAmount}`, req: request });
 

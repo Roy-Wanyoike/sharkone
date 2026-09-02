@@ -206,6 +206,8 @@ function ReturnDetailDialog({
                 src={returnDetail.productImage}
                 alt={returnDetail.productName}
                 className="h-20 w-20 rounded-lg object-cover border"
+                loading="lazy"
+                decoding="async"
               />
               <div className="flex-1">
                 <p className="font-semibold text-[#0F172A]">{returnDetail.productName}</p>
@@ -407,6 +409,8 @@ function NewReturnDialog({
                           src={item.productImage}
                           alt={item.productName}
                           className="h-6 w-6 rounded object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                         <span>{item.productName}</span>
                         <span className="text-muted-foreground ml-auto">{formatCurrency(item.price * item.quantity, currencyCode)}</span>
@@ -650,6 +654,8 @@ function ReturnsContent() {
                           src={item.productImage}
                           alt={item.productName}
                           className="h-20 w-20 sm:h-24 sm:w-24 rounded-lg object-cover border flex-shrink-0"
+                          loading="lazy"
+                          decoding="async"
                         />
 
                         {/* Info */}

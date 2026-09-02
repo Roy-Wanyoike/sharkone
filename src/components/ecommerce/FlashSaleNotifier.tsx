@@ -3,7 +3,12 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, X, Clock } from 'lucide-react';
-import { requestNotificationPermission, showNotification } from '@/lib/push-notifications';
+import {
+  requestBrowserNotificationPermission,
+  isNotificationGranted,
+  showNotification,
+} from '@/lib/push-notifications';
+import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/currency';
 import { useCurrencyStore } from '@/store/currency-store';
 
@@ -42,7 +47,7 @@ export function FlashSaleNotifier() {
 
   // Request notification permission on mount
   useEffect(() => {
-    requestNotificationPermission();
+    requestBrowserNotificationPermission();
   }, []);
 
   const dismissBanner = useCallback(() => {
@@ -79,17 +84,31 @@ export function FlashSaleNotifier() {
 
         // If a new sale just started, notify
         if (data.newSaleStarted) {
+          // Request browser notification permission (idempotent)
+          await requestBrowserNotificationPermission();
+
           // Find newly started sales we haven't seen yet
           for (const sale of data.activeSales) {
             if (!seenSalesRef.current.has(sale.id)) {
               seenSalesRef.current.add(sale.id);
 
-              // Show browser notification
-              showNotification(
+              // Sonner in-app toast notification
+              toast.success(
                 `⚡ ${sale.discountPercentage}% Flash Sale is LIVE!`,
-                `${sale.product.name} is now ${formatCurrency(sale.salePrice, currencyCode)} (was ${formatCurrency(sale.originalPrice, currencyCode)}). Grab it before it's gone!`,
-                sale.product.image
+                {
+                  description: `${sale.product.name} — ${formatCurrency(sale.salePrice, currencyCode)} (was ${formatCurrency(sale.originalPrice, currencyCode)}). Grab it before it's gone!`,
+                  duration: 8_000,
+                }
               );
+
+              // Browser push notification (if permission granted)
+              if (isNotificationGranted()) {
+                showNotification(
+                  `⚡ ${sale.discountPercentage}% Flash Sale is LIVE!`,
+                  `${sale.product.name} is now ${formatCurrency(sale.salePrice, currencyCode)} (was ${formatCurrency(sale.originalPrice, currencyCode)}). Grab it before it's gone!`,
+                  sale.product.image
+                );
+              }
 
               // Show in-app banner
               showBannerForSale(sale);
@@ -111,11 +130,23 @@ export function FlashSaleNotifier() {
 
             if (startsIn <= 5) {
               // Only show for very imminent sales
-              showNotification(
+              // Sonner toast
+              toast.info(
                 `⏰ Flash Sale starting in ${startsIn} min!`,
-                `${sale.product.name} at ${sale.discountPercentage}% off — get ready!`,
-                sale.product.image
+                {
+                  description: `${sale.product.name} at ${sale.discountPercentage}% off — get ready!`,
+                  duration: 6_000,
+                }
               );
+
+              // Browser push notification
+              if (isNotificationGranted()) {
+                showNotification(
+                  `⏰ Flash Sale starting in ${startsIn} min!`,
+                  `${sale.product.name} at ${sale.discountPercentage}% off — get ready!`,
+                  sale.product.image
+                );
+              }
             }
           }
         }

@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: 'Contact Us',
   description:
     'Get in touch with the SHARKONE team. We\'re here to help with orders, partnerships, seller onboarding, and general inquiries.',
+  keywords: 'contact SHARKONE, support, help, customer service, partnerships, seller onboarding, Kenya',
   openGraph: {
     title: 'Contact SHARKONE',
     description:

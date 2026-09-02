@@ -498,24 +498,24 @@ function AccountPageContent() {
 
           {/* Tabs */}
           <Tabs defaultValue="orders" className="w-full">
-            <TabsList className="bg-white border border-gray-200 rounded-xl p-1 mb-6 h-auto">
-              <TabsTrigger value="orders" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
+            <TabsList className="bg-white border border-gray-200 rounded-xl p-1 mb-6 h-auto overflow-x-auto flex-nowrap w-full">
+              <TabsTrigger value="orders" className="rounded-lg gap-1.5 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-3 py-2 text-xs sm:text-sm shrink-0">
                 <Package className="h-4 w-4" />
                 Orders
               </TabsTrigger>
-              <TabsTrigger value="transactions" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
+              <TabsTrigger value="transactions" className="rounded-lg gap-1.5 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-3 py-2 text-xs sm:text-sm shrink-0">
                 <DollarSign className="h-4 w-4" />
                 Transactions
               </TabsTrigger>
-              <TabsTrigger value="wishlist" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
+              <TabsTrigger value="wishlist" className="rounded-lg gap-1.5 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-3 py-2 text-xs sm:text-sm shrink-0">
                 <Heart className="h-4 w-4" />
                 Wishlist
               </TabsTrigger>
-              <TabsTrigger value="addresses" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
+              <TabsTrigger value="addresses" className="rounded-lg gap-1.5 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-3 py-2 text-xs sm:text-sm shrink-0">
                 <MapPin className="h-4 w-4" />
                 Addresses
               </TabsTrigger>
-              <TabsTrigger value="settings" className="rounded-lg gap-2 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-4 py-2 text-sm">
+              <TabsTrigger value="settings" className="rounded-lg gap-1.5 data-[state=active]:bg-[#0F172A] data-[state=active]:text-white text-gray-600 px-3 py-2 text-xs sm:text-sm shrink-0">
                 <Settings className="h-4 w-4" />
                 Settings
               </TabsTrigger>

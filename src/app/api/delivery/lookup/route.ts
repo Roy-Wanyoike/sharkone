@@ -19,18 +19,37 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const orderNumber = searchParams.get('orderNumber');
+    const phone = searchParams.get('phone');
 
-    if (!orderNumber) {
-      return NextResponse.json({ error: 'orderNumber query param is required' }, { status: 400 });
+    if (!orderNumber && !phone) {
+      return NextResponse.json({ error: 'orderNumber or phone query param is required' }, { status: 400 });
     }
 
-    const order = await prisma.order.findUnique({
-      where: { orderNumber },
-      select: { id: true },
-    });
+    let order;
+
+    if (phone) {
+      // Lookup by buyer phone number — find the most recent order with a delivery
+      const buyer = await prisma.user.findFirst({
+        where: { phone },
+        select: { id: true },
+      });
+      if (!buyer) {
+        return NextResponse.json({ error: 'No orders found for this phone number' }, { status: 404 });
+      }
+      order = await prisma.order.findFirst({
+        where: { buyerId: buyer.id, delivery: { isNot: null } },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true },
+      });
+    } else {
+      order = await prisma.order.findUnique({
+        where: { orderNumber: orderNumber! },
+        select: { id: true },
+      });
+    }
 
     if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      return NextResponse.json({ error: phone ? 'No orders found for this phone number' : 'Order not found' }, { status: 404 });
     }
 
     const delivery = await prisma.delivery.findUnique({
@@ -55,7 +74,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!delivery) {
-      return NextResponse.json({ error: 'Delivery not found' }, { status: 404 });
+      return NextResponse.json({ error: 'No tracking information available', noDelivery: true }, { status: 404 });
     }
 
     let eta: string | null = null;

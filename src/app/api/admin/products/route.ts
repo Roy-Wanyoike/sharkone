@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { ProductStatus } from '@prisma/client';
 import { audit } from '@/lib/audit';
+import { requireAuth } from '@/lib/auth-guard';
+import { sanitizeSearch } from '@/lib/utils';
 
 function generateSlug(name: string): string {
   return name
@@ -12,8 +14,10 @@ function generateSlug(name: string): string {
 
 export async function GET(request: Request) {
   try {
+    const user = await requireAuth('ADMIN');
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search') || '';
+    const search = sanitizeSearch(searchParams.get('search') || '');
     const status = searchParams.get('status') || '';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -64,6 +68,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const user = await requireAuth('ADMIN');
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await request.json();
     const {
       name,

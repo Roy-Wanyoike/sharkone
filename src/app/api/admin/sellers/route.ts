@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function GET() {
   try {
+    const user = await requireAuth('ADMIN');
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const sellers = await prisma.seller.findMany({
       include: {
         user: { select: { id: true, name: true, email: true, phone: true } },
@@ -40,6 +43,8 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
+    const user = await requireAuth('ADMIN');
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await request.json();
     const { sellerId, isVerified, commissionRate } = body;
 

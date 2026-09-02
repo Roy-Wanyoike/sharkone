@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   },
   description:
     "East Africa's premier e-commerce platform. Shop electronics, fashion, and more with fast delivery across Kenya.",
+  keywords:     'SHARKONE, online shopping Kenya, e-commerce East Africa, electronics, fashion, marketplace, fast delivery',
   icons: {
     icon: 'https://z-cdn.chatglm.cn/z-ai/static/logo.svg',
   },

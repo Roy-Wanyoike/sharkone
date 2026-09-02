@@ -94,7 +94,7 @@ export async function DELETE(
 
     audit({ action: 'UPDATE_PRODUCT', resource: 'product', resourceId: id, details: `Product archived: ${existing.name}`, req: request });
 
-    return NextResponse.json({ message: 'Product archived' });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error archiving product:', error);
     return NextResponse.json({ error: 'Failed to archive product' }, { status: 500 });

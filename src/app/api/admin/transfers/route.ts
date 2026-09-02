@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { StockTransferStatus } from '@prisma/client';
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function GET(request: Request) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || '';
@@ -40,6 +43,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const body = await request.json();
     const { productId, fromWarehouseId, toWarehouseId, quantity, requestedBy, notes } = body;

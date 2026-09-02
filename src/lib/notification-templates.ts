@@ -11,12 +11,18 @@ export type NotificationTemplateKey =
   | 'ORDER_CONFIRMED'
   | 'ORDER_SHIPPED'
   | 'ORDER_DELIVERED'
+  | 'ORDER_CANCELLED'
   | 'PAYMENT_RECEIVED'
+  | 'PAYMENT_FAILED'
+  | 'REFUND_PROCESSED'
   | 'RETURN_APPROVED'
   | 'RETURN_REJECTED'
+  | 'COUPON_RECEIVED'
+  | 'PRICE_DROP'
   | 'SELLER_VERIFIED'
   | 'LOW_STOCK'
-  | 'WELCOME';
+  | 'WELCOME'
+  | 'REVIEW_REQUESTED';
 
 export interface NotificationTemplate {
   key: NotificationTemplateKey;
@@ -91,6 +97,48 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationTemplateKey, Notificatio
     body: 'Hi {{userName}}, welcome to SHARKONE! Discover amazing products and great deals. Start shopping now!',
     icon: 'system',
     type: 'SYSTEM',
+  },
+  ORDER_CANCELLED: {
+    key: 'ORDER_CANCELLED',
+    title: 'Order Cancelled ❌',
+    body: 'Your order {{orderNumber}} has been cancelled. A refund of {{refundAmount}} will be processed to your original payment method.',
+    icon: 'order',
+    type: 'ORDER',
+  },
+  PAYMENT_FAILED: {
+    key: 'PAYMENT_FAILED',
+    title: 'Payment Failed ⚠️',
+    body: 'Payment of {{amount}} for order {{orderNumber}} failed. Please try again or use a different payment method.',
+    icon: 'payment',
+    type: 'PAYMENT',
+  },
+  REFUND_PROCESSED: {
+    key: 'REFUND_PROCESSED',
+    title: 'Refund Processed 💸',
+    body: 'Your refund of {{refundAmount}} for order {{orderNumber}} has been processed. It may take 3-5 business days to appear in your account.',
+    icon: 'payment',
+    type: 'PAYMENT',
+  },
+  COUPON_RECEIVED: {
+    key: 'COUPON_RECEIVED',
+    title: 'New Coupon for You! 🎟️',
+    body: 'You\'ve received a coupon! Use code {{couponCode}} for {{discount}} off your next order. Valid until {{expiryDate}}.',
+    icon: 'system',
+    type: 'SYSTEM',
+  },
+  PRICE_DROP: {
+    key: 'PRICE_DROP',
+    title: 'Price Drop Alert! 📉',
+    body: 'Good news! {{productName}} just dropped in price from {{oldPrice}} to {{newPrice}}. Grab it before the price goes back up!',
+    icon: 'system',
+    type: 'SYSTEM',
+  },
+  REVIEW_REQUESTED: {
+    key: 'REVIEW_REQUESTED',
+    title: 'How was your purchase? ⭐',
+    body: 'Your order {{orderNumber}} was delivered. Share your experience and leave a review to help other shoppers!',
+    icon: 'order',
+    type: 'ORDER',
   },
 };
 

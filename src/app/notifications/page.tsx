@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell,
@@ -13,6 +13,7 @@ import {
   CheckCheck,
   ArrowLeft,
   CircleDot,
+  Loader2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
@@ -56,6 +57,8 @@ const tabFilterMap: Record<TabFilter, (n: Notification) => boolean> = {
   payment: (n) => n.type === 'PAYMENT',
   system: (n) => n.type === 'SYSTEM',
 };
+
+const PAGE_SIZE = 20;
 
 // ---------- Empty State Illustration ----------
 
@@ -219,14 +222,49 @@ export default function NotificationsPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
   const [showPrefs, setShowPrefs] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading } = useQuery<{
-    notifications: Notification[];
-    unreadCount: number;
-  }>({
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['notifications-all'],
-    queryFn: () => fetch('/api/notifications').then((r) => r.json()),
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+      if (pageParam) params.set('cursor', pageParam);
+      return fetch(`/api/notifications?${params}`).then((r) => r.json());
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
+
+  // Infinite scroll with IntersectionObserver
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries;
+      if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    },
+    [fetchNextPage, hasNextPage, isFetchingNextPage]
+  );
+
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(handleObserver, { rootMargin: '200px' });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [handleObserver]);
+
+  // Flatten all pages into a single array
+  const notifications: Notification[] =
+    data?.pages.flatMap((page) => page.notifications ?? []) ?? [];
+  const unreadCount = data?.pages[0]?.unreadCount ?? 0;
+  const filtered = notifications.filter(tabFilterMap[activeTab]);
 
   const markRead = useMutation({
     mutationFn: async (id: string) => {
@@ -242,7 +280,7 @@ export default function NotificationsPage() {
 
   const markAllRead = useMutation({
     mutationFn: async () => {
-      const ids = (data?.notifications ?? []).filter((n) => !n.isRead).map((n) => n.id);
+      const ids = notifications.filter((n) => !n.isRead).map((n) => n.id);
       if (ids.length === 0) return;
       const res = await fetch('/api/notifications', {
         method: 'PUT',
@@ -258,10 +296,6 @@ export default function NotificationsPage() {
       toast.success('All notifications marked as read');
     },
   });
-
-  const notifications = data?.notifications ?? [];
-  const unreadCount = data?.unreadCount ?? 0;
-  const filtered = notifications.filter(tabFilterMap[activeTab]);
 
   return (
     <main className="min-h-screen bg-gray-50/50">
@@ -388,7 +422,7 @@ export default function NotificationsPage() {
         ) : filtered.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="space-y-2 max-h-[calc(100vh-260px)] overflow-y-auto pr-1 scrollbar-thin">
+          <div className="space-y-2">
             <AnimatePresence mode="popLayout">
               {filtered.map((notification) => (
                 <NotificationItem
@@ -398,6 +432,25 @@ export default function NotificationsPage() {
                 />
               ))}
             </AnimatePresence>
+
+            {/* Infinite scroll sentinel */}
+            {hasNextPage && (
+              <div ref={loadMoreRef} className="flex justify-center py-6">
+                {isFetchingNextPage && (
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading more…
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* End of list indicator */}
+            {!hasNextPage && notifications.length > 0 && (
+              <p className="text-center text-xs text-gray-400 py-6">
+                You&apos;re all caught up!
+              </p>
+            )}
           </div>
         )}
       </div>

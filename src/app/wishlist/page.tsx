@@ -165,6 +165,7 @@ function WishlistCard({ productId, index }: { productId: string; index: number }
             alt={data.name}
             className="group-hover:scale-105 transition-transform duration-500 object-cover w-[90%] h-[90%] rounded-lg"
             loading="lazy"
+            decoding="async"
           />
         </div>
         {discount > 0 && (

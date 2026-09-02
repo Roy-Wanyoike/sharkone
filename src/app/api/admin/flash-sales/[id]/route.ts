@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { id } = await params;
     const existing = await prisma.flashSale.findUnique({ where: { id } });
@@ -67,6 +70,8 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { id } = await params;
     const existing = await prisma.flashSale.findUnique({ where: { id } });
@@ -77,7 +82,7 @@ export async function DELETE(
 
     await prisma.flashSale.delete({ where: { id } });
 
-    return NextResponse.json({ message: 'Flash sale deleted' });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Delete flash sale error:', error);
     return NextResponse.json({ error: 'Failed to delete flash sale' }, { status: 500 });

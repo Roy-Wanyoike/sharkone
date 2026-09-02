@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { Prisma } from '@prisma/client';
+import { sanitizeSearch } from '@/lib/utils';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const categories = searchParams.getAll('category').filter((c) => c && c !== 'all');
-    const search = searchParams.get('search');
+    const rawSearch = searchParams.get('search');
+    const search = rawSearch ? sanitizeSearch(rawSearch) : null;
     const featured = searchParams.get('featured');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '18');

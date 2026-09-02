@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { CouponType } from '@prisma/client';
+import { requireAuth } from '@/lib/auth-guard';
 
 const VALID_TYPES: CouponType[] = ['PERCENTAGE', 'FIXED_AMOUNT', 'FREE_SHIPPING'];
 
@@ -14,6 +15,8 @@ function generateCouponCode(length = 8): string {
 }
 
 export async function GET(req: NextRequest) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const url = req.nextUrl;
     const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
@@ -57,6 +60,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const body = await req.json();
     const { code, type, value, minOrderValue, maxDiscount, usageLimit, perUserLimit, validFrom, validUntil, applicableCategories, description, generateCode } = body;

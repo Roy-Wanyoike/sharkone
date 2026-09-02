@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { hashPassword } from '@/lib/password';
 import { UserRole } from '@prisma/client';
+import { audit } from '@/lib/audit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,6 +69,15 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 7,
+    });
+
+    audit({
+      userId: user.id,
+      role: user.role,
+      action: 'REGISTER',
+      resource: 'auth',
+      details: `Registration: ${user.email}`,
+      req: request,
     });
 
     return response;

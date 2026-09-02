@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { id } = await params;
     const coupon = await prisma.coupon.findUnique({
@@ -27,6 +30,8 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { id } = await params;
     const body = await req.json();
@@ -75,6 +80,8 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { id } = await params;
     const existing = await prisma.coupon.findUnique({ where: { id } });
@@ -87,7 +94,7 @@ export async function DELETE(
       data: { isActive: false },
     });
 
-    return NextResponse.json({ coupon, message: 'Coupon deactivated successfully' });
+    return NextResponse.json({ coupon, success: true });
   } catch (error) {
     console.error('Delete coupon error:', error);
     return NextResponse.json({ error: 'Failed to deactivate coupon' }, { status: 500 });

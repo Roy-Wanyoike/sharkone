@@ -68,5 +68,23 @@ worklog.md
 test
 prompt
 
+# Agent context (internal development)
+/agent-ctx/
+
+# Download artifacts (screenshots, research)
+/download/
+
+# Internal test scripts
+/tests/
+
+# Source images (use public/ instead)
+/src/images/
+
+# Deployment configs (environment-specific)
+/Caddyfile
+
+# Seed scripts (development only, run manually)
+/scripts/
+
 # OS files
 Thumbs.db

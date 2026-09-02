@@ -2,16 +2,22 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { UserRole } from '@prisma/client';
 
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 50;
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     let userId = searchParams.get('userId');
+    const rawLimit = parseInt(searchParams.get('limit') ?? '', 10);
+    const limit = isNaN(rawLimit) ? DEFAULT_LIMIT : Math.min(Math.max(rawLimit, 1), MAX_LIMIT);
+    const cursor = searchParams.get('cursor') || undefined;
 
     // If no userId provided, fall back to the first buyer user
     if (!userId) {
       const buyer = await prisma.user.findFirst({ where: { role: UserRole.BUYER } });
       if (!buyer) {
-        return NextResponse.json({ notifications: [], unreadCount: 0 });
+        return NextResponse.json({ notifications: [], unreadCount: 0, nextCursor: null });
       }
       userId = buyer.id;
     }
@@ -19,12 +25,19 @@ export async function GET(request: Request) {
     const notifications = await prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: limit + 1, // fetch one extra to check if there's a next page
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
     const unreadCount = await prisma.notification.count({
       where: { userId, isRead: false },
     });
+
+    let nextCursor: string | null = null;
+    if (notifications.length > limit) {
+      const nextItem = notifications.pop()!;
+      nextCursor = nextItem.id;
+    }
 
     const mapped = notifications.map((n) => ({
       id: n.id,
@@ -37,7 +50,7 @@ export async function GET(request: Request) {
       createdAt: n.createdAt.toISOString(),
     }));
 
-    return NextResponse.json({ notifications: mapped, unreadCount });
+    return NextResponse.json({ notifications: mapped, unreadCount, nextCursor });
   } catch (error) {
     console.error('Error fetching notifications:', error);
     return NextResponse.json(

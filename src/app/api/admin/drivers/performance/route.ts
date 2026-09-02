@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { requireAuth } from '@/lib/auth-guard';
 
 const MAX_ACTIVE_DELIVERIES = 5;
 
@@ -12,6 +13,8 @@ function successRateToRating(successRate: number): number {
 }
 
 export async function GET(request: NextRequest) {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { searchParams } = new URL(request.url);
     const statusFilter = searchParams.get('status'); // 'available' | 'busy'

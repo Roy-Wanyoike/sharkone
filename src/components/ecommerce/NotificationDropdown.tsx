@@ -38,7 +38,7 @@ export function NotificationDropdown({ open, onClose }: NotificationDropdownProp
     unreadCount: number;
   }>({
     queryKey: ['notifications'],
-    queryFn: () => fetch('/api/notifications').then((r) => r.json()),
+    queryFn: () => fetch('/api/notifications?limit=8').then((r) => r.json()),
     enabled: open,
   });
 

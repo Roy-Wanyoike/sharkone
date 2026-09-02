@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { startOfDay, endOfDay } from 'date-fns';
+import { requireAuth } from '@/lib/auth-guard';
 
 export async function GET() {
+  const user = await requireAuth('ADMIN');
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const todayStart = startOfDay(new Date());
     const todayEnd = endOfDay(new Date());

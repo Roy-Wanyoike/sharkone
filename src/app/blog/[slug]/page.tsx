@@ -202,6 +202,8 @@ function BlogPostContent({ slug }: { slug: string }) {
                 src={post.coverImage}
                 alt={post.title}
                 className="h-full w-full object-cover"
+                loading="eager"
+                decoding="async"
               />
             ) : (
               <div
