@@ -24,7 +24,11 @@ export async function POST(
     const body = await request.json();
     const signature = request.headers.get('x-webhook-signature') ?? '';
 
-    // Mock signature verification — always valid in development
+    // SECURITY WARNING: No webhook signature verification is performed here.
+    // This is intentional for mock/development mode — the handler accepts any POST
+    // payload without validating the signature. For production deployment, this MUST
+    // be replaced with proper signature verification (e.g., HMAC-SHA256) using the
+    // provider's signing secret to prevent forged webhook payloads.
     // TODO: Implement real signature verification for production
 
     if (!paymentProvider.webhookHandler) {
