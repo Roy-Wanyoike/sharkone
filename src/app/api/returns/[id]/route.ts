@@ -149,9 +149,11 @@ export async function PUT(
       }
     }
 
-    // When CANCELLED
+    // When CANCELLED — only mark refund as FAILED if not already refunded (COMPLETED)
     if (status === 'CANCELLED') {
-      updateData.refundStatus = 'FAILED';
+      if (existing.refundStatus !== 'COMPLETED') {
+        updateData.refundStatus = 'FAILED';
+      }
       updateData.resolvedAt = new Date();
     }
 
