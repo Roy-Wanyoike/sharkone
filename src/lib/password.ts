@@ -17,9 +17,10 @@ function generateSalt(length = 16): Uint8Array {
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = generateSalt();
-  const data = new TextEncoder().encode(salt.join(',') + ':' + password);
+  const saltHex = toHex(salt);
+  const data = new TextEncoder().encode(saltHex + ':' + password);
   const hash = await crypto.subtle.digest('SHA-256', data);
-  return `${toHex(salt)}:${toHex(hash)}`;
+  return `${saltHex}:${toHex(hash)}`;
 }
 
 export async function verifyPassword(
@@ -29,11 +30,7 @@ export async function verifyPassword(
   const [saltHex, hashHex] = storedHash.split(':');
   if (!saltHex || !hashHex) return false;
 
-  const salt = new Uint8Array(
-    saltHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
-  );
-
-  const data = new TextEncoder().encode(salt.join(',') + ':' + password);
+  const data = new TextEncoder().encode(saltHex + ':' + password);
   const hash = await crypto.subtle.digest('SHA-256', data);
   return toHex(hash) === hashHex;
 }

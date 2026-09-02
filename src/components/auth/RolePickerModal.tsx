@@ -1,6 +1,6 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -62,15 +62,36 @@ export function RolePickerModal() {
     () => false
   );
 
-  const handleSelect = (account: AuthAccount) => {
-    selectAccount(account);
-    toast.success(`Logged in as ${account.label}${account.storeName ? ` (${account.storeName})` : ''}`);
-    setTimeout(() => {
-      router.push(account.redirectPath);
-    }, 400);
+  const [switching, setSwitching] = useState<string | null>(null);
+
+  const handleSelect = async (account: AuthAccount) => {
+    setSwitching(account.role);
+    try {
+      const res = await fetch('/api/auth/switch-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: account.userId }),
+      });
+      if (!res.ok) {
+        toast.error('Failed to switch account');
+        setSwitching(null);
+        return;
+      }
+      selectAccount(account);
+      toast.success(`Logged in as ${account.label}${account.storeName ? ` (${account.storeName})` : ''}`);
+      setTimeout(() => {
+        router.push(account.redirectPath);
+      }, 400);
+    } catch {
+      toast.error('Something went wrong');
+      setSwitching(null);
+    }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch { /* ignore */ }
     logout();
     toast.info('Logged out successfully');
     router.push('/login');
@@ -128,7 +149,8 @@ export function RolePickerModal() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.08 }}
                     onClick={() => handleSelect(account)}
-                    className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 ${colors.bg} ${colors.border} transition-all duration-200 cursor-pointer group text-left`}
+                    disabled={switching !== null}
+                    className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 ${colors.bg} ${colors.border} transition-all duration-200 cursor-pointer group text-left ${switching === account.role ? 'opacity-70 pointer-events-none' : ''}`}
                   >
                     <div className={`w-12 h-12 rounded-xl ${colors.iconBg} flex items-center justify-center shrink-0 ${colors.iconText} group-hover:scale-105 transition-transform`}>
                       {roleIcons[account.role] ?? <User className="h-6 w-6" />}
